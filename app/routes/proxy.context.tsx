@@ -117,8 +117,8 @@ function corsHeaders() {
   };
 }
 
-// Defensive default export so Remix doesn't complain about a route
-// component being missing for a loader-only route.
-export default function ProxyContext() {
-  return null;
-}
+// No default export on purpose: this is a Remix "resource route" — a
+// loader-only endpoint that returns JSON. If we add a default export,
+// Remix treats it as a navigable page and renders the full HTML
+// document around the loader data on plain fetch() requests, breaking
+// the App Proxy contract.
