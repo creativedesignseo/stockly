@@ -1,0 +1,83 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+.yarn/
+
+# Build outputs
+build/
+dist/
+.next/
+.remix/
+public/build/
+.vercel/
+.netlify/
+
+# Environment variables (NEVER commit)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Credentials & secrets (NEVER commit)
+**/credentials/
+**/client_secret*.json
+**/token*.json
+**/*.pem
+**/*.key
+**/.shopify-admin/
+**/service-account*.json
+
+# Shopify CLI
+.shopify
+.shopifyignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+ehthumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+playwright/.cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+prisma/dev.db*
+
+# Cache
+.cache/
+.parcel-cache/
+.turbo/
+
+# Temp
+tmp/
+temp/
+*.tmp
