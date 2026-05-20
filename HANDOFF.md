@@ -48,6 +48,37 @@ If you're confused on context, read in this order:
 
 ---
 
+## ⏯️ Resume marker — pick up here
+
+The session that left this handoff (May 20, 2026 evening) was working
+in a different repo folder (Piro Jewelry) and just moved to this one
+to keep the project context properly scoped.
+
+**Immediate next action when you resume:**
+
+```bash
+cd /Users/aimac/Documents/Workspace/Clients/stockly
+# If npm run dev is not running:
+npm run dev
+# Then in another terminal:
+shopify app generate extension
+#   → choose: Theme app extension
+#   → name: quick-order-form
+```
+
+After the extension is scaffolded, you (or the next Claude session)
+should:
+1. Implement the Liquid block in `extensions/quick-order-form/blocks/`
+2. Add a Web Component asset that fetches `/apps/stockly/context`
+3. Render the table with tier-aware totals
+4. Seed the dev store with test products + a customer tagged `wholesale`
+5. Embed the block on a page `/pages/wholesale-order`
+
+See [docs/sprints/sprint-1-log.md](./docs/sprints/sprint-1-log.md)
+for the full deliverable checklist.
+
+---
+
 ## 🔌 Resume from a fresh terminal (zero state)
 
 ```bash
