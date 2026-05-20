@@ -122,6 +122,16 @@ export async function listTiers(shopId: string) {
 }
 
 /**
+ * Fetch a tier by id, scoped to the shop.
+ *
+ * Returns null if the tier doesn't exist OR belongs to a different shop.
+ * Always pass shopId so a user can't probe another tenant's IDs.
+ */
+export async function getTier(id: string, shopId: string) {
+  return prisma.tier.findFirst({ where: { id, shopId } });
+}
+
+/**
  * Create a new tier.
  */
 export async function createTier(data: {
