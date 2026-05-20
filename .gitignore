@@ -32,10 +32,14 @@ public/build/
 
 # Shopify CLI
 .shopify
+.shopify.lock
 .shopifyignore
+/public/_dev
+/extensions/*/dist
 
-# IDE
-.vscode/
+# IDE — keep shared project settings (.vscode/extensions.json, mcp.json)
+# but ignore personal overrides
+.vscode/*.local.json
 .idea/
 *.swp
 *.swo
