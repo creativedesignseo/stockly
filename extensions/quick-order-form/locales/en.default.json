@@ -1,10 +1,19 @@
 {
-  "ratings": {
-    "stars": {
-      "label": "Ratings"
+  "qof": {
+    "loading": "Loading wholesale catalog…",
+    "error": "We couldn't load the wholesale catalog. Please refresh the page.",
+    "total": "Order total",
+    "add_all": "Add all to cart",
+    "col": {
+      "image": "Image",
+      "title": "Product",
+      "sku": "SKU",
+      "price": "Price",
+      "qty": "Qty",
+      "total": "Line total"
     },
-    "home": {
-      "recommendationText": "Recommended Product!"
+    "aria": {
+      "qty": "Quantity"
     }
   }
 }

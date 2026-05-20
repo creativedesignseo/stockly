@@ -1,0 +1,156 @@
+{%- comment -%}
+  Stockly — Quick Order Form (F1)
+
+  Renders a bulk-order table for B2B customers. Liquid emits the product
+  list with base prices server-side; the <stockly-quick-order> Web Component
+  hydrates it by calling /apps/stockly/context, gating eligibility, and
+  recalculating tier-aware totals client-side.
+
+  v1 scope: shop-wide collection picker, base prices from Liquid, tier
+  resolution mirrored client-side. Storefront-API per-customer prices,
+  live search, and mobile cards land in follow-up commits.
+{%- endcomment -%}
+
+{%- assign source = block.settings.collection -%}
+{%- if source != blank -%}
+  {%- assign qof_products = source.products -%}
+{%- else -%}
+  {%- assign qof_products = collections.all.products -%}
+{%- endif -%}
+
+<stockly-quick-order
+  class="stockly-qo"
+  data-context-url="/apps/stockly/context"
+  data-customer-id="{% if customer %}{{ customer.id }}{% endif %}"
+  data-customer-tags="{% if customer %}{{ customer.tags | join: ',' | escape }}{% endif %}"
+  {{ block.shopify_attributes }}
+>
+  {%- if block.settings.heading != blank -%}
+    <h2 class="stockly-qo__heading">{{ block.settings.heading }}</h2>
+  {%- endif -%}
+
+  <div class="stockly-qo__states" data-stockly-state="loading">
+    <p class="stockly-qo__state stockly-qo__state--loading">
+      {{ 'qof.loading' | t }}
+    </p>
+    <p class="stockly-qo__state stockly-qo__state--not-eligible" hidden>
+      {{ block.settings.not_eligible_text }}
+    </p>
+    <p class="stockly-qo__state stockly-qo__state--empty" hidden>
+      {{ block.settings.empty_state_text }}
+    </p>
+    <p class="stockly-qo__state stockly-qo__state--error" hidden>
+      {{ 'qof.error' | t }}
+    </p>
+  </div>
+
+  <div class="stockly-qo__table-wrap" hidden>
+    <table class="stockly-qo__table">
+      <thead>
+        <tr>
+          <th class="stockly-qo__col-image" aria-label="{{ 'qof.col.image' | t }}"></th>
+          <th class="stockly-qo__col-title">{{ 'qof.col.title' | t }}</th>
+          <th class="stockly-qo__col-sku">{{ 'qof.col.sku' | t }}</th>
+          <th class="stockly-qo__col-price">{{ 'qof.col.price' | t }}</th>
+          <th class="stockly-qo__col-qty">{{ 'qof.col.qty' | t }}</th>
+          <th class="stockly-qo__col-total">{{ 'qof.col.total' | t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%- for product in qof_products limit: 100 -%}
+          {%- assign collection_gids = '' -%}
+          {%- for c in product.collections -%}
+            {%- assign collection_gids = collection_gids | append: 'gid://shopify/Collection/' | append: c.id -%}
+            {%- unless forloop.last -%}{%- assign collection_gids = collection_gids | append: ',' -%}{%- endunless -%}
+          {%- endfor -%}
+          {%- for variant in product.variants -%}
+            <tr
+              class="stockly-qo__row"
+              data-variant-id="{{ variant.id }}"
+              data-product-gid="gid://shopify/Product/{{ product.id }}"
+              data-collection-gids="{{ collection_gids }}"
+              data-base-price="{{ variant.price }}"
+            >
+              <td class="stockly-qo__cell stockly-qo__cell--image">
+                {%- if variant.image -%}
+                  <img src="{{ variant.image | image_url: width: 80 }}" width="60" height="60" alt="{{ product.title | escape }}" loading="lazy">
+                {%- elsif product.featured_image -%}
+                  <img src="{{ product.featured_image | image_url: width: 80 }}" width="60" height="60" alt="{{ product.title | escape }}" loading="lazy">
+                {%- endif -%}
+              </td>
+              <td class="stockly-qo__cell stockly-qo__cell--title">
+                <a href="{{ product.url }}">{{ product.title }}</a>
+                {%- unless variant.title == 'Default Title' -%}
+                  <span class="stockly-qo__variant">{{ variant.title }}</span>
+                {%- endunless -%}
+              </td>
+              <td class="stockly-qo__cell stockly-qo__cell--sku">{{ variant.sku }}</td>
+              <td class="stockly-qo__cell stockly-qo__cell--price">{{ variant.price | money }}</td>
+              <td class="stockly-qo__cell stockly-qo__cell--qty">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  value="0"
+                  class="stockly-qo__qty"
+                  data-variant-id="{{ variant.id }}"
+                  aria-label="{{ 'qof.aria.qty' | t }}: {{ product.title | escape }}"
+                  disabled
+                >
+              </td>
+              <td class="stockly-qo__cell stockly-qo__cell--total" data-stockly-line-total>
+                {{ 0 | money }}
+              </td>
+            </tr>
+          {%- endfor -%}
+        {%- endfor -%}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stockly-qo__footer" hidden>
+    <div class="stockly-qo__grand">
+      <span class="stockly-qo__grand-label">{{ 'qof.total' | t }}</span>
+      <strong class="stockly-qo__grand-value" data-stockly-grand-total>{{ 0 | money }}</strong>
+    </div>
+    <button type="button" class="stockly-qo__cta" data-stockly-add-all disabled>
+      {{ 'qof.add_all' | t }}
+    </button>
+  </div>
+</stockly-quick-order>
+
+{% schema %}
+{
+  "name": "Quick Order Form",
+  "target": "section",
+  "stylesheet": "quick-order-form.css",
+  "javascript": "quick-order-form.js",
+  "settings": [
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Source collection",
+      "info": "Leave empty to show all products."
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Wholesale order"
+    },
+    {
+      "type": "textarea",
+      "id": "empty_state_text",
+      "label": "Empty state copy",
+      "default": "No products available right now. Contact us for a custom order."
+    },
+    {
+      "type": "textarea",
+      "id": "not_eligible_text",
+      "label": "Not-eligible copy",
+      "default": "Wholesale ordering is available to approved customers. Get in touch to apply."
+    }
+  ]
+}
+{% endschema %}
