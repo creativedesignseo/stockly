@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   lint-and-typecheck:
-    name: Lint + Typecheck
+    name: Lint + Typecheck + Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -38,6 +38,9 @@ jobs:
 
       - name: TypeScript typecheck
         run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
 
   build:
     name: Build
