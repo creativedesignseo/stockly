@@ -5,12 +5,15 @@ import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
-import { authenticate } from "../shopify.server";
+import { authenticateAdmin } from "../lib/auth.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  // authenticateAdmin guarantees a Stockly Shop row exists for the
+  // authenticated store. Every admin page loads through this layout,
+  // so this is also our "post-install bootstrap" hook.
+  await authenticateAdmin(request);
 
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };

@@ -13,6 +13,10 @@ datasource db {
   url      = "file:dev.sqlite"
 }
 
+// ---------------------------------------------------------------------------
+// Session — managed by @shopify/shopify-app-session-storage-prisma
+// Do NOT modify the columns here unless the Shopify package requires it.
+// ---------------------------------------------------------------------------
 model Session {
   id                  String    @id
   shop                String
@@ -31,4 +35,78 @@ model Session {
   emailVerified       Boolean?  @default(false)
   refreshToken        String?
   refreshTokenExpires DateTime?
+}
+
+// ---------------------------------------------------------------------------
+// Stockly domain models
+// ---------------------------------------------------------------------------
+
+/// One row per installed Shopify store. The id is the shop domain
+/// (e.g. "desarrollo-adspubli.myshopify.com").
+model Shop {
+  id                 String              @id
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  /// Stringified JSON: { primaryColor, accentColor, fontFamily, logoUrl }
+  branding           String?
+  /// Stringified JSON: { errorMinQty, errorMinValue, emptyState, cta, ... }
+  copy               String?
+
+  /// Customer tag that grants wholesale access (default convention).
+  wholesaleTag       String              @default("wholesale")
+
+  /// Optional minimum order value (in the shop's currency).
+  minOrderValue      Float?
+
+  /// True once the store owner has completed onboarding.
+  onboarded          Boolean             @default(false)
+
+  tiers              Tier[]
+  wholesaleCustomers WholesaleCustomer[]
+}
+
+/// Volume pricing tier. `scope` is one of 'product' | 'collection' | 'all'.
+/// When `scope = 'all'`, `scopeId` MUST be null. Otherwise `scopeId`
+/// holds the Shopify GID (e.g. "gid://shopify/Product/123").
+model Tier {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  name        String
+  scope       String   // 'product' | 'collection' | 'all'
+  scopeId     String?
+
+  minQty      Int
+  /// Percent discount, 0-100 (10 means -10%).
+  discountPct Float
+
+  active      Boolean  @default(true)
+  /// Display order in the admin UI.
+  position    Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId, active])
+  @@index([shopId, scope, scopeId])
+}
+
+/// Cache of customers approved for wholesale on this shop.
+/// `shopifyCustomerId` is stored as String to avoid BigInt edge cases
+/// across JS/SQLite/Postgres boundaries.
+model WholesaleCustomer {
+  id                String   @id @default(cuid())
+  shopId            String
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  shopifyCustomerId String
+  email             String?
+
+  approvedAt        DateTime @default(now())
+  notes             String?
+
+  @@unique([shopId, shopifyCustomerId])
+  @@index([shopId, email])
 }
