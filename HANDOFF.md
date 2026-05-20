@@ -3,9 +3,10 @@
 > **Read this file first** if you're starting a fresh session on Stockly.
 > This is the single source of truth for current state and resume instructions.
 
-**Last updated:** May 20, 2026 — End of Sprint 0
-**Last commit:** `d1f0666` — "docs: close Sprint 0 — foundation complete"
+**Last updated:** May 20, 2026 — Sprint 1 in progress
+**Last commit:** `4ac6a9d` — "feat(sprint-1): App Proxy context endpoint"
 **GitHub:** https://github.com/creativedesignseo/stockly
+**CI:** ✅ Passing (lint + typecheck + build)
 
 ---
 
@@ -21,24 +22,29 @@ If you're confused on context, read in this order:
 
 ---
 
-## 📍 Current state — Sprint 0 ✅ COMPLETE
+## 📍 Current state — Sprint 1 🟡 IN PROGRESS
 
-### What's working right now
-- ✅ Repo + GitHub remote
-- ✅ Shopify Remix scaffold integrated (Remix 2.x + TypeScript + Polaris + Prisma SQLite)
-- ✅ App installed on dev store `desarrollo-adspubli.myshopify.com`
-- ✅ OAuth + GraphQL Admin API verified (productCreate mutation tested → "Red Snowboard" created)
-- ✅ Cloudflare tunnel + HMR + webhooks all green
+### Sprint 0 ✅ done (foundation)
+- Repo + GitHub + CI (lint + typecheck + build all green)
+- Shopify Remix scaffold integrated
+- App installed on `desarrollo-adspubli.myshopify.com`
+- OAuth + GraphQL Admin API verified
 
-### What's next — Sprint 1 (Quick Order Form, weeks 2-3)
-See [docs/03-features-mvp.md F1](./docs/03-features-mvp.md#f1--quick-order-form) for full spec.
+### Sprint 1 — what's shipped so far
+- ✅ Domain models (`Shop`, `Tier`, `WholesaleCustomer`) + migration applied
+- ✅ Service layer (`tiers`, `shops`, `wholesale-customers`)
+- ✅ Auth wrapper that auto-creates Shop row on first install
+- ✅ Admin UI: `/app/tiers` list + `/app/tiers/new` create form (Polaris)
+- ✅ App Proxy endpoint `/apps/stockly/context` (eligibility + branding + copy + tiers in one call)
+- ✅ Dependency conflict fix (pinned `@shopify/shopify-api` to 13.0.0)
+- ✅ GitHub Actions CI (lint + typecheck + build)
 
-Suggested order of work for Sprint 1:
-1. Extend `prisma/schema.prisma` with custom models: `Shop`, `Tier`, `WholesaleCustomer`
-2. Run `shopify app generate extension` → Theme App Extension named `quick-order-form`
-3. Create API endpoint `app/routes/api.products.tsx` (returns customer-eligible products)
-4. Build Liquid block + Web Component for the table UI
-5. Seed dev store: 10 test products + 1 customer tagged `wholesale`
+### Sprint 1 — what's still needed (next steps)
+1. **Theme App Extension scaffold** — run `shopify app generate extension` (interactive CLI)
+2. **Quick Order Form block** — Liquid + Web Component, calls App Proxy + Storefront API
+3. **Edit tier route** (`/app/tiers/:id`) + delete action
+4. **Seed dev store** — 10 products + 1 wholesale-tagged customer + page with block
+5. **Unit tests for `resolveTier`** — core business logic deserves coverage
 
 ---
 
