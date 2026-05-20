@@ -23,6 +23,14 @@ api_version = "2026-07"
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]
 
+[app_proxy]
+# Storefront URL /apps/stockly/* is forwarded to our backend /proxy/*.
+# The full proxy URL is set automatically by the CLI to the dev tunnel
+# during development, and to the production app URL on deploy.
+url = "https://example.com/proxy"
+subpath = "stockly"
+prefix = "apps"
+
 [build]
 include_config_on_deploy = true
 automatically_update_urls_on_dev = true
