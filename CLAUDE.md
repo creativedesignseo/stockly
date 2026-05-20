@@ -1,7 +1,10 @@
 # Stockly — Claude Co-Pilot Memory
 
+> **🚨 If you're starting a fresh session: read [HANDOFF.md](./HANDOFF.md) FIRST.**
+> It has current sprint status, last commit, and the exact command to resume work.
+
 > Read this file at the start of every fresh Claude session on this project.
-> Last updated: May 20, 2026
+> Last updated: May 20, 2026 (Sprint 0 ✅ complete — Sprint 1 next)
 
 ---
 

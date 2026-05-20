@@ -36,10 +36,11 @@ mobile-first, customizable theming.
 
 ## Quick Links
 
+- 🤝 [HANDOFF.md](./HANDOFF.md) — **Start here** if resuming work (current state + resume commands)
 - 📋 [PROJECT.md](./PROJECT.md) — Full project plan + scope
 - 🗺️ [ROADMAP.md](./ROADMAP.md) — 10-week sprint plan
 - 📊 [docs/](./docs/) — Market research, positioning, decisions
-- 🤖 [CLAUDE.md](./CLAUDE.md) — AI co-pilot context (read this if starting fresh session)
+- 🤖 [CLAUDE.md](./CLAUDE.md) — AI co-pilot context
 
 ---
 
