@@ -61,6 +61,21 @@ Shopify revenue share: 0% on first $1M/year, 15% above. Processing fee: 2.9%.
 
 ---
 
+## Development environment
+
+| Resource | Value |
+|---|---|
+| Dev store | **desarrollo-adspubli.myshopify.com** (chosen Sprint 0, May 20 2026) |
+| Partner account | Jonatan (Adspubli) |
+| Local dev command | `npm run dev` from `/Users/aimac/Documents/Workspace/Clients/stockly/` |
+| Local DB | SQLite at `prisma/dev.sqlite` |
+| GitHub | `creativedesignseo/stockly` (private) |
+
+**Stores NOT to use for dev** (would touch real client data):
+- ❌ `adspubli.myshopify.com` (Adspubli main store)
+- ❌ `hotel-us.myshopify.com` (real client)
+- ❌ `piroaccessories.myshopify.com` (real production — only for Sprint 5 beta install)
+
 ## Pilot clients
 
 | # | Store | Status |
