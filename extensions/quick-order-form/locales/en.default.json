@@ -18,5 +18,11 @@
     "ladder": {
       "label": "Volume pricing"
     }
+  },
+  "wpp": {
+    "variant": "Option",
+    "your_price": "Your wholesale price",
+    "you_save": "Save",
+    "qty": "Qty"
   }
 }

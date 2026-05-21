@@ -1,0 +1,177 @@
+{%- comment -%}
+  Stockly — Wholesale Product Panel (Sprint 3 / ADR-006)
+
+  Alibaba-style B2B panel that sits on individual product pages alongside
+  the standard retail "Add to cart" form. Wholesale customers see live
+  tier-aware pricing for the current product; everyone else sees nothing.
+
+  Render flow:
+    1. Liquid emits the shell with every variant's id/price/sku encoded
+       in data attributes, so the JS doesn't need a separate fetch to
+       resolve variants.
+    2. <stockly-product-panel> calls /apps/stockly/context once on
+       connect to learn: eligibility, FPQ state, wholesale baseline %,
+       and the tiers that scope to this product (via product/collection
+       GIDs we hand it).
+    3. If not eligible → block stays hidden (luxury brands don't want
+       retail visitors seeing wholesale pricing).
+    4. If eligible → renders price block (retail strikethrough +
+       wholesale price), tier ladder, qty input with +/- buttons,
+       next-tier nudge, "Add to wholesale cart" CTA. FPQ banner for
+       approved_pre_fpq state.
+
+  Merchant adds this block via theme editor on the Product page
+  section. No settings beyond labels / branding overrides.
+{%- endcomment -%}
+
+{%- assign collection_gids = '' -%}
+{%- for c in product.collections -%}
+  {%- assign collection_gids = collection_gids | append: 'gid://shopify/Collection/' | append: c.id -%}
+  {%- unless forloop.last -%}{%- assign collection_gids = collection_gids | append: ',' -%}{%- endunless -%}
+{%- endfor -%}
+
+<stockly-product-panel
+  class="stockly-wpp"
+  data-context-url="/apps/stockly/context"
+  data-customer-id="{% if customer %}{{ customer.id }}{% endif %}"
+  data-customer-tags="{% if customer %}{{ customer.tags | join: ',' | escape }}{% endif %}"
+  data-product-gid="gid://shopify/Product/{{ product.id }}"
+  data-collection-gids="{{ collection_gids }}"
+  data-product-title="{{ product.title | escape }}"
+  data-initial-variant-id="{{ product.selected_or_first_available_variant.id }}"
+  {{ block.shopify_attributes }}
+  hidden
+>
+  {%- comment -%}
+    Variants payload. JS reads this once and never re-queries Shopify.
+    Each option is rendered as a <script type="application/json"> so
+    the browser doesn't try to execute it.
+  {%- endcomment -%}
+  <script type="application/json" data-stockly-variants>
+    [
+      {%- for v in product.variants -%}
+        {
+          "id": {{ v.id }},
+          "title": {{ v.title | json }},
+          "sku": {{ v.sku | json }},
+          "price": {{ v.price }},
+          "available": {{ v.available }},
+          "option1": {{ v.option1 | json }},
+          "option2": {{ v.option2 | json }},
+          "option3": {{ v.option3 | json }}
+        }{%- unless forloop.last -%},{%- endunless -%}
+      {%- endfor -%}
+    ]
+  </script>
+
+  <header class="stockly-wpp__header">
+    <span class="stockly-wpp__badge" aria-hidden="true">{{ block.settings.heading }}</span>
+    {%- if block.settings.subheading != blank -%}
+      <p class="stockly-wpp__subheading">{{ block.settings.subheading }}</p>
+    {%- endif -%}
+  </header>
+
+  {%- comment -%}
+    FPQ banner — visible only for approved_pre_fpq state with unmet gate.
+  {%- endcomment -%}
+  <div class="stockly-wpp__fpq" data-stockly-fpq hidden>
+    <span class="stockly-wpp__fpq-icon" aria-hidden="true">★</span>
+    <span data-stockly-fpq-text></span>
+  </div>
+
+  {%- comment -%}
+    Tier ladder. Hidden when no tier applies to this product.
+  {%- endcomment -%}
+  <div class="stockly-wpp__ladder" hidden>
+    <span class="stockly-wpp__ladder-label">{{ 'qof.ladder.label' | t }}</span>
+    <div class="stockly-wpp__ladder-tiers" data-stockly-ladder></div>
+  </div>
+
+  {%- comment -%}
+    Variant selector. Only rendered when the product has > 1 variant.
+    JS shows/hides based on the variants payload.
+  {%- endcomment -%}
+  <div class="stockly-wpp__variant-row" data-stockly-variant-row hidden>
+    <label class="stockly-wpp__variant-label" for="stockly-wpp-variant-{{ block.id }}">
+      {{ 'wpp.variant' | t }}
+    </label>
+    <select
+      id="stockly-wpp-variant-{{ block.id }}"
+      class="stockly-wpp__variant-select"
+      data-stockly-variant-select
+    ></select>
+  </div>
+
+  <div class="stockly-wpp__price-row">
+    <div class="stockly-wpp__price-block">
+      <span class="stockly-wpp__price-label">{{ 'wpp.your_price' | t }}</span>
+      <span class="stockly-wpp__price-wholesale" data-stockly-wholesale-price>—</span>
+      <span class="stockly-wpp__price-retail" data-stockly-retail-price hidden></span>
+    </div>
+    <div class="stockly-wpp__save-block" data-stockly-save hidden>
+      <span class="stockly-wpp__save-label">{{ 'wpp.you_save' | t }}</span>
+      <strong class="stockly-wpp__save-value" data-stockly-save-pct>0%</strong>
+    </div>
+  </div>
+
+  <div class="stockly-wpp__qty-row">
+    <label class="stockly-wpp__qty-label" for="stockly-wpp-qty-{{ block.id }}">
+      {{ 'wpp.qty' | t }}
+    </label>
+    <div class="stockly-wpp__qty-stepper">
+      <button type="button" class="stockly-wpp__qty-btn" data-stockly-qty-minus aria-label="-1">−</button>
+      <input
+        id="stockly-wpp-qty-{{ block.id }}"
+        type="number"
+        min="1"
+        step="1"
+        inputmode="numeric"
+        value="1"
+        class="stockly-wpp__qty"
+        data-stockly-qty
+      >
+      <button type="button" class="stockly-wpp__qty-btn" data-stockly-qty-plus aria-label="+1">+</button>
+    </div>
+    <span class="stockly-wpp__line-total" data-stockly-line-total></span>
+  </div>
+
+  <p class="stockly-wpp__nudge" data-stockly-nudge hidden></p>
+
+  <button type="button" class="stockly-wpp__cta" data-stockly-add disabled>
+    {{ block.settings.cta_label }}
+  </button>
+
+  <p class="stockly-wpp__msg" data-stockly-msg hidden></p>
+</stockly-product-panel>
+
+{% schema %}
+{
+  "name": "Wholesale Product Panel",
+  "target": "section",
+  "stylesheet": "wholesale-product-panel.css",
+  "javascript": "wholesale-product-panel.js",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Header badge",
+      "default": "Wholesale price"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Live volume pricing for approved buyers."
+    },
+    {
+      "type": "text",
+      "id": "cta_label",
+      "label": "Add-to-cart label",
+      "default": "Add to wholesale cart"
+    }
+  ]
+}
+{% endschema %}
