@@ -265,9 +265,15 @@ async function updateDiscountMetafield(
  * reads — separate follow-up.
  */
 async function buildConfiguration(shopId: string): Promise<string> {
-  const [shop, tiers] = await Promise.all([
+  const [shop, tiers, qualifiedRows] = await Promise.all([
     prisma.shop.findUniqueOrThrow({ where: { id: shopId } }),
     listTiers(shopId, { activeOnly: true }),
+    // Source of truth for qualified customers is our DB. We surface
+    // them as GIDs in the shop-level metafield the Function reads.
+    prisma.wholesaleCustomer.findMany({
+      where: { shopId, qualifiedAt: { not: null } },
+      select: { shopifyCustomerId: true },
+    }),
   ]);
 
   const shopWide = tiers
@@ -278,6 +284,10 @@ async function buildConfiguration(shopId: string): Promise<string> {
       aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
     }))
     .sort((a, b) => a.minQty - b.minQty);
+
+  const qualifiedCustomers = qualifiedRows.map(
+    (r) => `gid://shopify/Customer/${r.shopifyCustomerId}`,
+  );
 
   return JSON.stringify({
     wholesaleBaselinePct: shop.wholesaleBaselinePct,
@@ -291,6 +301,10 @@ async function buildConfiguration(shopId: string): Promise<string> {
       combinedLogic: shop.fpqCombinedLogic,
     },
     postQualificationMOQ: shop.postQualificationMOQ,
+    // Qualified customer GIDs. The Function checks membership of
+    // `input.cart.buyerIdentity.customer.id` here to decide whether
+    // to skip the FPQ gate.
+    qualifiedCustomers,
     tiers: shopWide,
   });
 }

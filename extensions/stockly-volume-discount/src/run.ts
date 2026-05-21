@@ -64,14 +64,25 @@ interface FunctionConfig {
    */
   wholesaleBaselinePct?: number;
   /**
-   * First-Purchase Qualifier (ADR-004). If a wholesale customer's
-   * `wholesaleStatus` metafield is empty (not yet qualified), the
+   * First-Purchase Qualifier (ADR-004). If the customer's id is NOT
+   * in `qualifiedCustomers` (still in approved_pre_fpq state), the
    * Function evaluates their cart against this gate before applying
-   * any discount. Once qualified (metafield non-empty), the gate is
-   * skipped — wholesale pricing applies on every subsequent cart.
+   * any discount. Once qualified, the gate is skipped — wholesale
+   * pricing applies on every subsequent cart.
    */
   fpq?: FpqConfig;
   postQualificationMOQ?: number;
+  /**
+   * GIDs of customers who have already cleared the FPQ. Sourced from
+   * Stockly's WholesaleCustomer table. Stored in the shop-level
+   * function-configuration metafield (NOT a per-customer metafield)
+   * because Shopify treats per-customer metafields as protected data
+   * — apps cannot write them without an explicit approval flow that
+   * requires a Privacy Policy and a production-quality data use case.
+   * The shop-level list keeps the data the Function needs without
+   * crossing that line.
+   */
+  qualifiedCustomers?: string[];
   tiers?: ConfiguredTier[];
 }
 
@@ -231,10 +242,14 @@ export function run(input: RunInput): FunctionRunResult {
     0,
   );
 
-  // 4. First-Purchase Qualifier gate.
+  // 4. First-Purchase Qualifier gate. The customer is "qualified" if
+  //    Stockly has recorded their qualifying purchase — we store the
+  //    list of qualified customer GIDs in the shop-level config
+  //    metafield (see comment on FunctionConfig.qualifiedCustomers).
+  const customerGid = customer?.id ?? "";
+  const qualifiedList = config.qualifiedCustomers ?? [];
   const alreadyQualified =
-    typeof customer?.wholesaleStatus?.value === "string" &&
-    customer.wholesaleStatus.value.length > 0;
+    customerGid.length > 0 && qualifiedList.includes(customerGid);
 
   if (!alreadyQualified) {
     if (!fpqMet(config.fpq, cartWholesaleSubtotal, cartTotalQty)) {

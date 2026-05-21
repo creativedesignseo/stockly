@@ -33,9 +33,7 @@ import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
-
-const METAFIELD_NAMESPACE = "$app:stockly-volume-discount";
-const METAFIELD_KEY = "wholesale-status";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateAdmin(request);
@@ -54,7 +52,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     };
   }
 
-  // Accept either a bare numeric ID or a full GID. Normalize to both.
+  // Accept either a bare numeric ID or a full GID. Normalize.
   const numericId = customerIdRaw.replace("gid://shopify/Customer/", "");
   if (!/^\d+$/.test(numericId)) {
     return {
@@ -62,7 +60,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       lastInput: { customerId: customerIdRaw },
     };
   }
-  const customerGid = `gid://shopify/Customer/${numericId}`;
   const qualifiedAt = new Date();
 
   // Step 1: upsert WholesaleCustomer row with qualifiedAt set.
@@ -86,66 +83,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     },
   });
 
-  // Step 2: write the customer metafield so the Discount Function
-  // sees the qualified status at checkout.
-  const metafieldValue = JSON.stringify({
-    qualifiedAt: qualifiedAt.toISOString(),
-    qualifyingOrderId: "manual",
-  });
-
-  const response = await admin.graphql(
-    `#graphql
-    mutation SetCustomerWholesaleStatus($metafields: [MetafieldsSetInput!]!) {
-      metafieldsSet(metafields: $metafields) {
-        metafields {
-          id
-          namespace
-          key
-        }
-        userErrors {
-          field
-          message
-          code
-        }
-      }
-    }`,
-    {
-      variables: {
-        metafields: [
-          {
-            ownerId: customerGid,
-            namespace: METAFIELD_NAMESPACE,
-            key: METAFIELD_KEY,
-            type: "json",
-            value: metafieldValue,
-          },
-        ],
-      },
-    },
-  );
-
-  const json = (await response.json()) as {
-    data?: {
-      metafieldsSet?: {
-        metafields?: Array<{ id: string }>;
-        userErrors?: Array<{ field?: string[]; message: string; code?: string }>;
-      };
-    };
-  };
-
-  const errors = json.data?.metafieldsSet?.userErrors ?? [];
-  if (errors.length > 0) {
-    return {
-      error: `Metafield write failed: ${errors.map((e) => `${e.field?.join(".") ?? ""}: ${e.message} (${e.code ?? "no code"})`).join("; ")}`,
-      lastInput: { customerId: customerIdRaw },
-    };
-  }
+  // Step 2: refresh the Discount Function's shop-level metafield.
+  // buildConfiguration now includes the full list of qualified
+  // customer GIDs so the Function can do an O(n) membership check
+  // at checkout. This avoids writing customer metafields, which are
+  // protected data and require Shopify's separate approval flow.
+  await syncTiersToFunction(admin, shop.id);
 
   return {
     ok: true,
     customerId: numericId,
     qualifiedAt: qualifiedAt.toISOString(),
-    metafieldId: json.data?.metafieldsSet?.metafields?.[0]?.id ?? null,
   };
 };
 
@@ -162,7 +110,8 @@ export default function QualifyCustomer() {
 
   const errorMsg =
     actionData && "error" in actionData ? actionData.error : null;
-  const success = actionData && "ok" in actionData ? actionData : null;
+  const success =
+    actionData && "ok" in actionData && actionData.ok ? actionData : null;
 
   return (
     <Page backAction={{ content: "App", url: "/app" }}>
