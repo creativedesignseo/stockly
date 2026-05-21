@@ -240,13 +240,21 @@ export default function EditTier() {
                 />
               </FormLayout.Group>
 
+              {/*
+                Polaris Checkbox is a controlled React component that does
+                not always include its underlying input in the submitted
+                form data (the `name` prop is for accessibility, not form
+                serialization). We mirror its state into a hidden input
+                with the canonical "on" / "" value so the action's
+                `form.get("active") === "on"` check is reliable.
+              */}
               <Checkbox
                 label="Active"
-                name="active"
                 checked={active}
                 onChange={setActive}
                 helpText="Inactive tiers are kept for history but no longer apply at checkout."
               />
+              <input type="hidden" name="active" value={active ? "on" : ""} />
 
               <InlineStack align="end">
                 <Button submit variant="primary" loading={updating}>
