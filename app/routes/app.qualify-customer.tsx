@@ -162,65 +162,67 @@ export default function QualifyCustomer() {
         </Card>
 
         <Card>
-          <Form method="post">
-            <FormLayout>
-              {success && successAction === "qualified" && (
-                <Banner tone="success" title="Customer qualified">
-                  <p>
-                    Customer <code>{success.customerId}</code> marked as
-                    qualified. The Discount Function will skip the FPQ
-                    gate on their next cart.
-                  </p>
-                </Banner>
-              )}
-              {success && successAction === "unqualified" && (
-                <Banner tone="success" title="Qualification removed">
-                  <p>
-                    Customer <code>{success.customerId}</code> is no
-                    longer qualified. They must meet the FPQ
-                    (first-purchase qualifier) on their next cart
-                    before the wholesale discount applies again.
-                  </p>
-                </Banner>
-              )}
-              {errorMsg && (
-                <Banner tone="critical" title="Could not qualify">
-                  <p>{errorMsg}</p>
-                </Banner>
-              )}
+          <BlockStack gap="400">
+            {success && successAction === "qualified" && (
+              <Banner tone="success" title="Customer qualified">
+                <p>
+                  Customer <code>{success.customerId}</code> marked as
+                  qualified. The Discount Function will skip the FPQ
+                  gate on their next cart.
+                </p>
+              </Banner>
+            )}
+            {success && successAction === "unqualified" && (
+              <Banner tone="success" title="Qualification removed">
+                <p>
+                  Customer <code>{success.customerId}</code> is no
+                  longer qualified. They must meet the FPQ on their
+                  next cart before the wholesale discount applies
+                  again.
+                </p>
+              </Banner>
+            )}
+            {errorMsg && (
+              <Banner tone="critical" title="Could not process">
+                <p>{errorMsg}</p>
+              </Banner>
+            )}
 
-              <TextField
-                label="Customer ID (Shopify numeric ID or full GID)"
-                name="customerId"
-                autoComplete="off"
-                value={customerId}
-                onChange={setCustomerId}
-                helpText="From the URL of the customer's admin page. E.g. 10103069901128"
-                requiredIndicator
-              />
+            {/* Two separate forms so we can have distinct submit
+                buttons with their own intent. Polaris Button doesn't
+                forward name/value to the underlying HTML submit, so
+                splitting the forms is cleaner than juggling state. */}
+            <Form method="post">
+              <input type="hidden" name="intent" value="qualify" />
+              <FormLayout>
+                <TextField
+                  label="Customer ID (Shopify numeric ID or full GID)"
+                  name="customerId"
+                  autoComplete="off"
+                  value={customerId}
+                  onChange={setCustomerId}
+                  helpText="From the URL of the customer's admin page. E.g. 10103069901128"
+                  requiredIndicator
+                />
 
-              <InlineStack align="end" gap="200">
-                <Button
-                  submit
-                  name="intent"
-                  value="unqualify"
-                  tone="critical"
-                  loading={submitting}
-                >
+                <InlineStack align="end">
+                  <Button submit variant="primary" loading={submitting}>
+                    Mark as qualified
+                  </Button>
+                </InlineStack>
+              </FormLayout>
+            </Form>
+
+            <Form method="post">
+              <input type="hidden" name="intent" value="unqualify" />
+              <input type="hidden" name="customerId" value={customerId} />
+              <InlineStack align="end">
+                <Button submit tone="critical" loading={submitting}>
                   Remove qualification
                 </Button>
-                <Button
-                  submit
-                  name="intent"
-                  value="qualify"
-                  variant="primary"
-                  loading={submitting}
-                >
-                  Mark as qualified
-                </Button>
               </InlineStack>
-            </FormLayout>
-          </Form>
+            </Form>
+          </BlockStack>
         </Card>
       </BlockStack>
     </Page>
