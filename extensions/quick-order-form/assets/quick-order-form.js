@@ -197,6 +197,25 @@ class StocklyQuickOrder extends HTMLElement {
   }
 
   /**
+   * Return the tiers that COULD apply to this row, regardless of qty.
+   * Used by both _resolveDiscountPct (filters by qty) and
+   * _resolveNextTier (looks ahead for upcoming tiers).
+   */
+  _applicableTiers(row) {
+    const productGid = row.dataset.productGid;
+    const collectionGids = (row.dataset.collectionGids || '')
+      .split(',')
+      .filter(Boolean);
+
+    return this.tiers.filter((t) => {
+      if (t.scope === 'all') return true;
+      if (t.scope === 'product') return t.scopeId === productGid;
+      if (t.scope === 'collection') return collectionGids.includes(t.scopeId);
+      return false;
+    });
+  }
+
+  /**
    * Resolve the discount percent for a row at a given quantity.
    * Mirrors the server-side precedence in tiers.server.ts:
    *   product > collection > all, then highest qualifying minQty wins.
@@ -204,21 +223,10 @@ class StocklyQuickOrder extends HTMLElement {
   _resolveDiscountPct(row, qty) {
     if (qty <= 0 || this.tiers.length === 0) return 0;
 
-    const productGid = row.dataset.productGid;
-    const collectionGids = (row.dataset.collectionGids || '')
-      .split(',')
-      .filter(Boolean);
-
     const scopeRank = { product: 3, collection: 2, all: 1 };
 
-    const qualifying = this.tiers
-      .filter((t) => {
-        if (t.minQty > qty) return false;
-        if (t.scope === 'all') return true;
-        if (t.scope === 'product') return t.scopeId === productGid;
-        if (t.scope === 'collection') return collectionGids.includes(t.scopeId);
-        return false;
-      })
+    const qualifying = this._applicableTiers(row)
+      .filter((t) => t.minQty <= qty)
       .sort((a, b) => {
         const rankDiff = scopeRank[b.scope] - scopeRank[a.scope];
         if (rankDiff !== 0) return rankDiff;
@@ -226,6 +234,30 @@ class StocklyQuickOrder extends HTMLElement {
       });
 
     return qualifying[0]?.discountPct ?? 0;
+  }
+
+  /**
+   * Find the next tier this row could unlock — the closest tier by
+   * minQty whose discount BEATS the row's current discount. Returns
+   * null if no future tier exists or qty is 0 (no nudge before the
+   * customer starts engaging with the row).
+   */
+  _resolveNextTier(row, qty) {
+    if (qty <= 0 || this.tiers.length === 0) return null;
+
+    const currentDiscount = this._resolveDiscountPct(row, qty);
+
+    const future = this._applicableTiers(row)
+      .filter((t) => t.minQty > qty && t.discountPct > currentDiscount)
+      .sort((a, b) => a.minQty - b.minQty);
+
+    if (future.length === 0) return null;
+    const next = future[0];
+    return {
+      minQty: next.minQty,
+      discountPct: next.discountPct,
+      missingQty: next.minQty - qty,
+    };
   }
 
   _recalcTotals() {
@@ -242,6 +274,19 @@ class StocklyQuickOrder extends HTMLElement {
 
       row.querySelector('[data-stockly-line-total]').textContent =
         this._formatMoney(lineTotal);
+
+      // Per-row nudge: "Add N more for -X%" when a higher tier is
+      // reachable. Stays hidden at qty=0 (the ladder pill above
+      // already advertises the first tier).
+      const nudgeEl = row.querySelector('[data-stockly-row-nudge]');
+      const next = this._resolveNextTier(row, qty);
+      if (next) {
+        nudgeEl.textContent = `Add ${next.missingQty} more for -${next.discountPct}%`;
+        nudgeEl.hidden = false;
+      } else {
+        nudgeEl.hidden = true;
+      }
+
       grand += lineTotal;
     });
 

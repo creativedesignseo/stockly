@@ -111,8 +111,9 @@
                   disabled
                 >
               </td>
-              <td class="stockly-qo__cell stockly-qo__cell--total" data-stockly-line-total>
-                {{ 0 | money }}
+              <td class="stockly-qo__cell stockly-qo__cell--total">
+                <span data-stockly-line-total>{{ 0 | money }}</span>
+                <span class="stockly-qo__nudge" data-stockly-row-nudge hidden></span>
               </td>
             </tr>
           {%- endfor -%}
