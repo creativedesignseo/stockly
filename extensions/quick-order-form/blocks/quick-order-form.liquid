@@ -81,12 +81,29 @@
       </thead>
       <tbody>
         {%- for product in qof_products limit: 100 -%}
+          {%- comment -%}
+            Skip products that don't make sense in B2B:
+              - Gift cards: Shopify's checkout often refuses them in B2B
+                markets, returning HTTP 403 from /cart/add.js. Filtering
+                them out at render time saves the merchant from a
+                "couldn't add to cart" error they'd have to diagnose.
+            The merchant can still scope the block to a specific
+            collection if they want a curated wholesale assortment.
+          {%- endcomment -%}
+          {%- if product.gift_card? -%}{%- continue -%}{%- endif -%}
           {%- assign collection_gids = '' -%}
           {%- for c in product.collections -%}
             {%- assign collection_gids = collection_gids | append: 'gid://shopify/Collection/' | append: c.id -%}
             {%- unless forloop.last -%}{%- assign collection_gids = collection_gids | append: ',' -%}{%- endunless -%}
           {%- endfor -%}
           {%- for variant in product.variants -%}
+            {%- comment -%}
+              Skip unsellable variants so the customer can't type a qty
+              into a row that would 422 at /cart/add.js. We keep the
+              row visible when the product has stock but the specific
+              variant ran out, so the customer can pick another option.
+            {%- endcomment -%}
+            {%- unless variant.available -%}{%- continue -%}{%- endunless -%}
             <tr
               class="stockly-qo__row"
               data-variant-id="{{ variant.id }}"

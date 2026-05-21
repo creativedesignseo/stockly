@@ -24,6 +24,14 @@
   section. No settings beyond labels / branding overrides.
 {%- endcomment -%}
 
+{%- comment -%}
+  Bail out early for gift cards — Shopify often blocks them in B2B
+  markets, so showing wholesale pricing on a gift card page would set
+  the customer up for an HTTP 403 on add-to-cart. Render nothing.
+{%- endcomment -%}
+{%- if product.gift_card? -%}{%- assign skip_wpp = true -%}{%- endif -%}
+
+{%- unless skip_wpp -%}
 {%- assign collection_gids = '' -%}
 {%- for c in product.collections -%}
   {%- assign collection_gids = collection_gids | append: 'gid://shopify/Collection/' | append: c.id -%}
@@ -143,6 +151,7 @@
 
   <p class="stockly-wpp__msg" data-stockly-msg hidden></p>
 </stockly-product-panel>
+{%- endunless -%}
 
 {% schema %}
 {
