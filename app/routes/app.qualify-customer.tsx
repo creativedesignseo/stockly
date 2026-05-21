@@ -44,6 +44,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
   const form = await request.formData();
 
+  const intent = (form.get("intent") ?? "qualify").toString();
   const customerIdRaw = (form.get("customerId") ?? "").toString().trim();
   if (!customerIdRaw) {
     return {
@@ -60,6 +61,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       lastInput: { customerId: customerIdRaw },
     };
   }
+
+  if (intent === "unqualify") {
+    // Remove the customer's qualification — testing the gate flow
+    // again from scratch, or correcting a mistaken qualification.
+    await prisma.wholesaleCustomer.deleteMany({
+      where: {
+        shopId: shop.id,
+        shopifyCustomerId: numericId,
+      },
+    });
+    // Refresh the shop metafield so the Function sees the updated
+    // qualifiedCustomers list without this customer.
+    await syncTiersToFunction(admin, shop.id);
+
+    return {
+      ok: true,
+      action: "unqualified" as const,
+      customerId: numericId,
+    };
+  }
+
+  // Default intent: qualify
   const qualifiedAt = new Date();
 
   // Step 1: upsert WholesaleCustomer row with qualifiedAt set.
@@ -83,15 +106,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     },
   });
 
-  // Step 2: refresh the Discount Function's shop-level metafield.
-  // buildConfiguration now includes the full list of qualified
-  // customer GIDs so the Function can do an O(n) membership check
-  // at checkout. This avoids writing customer metafields, which are
-  // protected data and require Shopify's separate approval flow.
+  // Step 2: refresh the Discount Function's shop-level metafield
+  // (qualifiedCustomers list rebuilt by buildConfiguration).
   await syncTiersToFunction(admin, shop.id);
 
   return {
     ok: true,
+    action: "qualified" as const,
     customerId: numericId,
     qualifiedAt: qualifiedAt.toISOString(),
   };
@@ -112,6 +133,8 @@ export default function QualifyCustomer() {
     actionData && "error" in actionData ? actionData.error : null;
   const success =
     actionData && "ok" in actionData && actionData.ok ? actionData : null;
+  const successAction =
+    success && "action" in success ? success.action : null;
 
   return (
     <Page backAction={{ content: "App", url: "/app" }}>
@@ -141,12 +164,22 @@ export default function QualifyCustomer() {
         <Card>
           <Form method="post">
             <FormLayout>
-              {success && (
+              {success && successAction === "qualified" && (
                 <Banner tone="success" title="Customer qualified">
                   <p>
                     Customer <code>{success.customerId}</code> marked as
-                    qualified at {success.qualifiedAt}. The Discount
-                    Function will skip the FPQ gate on their next cart.
+                    qualified. The Discount Function will skip the FPQ
+                    gate on their next cart.
+                  </p>
+                </Banner>
+              )}
+              {success && successAction === "unqualified" && (
+                <Banner tone="success" title="Qualification removed">
+                  <p>
+                    Customer <code>{success.customerId}</code> is no
+                    longer qualified. They must meet the FPQ
+                    (first-purchase qualifier) on their next cart
+                    before the wholesale discount applies again.
                   </p>
                 </Banner>
               )}
@@ -166,8 +199,23 @@ export default function QualifyCustomer() {
                 requiredIndicator
               />
 
-              <InlineStack align="end">
-                <Button submit variant="primary" loading={submitting}>
+              <InlineStack align="end" gap="200">
+                <Button
+                  submit
+                  name="intent"
+                  value="unqualify"
+                  tone="critical"
+                  loading={submitting}
+                >
+                  Remove qualification
+                </Button>
+                <Button
+                  submit
+                  name="intent"
+                  value="qualify"
+                  variant="primary"
+                  loading={submitting}
+                >
                   Mark as qualified
                 </Button>
               </InlineStack>
