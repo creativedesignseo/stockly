@@ -46,6 +46,17 @@
   </div>
 
   {%- comment -%}
+    FPQ progress banner. Visible only when the customer is in the
+    `approved_pre_fpq` state and their cart doesn't yet meet the
+    shop's First-Purchase Qualifier. The Web Component populates the
+    text and shows/hides based on App Proxy data + cart contents.
+  {%- endcomment -%}
+  <div class="stockly-qo__fpq-banner" data-stockly-fpq-banner hidden>
+    <span class="stockly-qo__fpq-banner-icon" aria-hidden="true">★</span>
+    <span data-stockly-fpq-banner-text></span>
+  </div>
+
+  {%- comment -%}
     Volume tier ladder. Server-rendered shell (empty); the Web Component
     fills the `data-stockly-ladder-tiers` div from /apps/stockly/context
     when eligible AND at least one tier with scope='all' exists.

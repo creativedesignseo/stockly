@@ -31,7 +31,7 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import { getOrCreateShop, parseShop } from "../services/shops.server";
 import { listTiers } from "../services/tiers.server";
-import { isEligible } from "../services/wholesale-customers.server";
+import { resolveCustomerStatus } from "../services/wholesale-customers.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Verifies HMAC signature; throws 401 if invalid.
@@ -63,13 +63,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       .filter(Boolean) ?? [];
 
   let eligible = false;
+  let qualifiedAt: Date | null = null;
   if (customerId) {
-    eligible = await isEligible({
+    const status = await resolveCustomerStatus({
       shopId: shopRow.id,
       shopifyCustomerId: customerId,
       customerTags,
       shopWholesaleTag: shopRow.wholesaleTag,
     });
+    eligible = status.eligible;
+    qualifiedAt = status.qualifiedAt;
   }
 
   // Tiers only matter for eligible customers — saves payload size
@@ -79,15 +82,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     ? await listTiers(shopRow.id, { activeOnly: true })
     : [];
 
+  // Customer state for the storefront (ADR-004 5-state lifecycle):
+  //   - "visitor": not eligible (no tag, no DB row)
+  //   - "qualified": eligible AND has completed FPQ
+  //   - "approved_pre_fpq": eligible but FPQ not yet met
+  // Pending/rejected states will be wired when the approval queue
+  // ships in a follow-up.
+  const customerState: "visitor" | "approved_pre_fpq" | "qualified" = !eligible
+    ? "visitor"
+    : qualifiedAt
+      ? "qualified"
+      : "approved_pre_fpq";
+
   return json(
     {
       eligible,
+      customerState,
       shop: {
         domain: shopRow.id,
         wholesaleTag: shopRow.wholesaleTag,
         minOrderValue: shopRow.minOrderValue,
         onboarded: shopRow.onboarded,
         wholesaleBaselinePct: shopRow.wholesaleBaselinePct,
+        // FPQ config so the storefront can drive a "Add €X more to
+        // unlock wholesale" banner for approved_pre_fpq customers.
+        fpq: {
+          mode: shopRow.fpqMode,
+          amount: shopRow.fpqAmount,
+          quantity: shopRow.fpqQuantity,
+          combinedLogic: shopRow.fpqCombinedLogic,
+        },
+        postQualificationMOQ: shopRow.postQualificationMOQ,
       },
       branding,
       copy,

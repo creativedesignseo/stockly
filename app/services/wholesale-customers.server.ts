@@ -41,6 +41,43 @@ export async function isEligible(input: EligibilityCheckInput): Promise<boolean>
   return row !== null;
 }
 
+export interface CustomerStatus {
+  eligible: boolean;
+  /**
+   * Whether the customer has completed their FPQ (ADR-004). null
+   * means either not eligible OR eligible but not yet qualified.
+   * Used by the App Proxy + storefront blocks to drive the
+   * "Add €X more to unlock wholesale" banner.
+   */
+  qualifiedAt: Date | null;
+}
+
+/**
+ * Resolve full customer status: eligibility + qualification.
+ * Encapsulates the two-track eligibility (tag or DB) plus the FPQ
+ * qualification state stored on the WholesaleCustomer row.
+ */
+export async function resolveCustomerStatus(
+  input: EligibilityCheckInput,
+): Promise<CustomerStatus> {
+  const row = await prisma.wholesaleCustomer.findUnique({
+    where: {
+      shopId_shopifyCustomerId: {
+        shopId: input.shopId,
+        shopifyCustomerId: input.shopifyCustomerId,
+      },
+    },
+  });
+
+  const tagMatch =
+    input.customerTags?.includes(input.shopWholesaleTag) ?? false;
+
+  return {
+    eligible: tagMatch || row !== null,
+    qualifiedAt: row?.qualifiedAt ?? null,
+  };
+}
+
 export async function listWholesaleCustomers(shopId: string) {
   return prisma.wholesaleCustomer.findMany({
     where: { shopId },

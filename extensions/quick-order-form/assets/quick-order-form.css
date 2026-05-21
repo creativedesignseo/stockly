@@ -33,6 +33,35 @@ stockly-quick-order .stockly-qo__states {
   color: var(--stockly-accent);
 }
 
+stockly-quick-order .stockly-qo__fpq-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0 0 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  background: rgba(201, 169, 97, 0.08);
+  border: 1px solid rgba(201, 169, 97, 0.25);
+  color: var(--stockly-primary);
+}
+
+stockly-quick-order .stockly-qo__fpq-banner[data-fpq-state="met"] {
+  background: rgba(34, 139, 87, 0.08);
+  border-color: rgba(34, 139, 87, 0.35);
+}
+
+stockly-quick-order .stockly-qo__fpq-banner-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--stockly-accent);
+}
+
+stockly-quick-order .stockly-qo__fpq-banner[data-fpq-state="met"] .stockly-qo__fpq-banner-icon {
+  color: rgb(34, 139, 87);
+}
+
 stockly-quick-order .stockly-qo__ladder {
   display: flex;
   align-items: center;

@@ -20,6 +20,8 @@ class StocklyQuickOrder extends HTMLElement {
     this.sourceCollectionGid = this.dataset.sourceCollectionGid || '';
 
     this.statesEl = this.querySelector('.stockly-qo__states');
+    this.fpqBannerEl = this.querySelector('[data-stockly-fpq-banner]');
+    this.fpqBannerTextEl = this.querySelector('[data-stockly-fpq-banner-text]');
     this.ladderEl = this.querySelector('.stockly-qo__ladder');
     this.ladderTiersEl = this.querySelector('[data-stockly-ladder-tiers]');
     this.tableWrapEl = this.querySelector('.stockly-qo__table-wrap');
@@ -32,6 +34,10 @@ class StocklyQuickOrder extends HTMLElement {
     this.eligible = false;
     /** Universal wholesale baseline % (ADR-006). Composes multiplicatively with tier. */
     this.wholesaleBaselinePct = 0;
+    /** 'visitor' | 'approved_pre_fpq' | 'qualified' — drives the FPQ banner. */
+    this.customerState = 'visitor';
+    /** FPQ rules from the shop (ADR-004). Null when no gate is configured. */
+    this.fpq = null;
 
     this._recalcTimer = null;
     this._onQtyInput = this._onQtyInput.bind(this);
@@ -58,6 +64,8 @@ class StocklyQuickOrder extends HTMLElement {
       this.tiers = Array.isArray(data.tiers) ? data.tiers : [];
       this.eligible = Boolean(data.eligible);
       this.wholesaleBaselinePct = Number(data.shop?.wholesaleBaselinePct ?? 0) || 0;
+      this.customerState = data.customerState || (this.eligible ? 'approved_pre_fpq' : 'visitor');
+      this.fpq = data.shop?.fpq ?? null;
       this._applyBranding(data.branding || {});
 
       if (!this.eligible) {
@@ -96,6 +104,7 @@ class StocklyQuickOrder extends HTMLElement {
     this.statesEl.querySelectorAll('.stockly-qo__state').forEach((p) => {
       p.hidden = !p.classList.contains(`stockly-qo__state--${name}`);
     });
+    this.fpqBannerEl.hidden = true;
     this.ladderEl.hidden = true;
     this.tableWrapEl.hidden = true;
     this.footerEl.hidden = true;
@@ -107,6 +116,7 @@ class StocklyQuickOrder extends HTMLElement {
     this.footerEl.hidden = false;
 
     this._renderLadder();
+    this._updateFpqBanner();
 
     this.rows.forEach((row) => {
       const input = row.querySelector('.stockly-qo__qty');
