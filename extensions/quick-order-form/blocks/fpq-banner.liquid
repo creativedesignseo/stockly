@@ -1,0 +1,49 @@
+{%- comment -%}
+  Stockly — Wholesale FPQ Banner (cart-page)
+
+  Renders a thin banner on the merchant's cart template telling
+  approved_pre_fpq customers how close they are to meeting the
+  First-Purchase Qualifier (ADR-004). Mirrors the banner that
+  already lives inside the Quick Order Form block, but for the
+  customer's actual cart screen — so they don't lose context when
+  they leave the wholesale-order page.
+
+  Hidden when:
+  - Customer is qualified (already cleared the gate)
+  - Customer is a visitor (not eligible at all)
+  - Shop has fpqMode = "none" (no gate configured)
+  - Cart already meets the FPQ on the wholesale-price basis
+
+  The block reads the customer's cart subtotal/qty from
+  /cart.js (Shopify's storefront cart API) and computes what
+  the wholesale spend WOULD be if the discount applied, then
+  compares against the FPQ amount/quantity rules from the App
+  Proxy /apps/stockly/context response.
+
+  Drag this block into the cart template's "section" area in
+  the theme editor. No settings — it self-configures from the
+  shop's pricing config.
+{%- endcomment -%}
+
+<stockly-fpq-banner
+  class="stockly-fpq"
+  data-context-url="/apps/stockly/context"
+  data-customer-id="{% if customer %}{{ customer.id }}{% endif %}"
+  data-customer-tags="{% if customer %}{{ customer.tags | join: ',' | escape }}{% endif %}"
+  {{ block.shopify_attributes }}
+>
+  <div class="stockly-fpq__banner" data-stockly-fpq-cart-banner hidden>
+    <span class="stockly-fpq__icon" aria-hidden="true">★</span>
+    <span data-stockly-fpq-cart-banner-text></span>
+  </div>
+</stockly-fpq-banner>
+
+{% schema %}
+{
+  "name": "Wholesale FPQ Banner",
+  "target": "section",
+  "stylesheet": "fpq-banner.css",
+  "javascript": "fpq-banner.js",
+  "settings": []
+}
+{% endschema %}

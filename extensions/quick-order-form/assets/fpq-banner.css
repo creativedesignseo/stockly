@@ -1,0 +1,38 @@
+/* Stockly — Wholesale FPQ Banner (cart-page) — see fpq-banner.liquid */
+
+stockly-fpq-banner {
+  display: block;
+  --stockly-primary: #111;
+  --stockly-accent: #555;
+  font-family: inherit;
+  color: inherit;
+}
+
+stockly-fpq-banner .stockly-fpq__banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 0 0 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  background: rgba(201, 169, 97, 0.08);
+  border: 1px solid rgba(201, 169, 97, 0.25);
+  color: var(--stockly-primary);
+}
+
+stockly-fpq-banner .stockly-fpq__banner[data-fpq-state="met"] {
+  background: rgba(34, 139, 87, 0.08);
+  border-color: rgba(34, 139, 87, 0.35);
+}
+
+stockly-fpq-banner .stockly-fpq__icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--stockly-accent);
+}
+
+stockly-fpq-banner .stockly-fpq__banner[data-fpq-state="met"] .stockly-fpq__icon {
+  color: rgb(34, 139, 87);
+}

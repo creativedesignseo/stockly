@@ -85,3 +85,5 @@ prisma/dev.db*
 tmp/
 temp/
 *.tmp
+
+.playwright-mcp/

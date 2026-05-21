@@ -16,3 +16,4 @@ extensions/*/node_modules/
 # sibling. The minified .js is what ships to Shopify CDN (must fit
 # under the 10KB AssetSizeAppBlockJavaScript limit).
 extensions/quick-order-form/assets/quick-order-form.js
+extensions/quick-order-form/assets/fpq-banner.js
