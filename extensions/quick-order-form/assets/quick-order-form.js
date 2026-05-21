@@ -19,6 +19,8 @@ class StocklyQuickOrder extends HTMLElement {
     this.customerTags = this.dataset.customerTags || '';
 
     this.statesEl = this.querySelector('.stockly-qo__states');
+    this.ladderEl = this.querySelector('.stockly-qo__ladder');
+    this.ladderTiersEl = this.querySelector('[data-stockly-ladder-tiers]');
     this.tableWrapEl = this.querySelector('.stockly-qo__table-wrap');
     this.rows = Array.from(this.querySelectorAll('.stockly-qo__row'));
     this.footerEl = this.querySelector('.stockly-qo__footer');
@@ -90,6 +92,7 @@ class StocklyQuickOrder extends HTMLElement {
     this.statesEl.querySelectorAll('.stockly-qo__state').forEach((p) => {
       p.hidden = !p.classList.contains(`stockly-qo__state--${name}`);
     });
+    this.ladderEl.hidden = true;
     this.tableWrapEl.hidden = true;
     this.footerEl.hidden = true;
   }
@@ -99,6 +102,8 @@ class StocklyQuickOrder extends HTMLElement {
     this.tableWrapEl.hidden = false;
     this.footerEl.hidden = false;
 
+    this._renderLadder();
+
     this.rows.forEach((row) => {
       const input = row.querySelector('.stockly-qo__qty');
       input.disabled = false;
@@ -106,6 +111,68 @@ class StocklyQuickOrder extends HTMLElement {
     });
 
     this.addAllBtn.addEventListener('click', this._addAllToCart);
+  }
+
+  /**
+   * Render the volume-tier ladder above the table. v1 shows only
+   * shop-wide tiers (scope='all'); product/collection-scoped tiers
+   * fold into per-row indicators in a follow-up commit.
+   */
+  _renderLadder() {
+    const shopWide = this.tiers
+      .filter((t) => t.scope === 'all')
+      .sort((a, b) => a.minQty - b.minQty);
+
+    if (shopWide.length === 0) {
+      this.ladderEl.hidden = true;
+      return;
+    }
+
+    this.ladderTiersEl.innerHTML = shopWide
+      .map(
+        (t) => `
+          <span
+            class="stockly-qo__ladder-tier"
+            data-min-qty="${t.minQty}"
+            data-discount="${t.discountPct}"
+          >
+            <span class="stockly-qo__ladder-qty">${t.minQty}+ units</span>
+            <span class="stockly-qo__ladder-discount">-${t.discountPct}%</span>
+          </span>
+        `,
+      )
+      .join('');
+
+    this.ladderEl.hidden = false;
+  }
+
+  /**
+   * Highlight the active tier pill based on the maximum qty across
+   * rows. The "active" tier is the highest-minQty pill whose
+   * threshold is met by any row. Called from _recalcTotals().
+   */
+  _updateLadderActive() {
+    if (!this.ladderTiersEl || this.ladderTiersEl.children.length === 0) {
+      return;
+    }
+
+    let maxQty = 0;
+    this.rows.forEach((row) => {
+      const qty = parseInt(row.querySelector('.stockly-qo__qty').value, 10) || 0;
+      if (qty > maxQty) maxQty = qty;
+    });
+
+    const pills = this.ladderTiersEl.querySelectorAll('.stockly-qo__ladder-tier');
+    let activeMinQty = -1;
+    pills.forEach((p) => {
+      const min = parseInt(p.dataset.minQty, 10);
+      if (min <= maxQty && min > activeMinQty) activeMinQty = min;
+    });
+
+    pills.forEach((p) => {
+      const min = parseInt(p.dataset.minQty, 10);
+      p.classList.toggle('stockly-qo__ladder-tier--active', min === activeMinQty);
+    });
   }
 
   _onQtyInput() {
@@ -165,6 +232,7 @@ class StocklyQuickOrder extends HTMLElement {
 
     this.grandTotalEl.textContent = this._formatMoney(grand);
     this.addAllBtn.disabled = grand === 0;
+    this._updateLadderActive();
   }
 
   async _addAllToCart() {

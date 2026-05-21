@@ -33,6 +33,64 @@ stockly-quick-order .stockly-qo__states {
   color: var(--stockly-accent);
 }
 
+stockly-quick-order .stockly-qo__ladder {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin: 0 0 1rem;
+  padding: 0.875rem 1rem;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid var(--stockly-border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+stockly-quick-order .stockly-qo__ladder-label {
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--stockly-accent);
+  margin-right: 0.25rem;
+}
+
+stockly-quick-order .stockly-qo__ladder-tiers {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+stockly-quick-order .stockly-qo__ladder-tier {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--stockly-accent);
+  transition: all 0.18s ease;
+  font-variant-numeric: tabular-nums;
+}
+
+stockly-quick-order .stockly-qo__ladder-qty {
+  font-weight: 500;
+}
+
+stockly-quick-order .stockly-qo__ladder-discount {
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+stockly-quick-order .stockly-qo__ladder-tier--active {
+  background: var(--stockly-primary);
+  border-color: var(--stockly-primary);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 stockly-quick-order .stockly-qo__state {
   margin: 0;
   font-size: 1rem;

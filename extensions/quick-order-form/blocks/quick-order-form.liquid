@@ -44,6 +44,17 @@
     </p>
   </div>
 
+  {%- comment -%}
+    Volume tier ladder. Server-rendered shell (empty); the Web Component
+    fills the `data-stockly-ladder-tiers` div from /apps/stockly/context
+    when eligible AND at least one tier with scope='all' exists.
+    Highlights the currently-active tier as qty changes.
+  {%- endcomment -%}
+  <div class="stockly-qo__ladder" hidden>
+    <span class="stockly-qo__ladder-label">{{ 'qof.ladder.label' | t }}</span>
+    <div class="stockly-qo__ladder-tiers" data-stockly-ladder-tiers></div>
+  </div>
+
   <div class="stockly-qo__table-wrap" hidden>
     <table class="stockly-qo__table">
       <thead>
