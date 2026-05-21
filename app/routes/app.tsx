@@ -28,6 +28,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/tiers">Tiers</Link>
+        <Link to="/app/settings/pricing">Pricing</Link>
         <Link to="/app/additional">Additional page</Link>
       </NavMenu>
       <Outlet />

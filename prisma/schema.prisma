@@ -62,6 +62,12 @@ model Shop {
   /// True once the store owner has completed onboarding.
   onboarded          Boolean             @default(false)
 
+  /// Universal wholesale discount on retail price (ADR-006).
+  /// 0 = no baseline (default: wholesale customers see retail prices,
+  /// only tiers apply). 65 means "wholesale customers see retail × 0.35".
+  /// Tiers compose multiplicatively on top of this baseline.
+  wholesaleBaselinePct Int                @default(0)
+
   tiers              Tier[]
   wholesaleCustomers WholesaleCustomer[]
 }

@@ -38,7 +38,32 @@ interface ConfiguredTier {
 }
 
 interface FunctionConfig {
+  /**
+   * Universal wholesale discount % applied to every line for any
+   * eligible wholesale customer, before any tier composition (ADR-006).
+   * 0 means no baseline (legacy behavior).
+   */
+  wholesaleBaselinePct?: number;
   tiers?: ConfiguredTier[];
+}
+
+/**
+ * Compose baseline and tier discounts multiplicatively
+ * (per memory/wholesale-pricing-composition).
+ *
+ *   factor = (1 - baseline/100) × (1 - tier/100)
+ *   composedPct = (1 - factor) × 100
+ *
+ * Returns a number in [0, 100]. Inputs are clamped defensively.
+ */
+function composeDiscountPct(baseline: number, tier: number): number {
+  const b = Math.min(100, Math.max(0, baseline));
+  const t = Math.min(100, Math.max(0, tier));
+  const factor = (1 - b / 100) * (1 - t / 100);
+  const composed = (1 - factor) * 100;
+  // Round to 4 decimals to avoid floating-point noise in the metafield
+  // round-trip (Shopify accepts up to 4 decimal places on percentage).
+  return Math.round(composed * 10000) / 10000;
 }
 
 // Strategy.All so every matching line gets its own discount applied.
@@ -60,6 +85,10 @@ export function run(input: RunInput): FunctionRunResult {
     return NO_DISCOUNT;
   }
 
+  const baseline = Number.isFinite(config.wholesaleBaselinePct)
+    ? Math.min(100, Math.max(0, config.wholesaleBaselinePct ?? 0))
+    : 0;
+
   const tiers = (config.tiers ?? []).filter(
     (t) =>
       Number.isFinite(t.minQty) &&
@@ -68,7 +97,9 @@ export function run(input: RunInput): FunctionRunResult {
       t.discountPct > 0 &&
       t.discountPct <= 100,
   );
-  if (tiers.length === 0) return NO_DISCOUNT;
+
+  // No baseline AND no tiers → nothing to apply.
+  if (baseline === 0 && tiers.length === 0) return NO_DISCOUNT;
 
   // 2. Eligibility gate. The Function's input.graphql hardcodes the
   //    default wholesale tag; per-shop custom tags will require either
@@ -77,13 +108,20 @@ export function run(input: RunInput): FunctionRunResult {
     input.cart.buyerIdentity?.customer?.hasAnyTag === true;
   if (!customerEligible) return NO_DISCOUNT;
 
-  // 3. For each line, find the highest-minQty tier the qty satisfies.
+  // 3. For each line, compose baseline + best matching tier.
   const discounts = input.cart.lines.flatMap((line) => {
     const qty = line.quantity;
-    const winning = tiers
+    const winningTier = tiers
       .filter((t) => t.minQty <= qty)
       .sort((a, b) => b.minQty - a.minQty)[0];
-    if (!winning) return [];
+    const tierPct = winningTier?.discountPct ?? 0;
+
+    const composedPct = composeDiscountPct(baseline, tierPct);
+    if (composedPct <= 0) return [];
+
+    const message = winningTier
+      ? `Wholesale ${baseline}% + ${tierPct}% volume (${winningTier.minQty}+ units)`
+      : `Wholesale ${baseline}%`;
 
     const target: Target = { cartLine: { id: line.id } };
     return [
@@ -91,10 +129,10 @@ export function run(input: RunInput): FunctionRunResult {
         targets: [target],
         value: {
           percentage: {
-            value: winning.discountPct.toString(),
+            value: composedPct.toString(),
           },
         },
-        message: `Wholesale ${winning.discountPct}% off (${winning.minQty}+ units)`,
+        message,
       },
     ];
   });

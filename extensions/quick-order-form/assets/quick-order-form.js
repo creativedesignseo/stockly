@@ -30,6 +30,8 @@ class StocklyQuickOrder extends HTMLElement {
 
     this.tiers = [];
     this.eligible = false;
+    /** Universal wholesale baseline % (ADR-006). Composes multiplicatively with tier. */
+    this.wholesaleBaselinePct = 0;
 
     this._recalcTimer = null;
     this._onQtyInput = this._onQtyInput.bind(this);
@@ -55,6 +57,7 @@ class StocklyQuickOrder extends HTMLElement {
       const data = await res.json();
       this.tiers = Array.isArray(data.tiers) ? data.tiers : [];
       this.eligible = Boolean(data.eligible);
+      this.wholesaleBaselinePct = Number(data.shop?.wholesaleBaselinePct ?? 0) || 0;
       this._applyBranding(data.branding || {});
 
       if (!this.eligible) {
@@ -269,8 +272,14 @@ class StocklyQuickOrder extends HTMLElement {
       if (String(qty) !== input.value) input.value = qty;
 
       const basePrice = parseInt(row.dataset.basePrice, 10) || 0;
-      const discountPct = this._resolveDiscountPct(row, qty);
-      const lineTotal = Math.round(basePrice * qty * (1 - discountPct / 100));
+      const tierPct = this._resolveDiscountPct(row, qty);
+      // Multiplicative composition of wholesale baseline × tier
+      // (memory/wholesale-pricing-composition). Mirrors the math the
+      // Discount Function runs at checkout, so cart and storefront
+      // never disagree.
+      const baselineFactor = 1 - this.wholesaleBaselinePct / 100;
+      const tierFactor = 1 - tierPct / 100;
+      const lineTotal = Math.round(basePrice * qty * baselineFactor * tierFactor);
 
       row.querySelector('[data-stockly-line-total]').textContent =
         this._formatMoney(lineTotal);

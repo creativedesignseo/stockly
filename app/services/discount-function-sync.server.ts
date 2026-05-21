@@ -23,6 +23,7 @@
  */
 import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
 
+import prisma from "../db.server";
 import { listTiers } from "./tiers.server";
 
 const FUNCTION_HANDLE = "stockly-volume-discount";
@@ -243,20 +244,32 @@ async function updateDiscountMetafield(
 
 /**
  * Build the JSON payload that the Function expects in its metafield.
- * Shape:
+ *
+ * Shape (v2 — adds wholesaleBaselinePct per ADR-006):
  *   {
+ *     "wholesaleBaselinePct": 65,
  *     "tiers": [
  *       { "minQty": 10, "discountPct": 10 },
  *       ...
  *     ]
  *   }
  *
- * v1 only includes shop-wide (`scope='all'`) active tiers — the
- * Function doesn't yet have access to product/collection scoping
- * data at checkout time.
+ * Composition (multiplicative, per [[wholesale-pricing-composition]]):
+ *   finalDiscount = 1 - (1 - baseline/100) × (1 - tierPct/100)
+ *
+ * The Function applies the baseline even when no tier matches, so every
+ * eligible wholesale customer gets at least the baseline off retail.
+ *
+ * Scope: still shop-wide tiers only (scope='all'). Product/collection
+ * scoping at checkout requires per-product metafields the Function
+ * reads — separate follow-up.
  */
 async function buildConfiguration(shopId: string): Promise<string> {
-  const tiers = await listTiers(shopId, { activeOnly: true });
+  const [shop, tiers] = await Promise.all([
+    prisma.shop.findUniqueOrThrow({ where: { id: shopId } }),
+    listTiers(shopId, { activeOnly: true }),
+  ]);
+
   const shopWide = tiers
     .filter((t) => t.scope === "all")
     .map((t) => ({
@@ -264,7 +277,11 @@ async function buildConfiguration(shopId: string): Promise<string> {
       discountPct: t.discountPct,
     }))
     .sort((a, b) => a.minQty - b.minQty);
-  return JSON.stringify({ tiers: shopWide });
+
+  return JSON.stringify({
+    wholesaleBaselinePct: shop.wholesaleBaselinePct,
+    tiers: shopWide,
+  });
 }
 
 /**

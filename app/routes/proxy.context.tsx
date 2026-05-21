@@ -87,6 +87,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         wholesaleTag: shopRow.wholesaleTag,
         minOrderValue: shopRow.minOrderValue,
         onboarded: shopRow.onboarded,
+        wholesaleBaselinePct: shopRow.wholesaleBaselinePct,
       },
       branding,
       copy,
