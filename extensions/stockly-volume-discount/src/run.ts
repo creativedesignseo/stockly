@@ -41,8 +41,13 @@ interface FunctionConfig {
   tiers?: ConfiguredTier[];
 }
 
+// Strategy.All so every matching line gets its own discount applied.
+// First was a bug: with `First`, Shopify applied the discount to only
+// the FIRST cart line that matched and silently ignored the rest, so
+// adding a second qualifying product to the cart "stole" the discount
+// from the first one (or vice versa) instead of both getting it.
 const NO_DISCOUNT: FunctionRunResult = {
-  discountApplicationStrategy: DiscountApplicationStrategy.First,
+  discountApplicationStrategy: DiscountApplicationStrategy.All,
   discounts: [],
 };
 
@@ -97,7 +102,7 @@ export function run(input: RunInput): FunctionRunResult {
   if (discounts.length === 0) return NO_DISCOUNT;
 
   return {
-    discountApplicationStrategy: DiscountApplicationStrategy.First,
+    discountApplicationStrategy: DiscountApplicationStrategy.All,
     discounts,
   };
 }
