@@ -357,6 +357,7 @@ class StocklyQuickOrder extends HTMLElement {
     this.grandTotalEl.textContent = this._formatMoney(grand);
     this.addAllBtn.disabled = grand === 0;
     this._updateLadderActive();
+    this._updateFpqBanner();
   }
 
   async _addAllToCart() {
