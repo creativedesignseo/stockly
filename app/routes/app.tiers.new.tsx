@@ -106,7 +106,7 @@ export default function NewTier() {
             )}
 
             <TextField
-              label="Name"
+              label="Name (internal label for this tier)"
               name="name"
               autoComplete="off"
               value={name}
@@ -117,7 +117,7 @@ export default function NewTier() {
             />
 
             <Select
-              label="Applies to"
+              label="Applies to (which products this tier discounts)"
               name="scope"
               value={scope}
               onChange={(v) => setScope(v as TierScope)}
@@ -151,7 +151,7 @@ export default function NewTier() {
 
             <FormLayout.Group>
               <TextField
-                label="Minimum quantity"
+                label="Minimum quantity (threshold to activate tier)"
                 name="minQty"
                 type="number"
                 min={1}
@@ -163,7 +163,7 @@ export default function NewTier() {
                 requiredIndicator
               />
               <TextField
-                label="Discount %"
+                label="Discount % (off the base price)"
                 name="discountPct"
                 type="number"
                 min={0}

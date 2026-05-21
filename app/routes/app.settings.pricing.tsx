@@ -95,12 +95,12 @@ export default function PricingSettings() {
         <Card>
           <BlockStack gap="300">
             <Text as="h2" variant="headingMd">
-              Wholesale baseline
+              Wholesale baseline (universal B2B discount)
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
               The universal discount % applied to retail prices for any
-              wholesale-approved customer. Volume tiers stack on top of
-              this baseline multiplicatively.
+              wholesale-approved customer. Volume tiers (qty-based extra
+              discounts) stack on top of this baseline multiplicatively.
             </Text>
             <Text as="p" variant="bodyMd" tone="subdued">
               Example: with baseline 65 and a 10% tier at qty 10+, a €100
@@ -123,7 +123,7 @@ export default function PricingSettings() {
               )}
 
               <TextField
-                label="Wholesale baseline %"
+                label="Wholesale baseline % (off retail for any approved B2B customer)"
                 name="wholesaleBaselinePct"
                 type="number"
                 min={0}

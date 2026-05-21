@@ -169,7 +169,7 @@ export default function EditTier() {
               )}
 
               <TextField
-                label="Name"
+                label="Name (internal label for this tier)"
                 name="name"
                 autoComplete="off"
                 value={name}
@@ -180,7 +180,7 @@ export default function EditTier() {
               />
 
               <Select
-                label="Applies to"
+                label="Applies to (which products this tier discounts)"
                 name="scope"
                 value={scope}
                 onChange={(v) => setScope(v as TierScope)}
@@ -217,7 +217,7 @@ export default function EditTier() {
 
               <FormLayout.Group>
                 <TextField
-                  label="Minimum quantity"
+                  label="Minimum quantity (threshold to activate tier)"
                   name="minQty"
                   type="number"
                   min={1}
@@ -229,7 +229,7 @@ export default function EditTier() {
                   requiredIndicator
                 />
                 <TextField
-                  label="Discount %"
+                  label="Discount % (off the base price)"
                   name="discountPct"
                   type="number"
                   min={0}
@@ -253,7 +253,7 @@ export default function EditTier() {
                 `form.get("active") === "on"` check is reliable.
               */}
               <Checkbox
-                label="Active"
+                label="Active (apply this tier at checkout)"
                 checked={active}
                 onChange={setActive}
                 helpText="Inactive tiers are kept for history but no longer apply at checkout."
