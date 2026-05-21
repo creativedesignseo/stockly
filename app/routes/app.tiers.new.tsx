@@ -22,7 +22,11 @@ import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
-import { createTier, type TierScope } from "../services/tiers.server";
+import {
+  createTier,
+  type TierAggregation,
+  type TierScope,
+} from "../services/tiers.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticateAdmin(request);
@@ -38,6 +42,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const scopeId = (form.get("scopeId") ?? "").toString().trim() || null;
   const minQtyStr = (form.get("minQty") ?? "").toString();
   const discountPctStr = (form.get("discountPct") ?? "").toString();
+  const aggregation = (form.get("aggregation") ?? "per_line").toString() as TierAggregation;
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
@@ -45,6 +50,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.scope = "Invalid scope";
   if (scope !== "all" && !scopeId)
     errors.scopeId = "Scope ID is required for product/collection tiers";
+  if (!["per_line", "cart_total"].includes(aggregation))
+    errors.aggregation = "Invalid aggregation mode";
 
   const minQty = Number(minQtyStr);
   if (!Number.isInteger(minQty) || minQty < 1)
@@ -55,7 +62,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.discountPct = "Discount must be between 0 and 100";
 
   if (Object.keys(errors).length > 0) {
-    return { errors, values: { name, scope, scopeId, minQtyStr, discountPctStr } };
+    return {
+      errors,
+      values: { name, scope, scopeId, minQtyStr, discountPctStr, aggregation },
+    };
   }
 
   await createTier({
@@ -65,6 +75,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     scopeId,
     minQty,
     discountPct,
+    aggregation,
   });
 
   // Sync to the Shopify Discount Function so checkout enforces it.
@@ -91,6 +102,9 @@ export default function NewTier() {
   );
   const [discountPct, setDiscountPct] = useState<string>(
     actionData?.values?.discountPctStr ?? "",
+  );
+  const [aggregation, setAggregation] = useState<TierAggregation>(
+    (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
   );
 
   const errors = actionData?.errors ?? {};
@@ -149,6 +163,24 @@ export default function NewTier() {
               />
             )}
 
+            <Select
+              label="Aggregation (how minimum is counted)"
+              name="aggregation"
+              value={aggregation}
+              onChange={(v) => setAggregation(v as TierAggregation)}
+              options={[
+                {
+                  label: "Per line — each product must meet the minimum on its own",
+                  value: "per_line",
+                },
+                {
+                  label: "Cart total — sum across all cart products (assortment OK)",
+                  value: "cart_total",
+                },
+              ]}
+              helpText="Per line: customer must buy 10 of THIS product to trigger the tier. Cart total: customer can mix 1 of each product, as long as the order totals 10 pieces."
+            />
+
             <FormLayout.Group>
               <TextField
                 label="Minimum quantity (threshold to activate tier)"
@@ -163,7 +195,7 @@ export default function NewTier() {
                 requiredIndicator
               />
               <TextField
-                label="Discount % (off the base price)"
+                label="Discount % (off the base price, in addition to baseline)"
                 name="discountPct"
                 type="number"
                 min={0}

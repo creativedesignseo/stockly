@@ -15,6 +15,7 @@ import prisma from "../db.server";
 import type { Tier } from "@prisma/client";
 
 export type TierScope = "product" | "collection" | "all";
+export type TierAggregation = "per_line" | "cart_total";
 
 export interface ResolveTierInput {
   shopId: string;
@@ -151,6 +152,7 @@ export async function createTier(data: {
   scopeId?: string | null;
   minQty: number;
   discountPct: number;
+  aggregation?: TierAggregation;
   position?: number;
 }) {
   // Defensive: 'all' scope must not have a scopeId.
@@ -163,6 +165,7 @@ export async function createTier(data: {
       scopeId,
       minQty: data.minQty,
       discountPct: data.discountPct,
+      aggregation: data.aggregation ?? "per_line",
       position: data.position ?? 0,
     },
   });
@@ -179,6 +182,7 @@ export async function updateTier(
     scopeId: string | null;
     minQty: number;
     discountPct: number;
+    aggregation: TierAggregation;
     active: boolean;
     position: number;
   }>,

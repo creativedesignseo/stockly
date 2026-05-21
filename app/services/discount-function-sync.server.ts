@@ -275,6 +275,7 @@ async function buildConfiguration(shopId: string): Promise<string> {
     .map((t) => ({
       minQty: t.minQty,
       discountPct: t.discountPct,
+      aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
     }))
     .sort((a, b) => a.minQty - b.minQty);
 

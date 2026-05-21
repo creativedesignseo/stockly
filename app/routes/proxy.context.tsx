@@ -98,6 +98,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         scopeId: t.scopeId,
         minQty: t.minQty,
         discountPct: t.discountPct,
+        aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
         position: t.position,
       })),
     },

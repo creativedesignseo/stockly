@@ -147,18 +147,22 @@ class StocklyQuickOrder extends HTMLElement {
     }
 
     this.ladderTiersEl.innerHTML = applicable
-      .map(
-        (t) => `
+      .map((t) => {
+        // cart_total tiers say "mixed units" so the customer
+        // understands they can assort across products
+        const unitLabel = t.aggregation === 'cart_total' ? 'mixed units' : 'units';
+        return `
           <span
             class="stockly-qo__ladder-tier"
             data-min-qty="${t.minQty}"
             data-discount="${t.discountPct}"
+            data-aggregation="${t.aggregation ?? 'per_line'}"
           >
-            <span class="stockly-qo__ladder-qty">${t.minQty}+ units</span>
+            <span class="stockly-qo__ladder-qty">${t.minQty}+ ${unitLabel}</span>
             <span class="stockly-qo__ladder-discount">-${t.discountPct}%</span>
           </span>
-        `,
-      )
+        `;
+      })
       .join('');
 
     this.ladderEl.hidden = false;
@@ -174,22 +178,22 @@ class StocklyQuickOrder extends HTMLElement {
       return;
     }
 
-    let maxQty = 0;
+    // For per_line pills: the activation threshold is the MAX line qty.
+    // For cart_total pills: it's the SUM of all line quantities.
+    let maxLineQty = 0;
+    let cartTotalQty = 0;
     this.rows.forEach((row) => {
       const qty = parseInt(row.querySelector('.stockly-qo__qty').value, 10) || 0;
-      if (qty > maxQty) maxQty = qty;
+      if (qty > maxLineQty) maxLineQty = qty;
+      cartTotalQty += qty;
     });
 
     const pills = this.ladderTiersEl.querySelectorAll('.stockly-qo__ladder-tier');
-    let activeMinQty = -1;
     pills.forEach((p) => {
       const min = parseInt(p.dataset.minQty, 10);
-      if (min <= maxQty && min > activeMinQty) activeMinQty = min;
-    });
-
-    pills.forEach((p) => {
-      const min = parseInt(p.dataset.minQty, 10);
-      p.classList.toggle('stockly-qo__ladder-tier--active', min === activeMinQty);
+      const aggregation = p.dataset.aggregation || 'per_line';
+      const referenceQty = aggregation === 'cart_total' ? cartTotalQty : maxLineQty;
+      p.classList.toggle('stockly-qo__ladder-tier--active', min <= referenceQty && min > 0);
     });
   }
 
@@ -219,9 +223,11 @@ class StocklyQuickOrder extends HTMLElement {
   }
 
   /**
-   * Resolve the discount percent for a row at a given quantity.
+   * Resolve the PER-LINE tier discount for a row at a given quantity.
    * Mirrors the server-side precedence in tiers.server.ts:
    *   product > collection > all, then highest qualifying minQty wins.
+   * Cart-total tiers (ADR-007) are evaluated separately in
+   * _recalcTotals — they don't qualify on per-line qty.
    */
   _resolveDiscountPct(row, qty) {
     if (qty <= 0 || this.tiers.length === 0) return 0;
@@ -229,7 +235,33 @@ class StocklyQuickOrder extends HTMLElement {
     const scopeRank = { product: 3, collection: 2, all: 1 };
 
     const qualifying = this._applicableTiers(row)
+      .filter((t) => (t.aggregation ?? 'per_line') === 'per_line')
       .filter((t) => t.minQty <= qty)
+      .sort((a, b) => {
+        const rankDiff = scopeRank[b.scope] - scopeRank[a.scope];
+        if (rankDiff !== 0) return rankDiff;
+        return b.minQty - a.minQty;
+      });
+
+    return qualifying[0]?.discountPct ?? 0;
+  }
+
+  /**
+   * Resolve the active cart_total tier's discount % for a given row.
+   * Cart-total tiers apply uniformly to every line within their scope
+   * when the SUM of qualifying line quantities meets minQty.
+   *
+   * `cartTotalQty` is computed once in _recalcTotals and passed in to
+   * avoid recomputing per row.
+   */
+  _resolveCartTotalDiscountPct(row, cartTotalQty) {
+    if (cartTotalQty <= 0 || this.tiers.length === 0) return 0;
+
+    const scopeRank = { product: 3, collection: 2, all: 1 };
+
+    const qualifying = this._applicableTiers(row)
+      .filter((t) => t.aggregation === 'cart_total')
+      .filter((t) => t.minQty <= cartTotalQty)
       .sort((a, b) => {
         const rankDiff = scopeRank[b.scope] - scopeRank[a.scope];
         if (rankDiff !== 0) return rankDiff;
@@ -266,17 +298,30 @@ class StocklyQuickOrder extends HTMLElement {
   _recalcTotals() {
     let grand = 0;
 
+    // First pass: cart-wide qty (needed for cart_total tier evaluation).
+    let cartTotalQty = 0;
+    this.rows.forEach((row) => {
+      const input = row.querySelector('.stockly-qo__qty');
+      const qty = Math.max(0, parseInt(input.value, 10) || 0);
+      cartTotalQty += qty;
+    });
+
     this.rows.forEach((row) => {
       const input = row.querySelector('.stockly-qo__qty');
       const qty = Math.max(0, parseInt(input.value, 10) || 0);
       if (String(qty) !== input.value) input.value = qty;
 
       const basePrice = parseInt(row.dataset.basePrice, 10) || 0;
-      const tierPct = this._resolveDiscountPct(row, qty);
+
+      // Pick the higher of (per-line tier %, cart-total tier %).
+      // Mirrors the Function's combine logic — keeps storefront math
+      // identical to checkout.
+      const perLinePct = this._resolveDiscountPct(row, qty);
+      const cartTotalPct = this._resolveCartTotalDiscountPct(row, cartTotalQty);
+      const tierPct = Math.max(perLinePct, cartTotalPct);
+
       // Multiplicative composition of wholesale baseline × tier
-      // (memory/wholesale-pricing-composition). Mirrors the math the
-      // Discount Function runs at checkout, so cart and storefront
-      // never disagree.
+      // (memory/wholesale-pricing-composition).
       const baselineFactor = 1 - this.wholesaleBaselinePct / 100;
       const tierFactor = 1 - tierPct / 100;
       const lineTotal = Math.round(basePrice * qty * baselineFactor * tierFactor);

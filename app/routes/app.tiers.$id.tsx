@@ -36,6 +36,7 @@ import {
   deleteTier,
   getTier,
   updateTier,
+  type TierAggregation,
   type TierScope,
 } from "../services/tiers.server";
 
@@ -78,6 +79,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   const scopeId = (form.get("scopeId") ?? "").toString().trim() || null;
   const minQtyStr = (form.get("minQty") ?? "").toString();
   const discountPctStr = (form.get("discountPct") ?? "").toString();
+  const aggregation = (form.get("aggregation") ?? "per_line").toString() as TierAggregation;
   const active = form.get("active") === "on";
 
   const errors: Record<string, string> = {};
@@ -86,6 +88,8 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.scope = "Invalid scope";
   if (scope !== "all" && !scopeId)
     errors.scopeId = "Scope ID is required for product/collection tiers";
+  if (!["per_line", "cart_total"].includes(aggregation))
+    errors.aggregation = "Invalid aggregation mode";
 
   const minQty = Number(minQtyStr);
   if (!Number.isInteger(minQty) || minQty < 1)
@@ -98,7 +102,15 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   if (Object.keys(errors).length > 0) {
     return {
       errors,
-      values: { name, scope, scopeId, minQtyStr, discountPctStr, active },
+      values: {
+        name,
+        scope,
+        scopeId,
+        minQtyStr,
+        discountPctStr,
+        aggregation,
+        active,
+      },
     };
   }
 
@@ -108,6 +120,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     scopeId: scope === "all" ? null : scopeId,
     minQty,
     discountPct,
+    aggregation,
     active,
   });
 
@@ -139,6 +152,10 @@ export default function EditTier() {
   );
   const [discountPct, setDiscountPct] = useState<string>(
     actionData?.values?.discountPctStr ?? String(tier.discountPct),
+  );
+  const [aggregation, setAggregation] = useState<TierAggregation>(
+    (actionData?.values?.aggregation as TierAggregation) ??
+      (tier.aggregation as TierAggregation),
   );
   const [active, setActive] = useState<boolean>(
     actionData?.values?.active ?? tier.active,
@@ -214,6 +231,24 @@ export default function EditTier() {
                   requiredIndicator
                 />
               )}
+
+              <Select
+                label="Aggregation (how minimum is counted)"
+                name="aggregation"
+                value={aggregation}
+                onChange={(v) => setAggregation(v as TierAggregation)}
+                options={[
+                  {
+                    label: "Per line — each product must meet the minimum on its own",
+                    value: "per_line",
+                  },
+                  {
+                    label: "Cart total — sum across all cart products (assortment OK)",
+                    value: "cart_total",
+                  },
+                ]}
+                helpText="Per line: customer must buy 10 of THIS product to trigger the tier. Cart total: customer can mix 1 of each product, as long as the order totals 10 pieces."
+              />
 
               <FormLayout.Group>
                 <TextField

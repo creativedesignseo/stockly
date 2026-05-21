@@ -88,6 +88,15 @@ model Tier {
   /// Percent discount, 0-100 (10 means -10%).
   discountPct Float
 
+  /// How `minQty` is evaluated against the cart (ADR-007):
+  ///   - 'per_line' (default): each cart line independently must
+  ///     have qty >= minQty for the tier to apply to that line.
+  ///     Existing Sprint 2 behavior.
+  ///   - 'cart_total': SUM of all line quantities (within the tier's
+  ///     scope) must meet minQty. If met, the discount applies to
+  ///     every line in scope. Faire-style assortment minimums.
+  aggregation String   @default("per_line")
+
   active      Boolean  @default(true)
   /// Display order in the admin UI.
   position    Int      @default(0)

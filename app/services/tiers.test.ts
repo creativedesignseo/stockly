@@ -27,6 +27,7 @@ function tier(overrides: Partial<Tier> = {}): Tier {
     scopeId: null,
     minQty: 10,
     discountPct: 5,
+    aggregation: "per_line",
     active: true,
     position: 0,
     createdAt: new Date("2026-01-01"),

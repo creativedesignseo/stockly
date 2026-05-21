@@ -30,11 +30,21 @@
 import type { RunInput, FunctionRunResult, Target } from "../generated/api";
 import { DiscountApplicationStrategy } from "../generated/api";
 
+type Aggregation = "per_line" | "cart_total";
+
 interface ConfiguredTier {
-  /** Inclusive minimum line quantity that activates this tier. */
+  /** Inclusive minimum quantity that activates this tier. */
   minQty: number;
   /** Percentage off the base price (0–100). */
   discountPct: number;
+  /**
+   * How minQty is evaluated against the cart (ADR-007).
+   * 'per_line' (default): each line's qty individually checked.
+   * 'cart_total': SUM of all eligible line quantities checked once.
+   * Missing field treated as 'per_line' for back-compat with v1
+   * configurations still in the wild.
+   */
+  aggregation?: Aggregation;
 }
 
 interface FunctionConfig {
@@ -108,20 +118,51 @@ export function run(input: RunInput): FunctionRunResult {
     input.cart.buyerIdentity?.customer?.hasAnyTag === true;
   if (!customerEligible) return NO_DISCOUNT;
 
-  // 3. For each line, compose baseline + best matching tier.
+  // 3. Partition tiers by aggregation mode.
+  //    - per_line tiers: each line evaluated independently
+  //    - cart_total tiers: cart-wide qty sum evaluated once; if met,
+  //      applies to every line (v1 shop-wide; per-scope filtering in
+  //      a follow-up commit when product metafields are wired)
+  const perLineTiers = tiers.filter(
+    (t) => (t.aggregation ?? "per_line") === "per_line",
+  );
+  const cartTotalTiers = tiers.filter((t) => t.aggregation === "cart_total");
+
+  // Cart-wide qty for the cart_total branch.
+  const cartTotalQty = input.cart.lines.reduce(
+    (sum, line) => sum + line.quantity,
+    0,
+  );
+  const cartWinningTier = cartTotalTiers
+    .filter((t) => t.minQty <= cartTotalQty)
+    .sort((a, b) => b.minQty - a.minQty)[0];
+
+  // 4. For each line, pick the best tier between its per-line match
+  //    and any active cart-total tier, then compose with baseline.
   const discounts = input.cart.lines.flatMap((line) => {
     const qty = line.quantity;
-    const winningTier = tiers
+    const perLineWinning = perLineTiers
       .filter((t) => t.minQty <= qty)
       .sort((a, b) => b.minQty - a.minQty)[0];
-    const tierPct = winningTier?.discountPct ?? 0;
 
+    // The "best" tier for THIS line is whichever gives the higher
+    // discount %, combining the two aggregation modes cleanly.
+    const candidates: ConfiguredTier[] = [];
+    if (perLineWinning) candidates.push(perLineWinning);
+    if (cartWinningTier) candidates.push(cartWinningTier);
+    const winningTier = candidates.sort(
+      (a, b) => b.discountPct - a.discountPct,
+    )[0];
+
+    const tierPct = winningTier?.discountPct ?? 0;
     const composedPct = composeDiscountPct(baseline, tierPct);
     if (composedPct <= 0) return [];
 
-    const message = winningTier
-      ? `Wholesale ${baseline}% + ${tierPct}% volume (${winningTier.minQty}+ units)`
-      : `Wholesale ${baseline}%`;
+    let message = `Wholesale ${baseline}%`;
+    if (winningTier) {
+      const mode = winningTier.aggregation === "cart_total" ? "mixed" : "units";
+      message = `Wholesale ${baseline}% + ${tierPct}% volume (${winningTier.minQty}+ ${mode})`;
+    }
 
     const target: Target = { cartLine: { id: line.id } };
     return [
