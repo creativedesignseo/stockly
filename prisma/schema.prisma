@@ -68,6 +68,24 @@ model Shop {
   /// Tiers compose multiplicatively on top of this baseline.
   wholesaleBaselinePct Int                @default(0)
 
+  // ----- First-Purchase Qualifier (ADR-004) -----
+  /// How the FPQ is evaluated. 'none' = no gate (default — preserves
+  /// pre-FPQ behavior). 'amount' = cart subtotal threshold. 'quantity'
+  /// = cart unit count. 'combined' = both, with fpqCombinedLogic.
+  fpqMode            String              @default("none")
+  /// Minimum cart subtotal (in shop currency) for first-order
+  /// qualification when fpqMode is 'amount' or 'combined'.
+  fpqAmount          Float?
+  /// Minimum cart quantity for first-order qualification when
+  /// fpqMode is 'quantity' or 'combined'.
+  fpqQuantity        Int?
+  /// If fpqMode = 'combined', how amount and quantity combine.
+  /// 'and' = both required, 'or' = either suffices.
+  fpqCombinedLogic   String              @default("and")
+  /// Minimum order quantity AFTER the customer has been qualified.
+  /// 1 = no minimum (default — once qualified, customer buys freely).
+  postQualificationMOQ Int               @default(1)
+
   tiers              Tier[]
   wholesaleCustomers WholesaleCustomer[]
 }
@@ -121,6 +139,16 @@ model WholesaleCustomer {
 
   approvedAt        DateTime @default(now())
   notes             String?
+
+  // ----- FPQ qualification state (ADR-004) -----
+  /// When the customer's first qualifying order was paid. null = still
+  /// in `approved_pre_fpq` state (must meet FPQ on next checkout). Once
+  /// set, the customer is `qualified` (terminal) and can buy freely.
+  qualifiedAt              DateTime?
+  /// Shopify order GID that triggered qualification (audit trail).
+  qualifyingOrderId        String?
+  /// The total of the qualifying order (audit trail).
+  qualifyingOrderAmount    Float?
 
   @@unique([shopId, shopifyCustomerId])
   @@index([shopId, email])

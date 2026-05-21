@@ -7,7 +7,9 @@ embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "write_products,read_publications,write_publications,write_discounts"
+# write_customers — needed to write the wholesale-status metafield on
+# customers from the orders/paid webhook handler (ADR-004 FPQ flow).
+scopes = "write_products,read_publications,write_publications,write_discounts,write_customers"
 
 [webhooks]
 api_version = "2026-07"
@@ -19,6 +21,14 @@ api_version = "2026-07"
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
+
+  # FPQ qualification (ADR-004). When a wholesale-tagged customer's
+  # paid order meets the shop's first-purchase qualifier, our handler
+  # writes a customer metafield that the Discount Function reads to
+  # skip the FPQ gate on subsequent carts.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/paid"
+  topics = [ "orders/paid" ]
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]

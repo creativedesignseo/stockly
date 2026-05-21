@@ -3,6 +3,11 @@ query RunInput {
     lines {
       id
       quantity
+      cost {
+        amountPerQuantity {
+          amount
+        }
+      }
       merchandise {
         __typename
         ... on ProductVariant {
@@ -17,6 +22,13 @@ query RunInput {
       customer {
         id
         hasAnyTag(tags: ["wholesale"])
+        # Customer-level qualification status — written by our webhook
+        # handler after the customer's first qualifying order. When
+        # present (non-empty value), the Function skips the FPQ check
+        # and applies the wholesale discount unconditionally.
+        wholesaleStatus: metafield(namespace: "$app:stockly-volume-discount", key: "wholesale-status") {
+          value
+        }
       }
     }
   }

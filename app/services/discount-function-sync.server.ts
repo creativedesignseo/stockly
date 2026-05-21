@@ -281,6 +281,16 @@ async function buildConfiguration(shopId: string): Promise<string> {
 
   return JSON.stringify({
     wholesaleBaselinePct: shop.wholesaleBaselinePct,
+    // FPQ config (ADR-004). The Function uses this to gate the
+    // discount on non-qualified customers' carts: if their cart
+    // doesn't meet the threshold, no discount until they do.
+    fpq: {
+      mode: shop.fpqMode,
+      amount: shop.fpqAmount,
+      quantity: shop.fpqQuantity,
+      combinedLogic: shop.fpqCombinedLogic,
+    },
+    postQualificationMOQ: shop.postQualificationMOQ,
     tiers: shopWide,
   });
 }

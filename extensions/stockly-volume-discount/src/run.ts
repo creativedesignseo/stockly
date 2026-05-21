@@ -47,6 +47,15 @@ interface ConfiguredTier {
   aggregation?: Aggregation;
 }
 
+interface FpqConfig {
+  /** 'none' | 'amount' | 'quantity' | 'combined' */
+  mode?: string;
+  amount?: number | null;
+  quantity?: number | null;
+  /** 'and' | 'or' — only used when mode === 'combined' */
+  combinedLogic?: string;
+}
+
 interface FunctionConfig {
   /**
    * Universal wholesale discount % applied to every line for any
@@ -54,7 +63,46 @@ interface FunctionConfig {
    * 0 means no baseline (legacy behavior).
    */
   wholesaleBaselinePct?: number;
+  /**
+   * First-Purchase Qualifier (ADR-004). If a wholesale customer's
+   * `wholesaleStatus` metafield is empty (not yet qualified), the
+   * Function evaluates their cart against this gate before applying
+   * any discount. Once qualified (metafield non-empty), the gate is
+   * skipped — wholesale pricing applies on every subsequent cart.
+   */
+  fpq?: FpqConfig;
+  postQualificationMOQ?: number;
   tiers?: ConfiguredTier[];
+}
+
+/**
+ * Evaluate whether the cart meets the merchant's FPQ rules.
+ * Returns true iff the gate allows the wholesale discount to apply.
+ */
+function fpqMet(
+  fpq: FpqConfig | undefined,
+  cartSubtotal: number,
+  cartQty: number,
+): boolean {
+  const mode = fpq?.mode ?? "none";
+  if (mode === "none") return true;
+
+  const amountOk =
+    typeof fpq?.amount === "number" && fpq.amount > 0
+      ? cartSubtotal >= fpq.amount
+      : true;
+  const quantityOk =
+    typeof fpq?.quantity === "number" && fpq.quantity > 0
+      ? cartQty >= fpq.quantity
+      : true;
+
+  if (mode === "amount") return amountOk;
+  if (mode === "quantity") return quantityOk;
+  if (mode === "combined") {
+    const logic = fpq?.combinedLogic ?? "and";
+    return logic === "or" ? amountOk || quantityOk : amountOk && quantityOk;
+  }
+  return true;
 }
 
 /**
@@ -114,9 +162,33 @@ export function run(input: RunInput): FunctionRunResult {
   // 2. Eligibility gate. The Function's input.graphql hardcodes the
   //    default wholesale tag; per-shop custom tags will require either
   //    a metafield-driven tag check or a per-shop Function variant.
-  const customerEligible =
-    input.cart.buyerIdentity?.customer?.hasAnyTag === true;
+  const customer = input.cart.buyerIdentity?.customer;
+  const customerEligible = customer?.hasAnyTag === true;
   if (!customerEligible) return NO_DISCOUNT;
+
+  // 2.5 First-Purchase Qualifier (ADR-004). If the customer hasn't
+  //     yet been qualified (no wholesaleStatus metafield value), the
+  //     cart must meet the merchant's FPQ rules for the discount to
+  //     apply. The webhook handler writes this metafield to "qualify"
+  //     the customer after their first qualifying order; from then on
+  //     they buy freely.
+  const alreadyQualified =
+    typeof customer?.wholesaleStatus?.value === "string" &&
+    customer.wholesaleStatus.value.length > 0;
+
+  if (!alreadyQualified) {
+    const cartSubtotal = input.cart.lines.reduce((sum, line) => {
+      const perUnit = Number(line.cost?.amountPerQuantity?.amount ?? 0);
+      return sum + perUnit * line.quantity;
+    }, 0);
+    const cartQty = input.cart.lines.reduce(
+      (sum, line) => sum + line.quantity,
+      0,
+    );
+    if (!fpqMet(config.fpq, cartSubtotal, cartQty)) {
+      return NO_DISCOUNT;
+    }
+  }
 
   // 3. Partition tiers by aggregation mode.
   //    - per_line tiers: each line evaluated independently
