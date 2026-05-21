@@ -234,6 +234,50 @@ describe("resolveTier", () => {
       scopeId: PRODUCT_GID,
     });
     expect(arg.where.OR).toContainEqual({ scope: "all", scopeId: null });
+    // Variant-scoped tiers must also be candidates — variantId filter
+    // is applied by the caller against line.merchandise.id, not at the
+    // DB level (we want all variant tiers to enter the ranker so we
+    // can compare specificity).
+    expect(arg.where.OR).toContainEqual({ scope: "variant" });
+  });
+
+  it("prefers variant scope over product, collection, and all", async () => {
+    // All four scopes qualify on minQty; the variant-scoped one wins
+    // by specificity even though it has the LOWEST discountPct.
+    findManyMock.mockResolvedValue([
+      tier({ id: "t-all", scope: "all", scopeId: null, minQty: 5, discountPct: 20 }),
+      tier({
+        id: "t-collection",
+        scope: "collection",
+        scopeId: COLLECTION_GID,
+        minQty: 5,
+        discountPct: 15,
+      }),
+      tier({
+        id: "t-product",
+        scope: "product",
+        scopeId: PRODUCT_GID,
+        minQty: 5,
+        discountPct: 10,
+      }),
+      tier({
+        id: "t-variant",
+        scope: "variant",
+        scopeId: "gid://shopify/ProductVariant/777",
+        minQty: 5,
+        discountPct: 5,
+      }),
+    ]);
+
+    const result = await resolveTier({
+      shopId: "shop-1",
+      productGid: PRODUCT_GID,
+      collectionGids: [COLLECTION_GID],
+      quantity: 10,
+    });
+
+    expect(result.tier?.id).toBe("t-variant");
+    expect(result.discountPct).toBe(5);
   });
 });
 

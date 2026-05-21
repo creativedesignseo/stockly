@@ -46,12 +46,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
-  if (!["product", "collection", "all"].includes(scope))
+  if (!["product", "variant", "collection", "all"].includes(scope))
     errors.scope = "Invalid scope";
   if (scope !== "all" && !scopeId)
-    errors.scopeId = "Scope ID is required for product/collection tiers";
+    errors.scopeId = "Scope ID is required for product/variant/collection tiers";
   if (!["per_line", "cart_total"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
+
+  // Variant tiers require cart_total to be 'per_line' — cart-total
+  // aggregation on a single-variant scope makes no business sense
+  // (it'd mean "match this exact variant 10+ times in cart" which
+  // is identical to per_line anyway).
+  if (scope === "variant" && aggregation === "cart_total") {
+    errors.aggregation = "Variant tiers must use per-line aggregation.";
+  }
 
   const minQty = Number(minQtyStr);
   if (!Number.isInteger(minQty) || minQty < 1)
@@ -138,8 +146,19 @@ export default function NewTier() {
               options={[
                 { label: "All products in the shop", value: "all" },
                 { label: "A specific product", value: "product" },
+                {
+                  label: "A specific variant (e.g. size XL, color blue)",
+                  value: "variant",
+                },
                 { label: "All products in a collection", value: "collection" },
               ]}
+              helpText={
+                scope === "variant"
+                  ? "Use this for statement pieces or oversized items that have their own wholesale pricing distinct from the parent product."
+                  : scope === "collection"
+                    ? "Note: collection-scoped tiers display in the storefront and apply at the storefront calculator, but at checkout the Discount Function falls back to baseline only. Use product or variant scope for checkout-enforced tiers."
+                    : undefined
+              }
             />
 
             {scope !== "all" && (
@@ -147,7 +166,9 @@ export default function NewTier() {
                 label={
                   scope === "product"
                     ? "Product ID (Shopify GID)"
-                    : "Collection ID (Shopify GID)"
+                    : scope === "variant"
+                      ? "Variant ID (Shopify GID)"
+                      : "Collection ID (Shopify GID)"
                 }
                 name="scopeId"
                 autoComplete="off"
@@ -157,7 +178,9 @@ export default function NewTier() {
                 helpText={
                   scope === "product"
                     ? "e.g. gid://shopify/Product/123456789"
-                    : "e.g. gid://shopify/Collection/987654321"
+                    : scope === "variant"
+                      ? "e.g. gid://shopify/ProductVariant/987654321 (visible in admin URL when editing the variant)"
+                      : "e.g. gid://shopify/Collection/987654321"
                 }
                 requiredIndicator
               />

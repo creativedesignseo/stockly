@@ -137,5 +137,6 @@ function ScopeBadge({
   if (scope === "all") return <Badge>All products</Badge>;
   if (scope === "collection") return <Badge tone="info">Collection</Badge>;
   if (scope === "product") return <Badge tone="info">Product</Badge>;
+  if (scope === "variant") return <Badge tone="success">Variant</Badge>;
   return <Badge>{scope}</Badge>;
 }

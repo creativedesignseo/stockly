@@ -245,24 +245,30 @@ async function updateDiscountMetafield(
 /**
  * Build the JSON payload that the Function expects in its metafield.
  *
- * Shape (v2 — adds wholesaleBaselinePct per ADR-006):
+ * Shape (v3 — adds scope + scopeId to each tier so checkout can enforce
+ * product- and variant-scoped tiers, ADR-008 P0 #3):
  *   {
  *     "wholesaleBaselinePct": 65,
+ *     "fpq": { ... },
+ *     "qualifiedCustomers": ["gid://shopify/Customer/123", ...],
  *     "tiers": [
- *       { "minQty": 10, "discountPct": 10 },
+ *       { "scope": "all",     "scopeId": null,                              "minQty": 10, "discountPct": 10 },
+ *       { "scope": "product", "scopeId": "gid://shopify/Product/123",       "minQty": 5,  "discountPct": 15 },
+ *       { "scope": "variant", "scopeId": "gid://shopify/ProductVariant/45", "minQty": 3,  "discountPct": 20 },
  *       ...
  *     ]
  *   }
  *
- * Composition (multiplicative, per [[wholesale-pricing-composition]]):
- *   finalDiscount = 1 - (1 - baseline/100) × (1 - tierPct/100)
+ * Per-line filtering happens in the Function (run.ts): it picks the
+ * most-specific qualifying tier for each cart line.
  *
- * The Function applies the baseline even when no tier matches, so every
- * eligible wholesale customer gets at least the baseline off retail.
- *
- * Scope: still shop-wide tiers only (scope='all'). Product/collection
- * scoping at checkout requires per-product metafields the Function
- * reads — separate follow-up.
+ * Collection-scoped tiers are EXCLUDED from this payload — the Function
+ * input doesn't expose a line's collections without a costly
+ * `merchandise.product.collections` query (counts against Function input
+ * byte budget). Collection enforcement remains storefront-only for now;
+ * if the merchant needs checkout-level enforcement they should split the
+ * collection into product-scoped tiers (or wait for the per-product
+ * metafield follow-up).
  */
 async function buildConfiguration(shopId: string): Promise<string> {
   const [shop, tiers, qualifiedRows] = await Promise.all([
@@ -276,9 +282,13 @@ async function buildConfiguration(shopId: string): Promise<string> {
     }),
   ]);
 
-  const shopWide = tiers
-    .filter((t) => t.scope === "all")
+  // Include all, product, and variant scoped tiers. Collection-scoped
+  // ones get skipped — see fn-doc comment above.
+  const scopedTiers = tiers
+    .filter((t) => t.scope === "all" || t.scope === "product" || t.scope === "variant")
     .map((t) => ({
+      scope: t.scope,
+      scopeId: t.scopeId, // null for 'all', GID for product/variant
       minQty: t.minQty,
       discountPct: t.discountPct,
       aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
@@ -305,7 +315,7 @@ async function buildConfiguration(shopId: string): Promise<string> {
     // `input.cart.buyerIdentity.customer.id` here to decide whether
     // to skip the FPQ gate.
     qualifiedCustomers,
-    tiers: shopWide,
+    tiers: scopedTiers,
   });
 }
 

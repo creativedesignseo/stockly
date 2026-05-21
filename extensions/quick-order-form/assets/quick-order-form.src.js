@@ -220,12 +220,14 @@ class StocklyQuickOrder extends HTMLElement {
    */
   _applicableTiers(row) {
     const productGid = row.dataset.productGid;
+    const variantGid = `gid://shopify/ProductVariant/${row.dataset.variantId}`;
     const collectionGids = (row.dataset.collectionGids || '')
       .split(',')
       .filter(Boolean);
 
     return this.tiers.filter((t) => {
       if (t.scope === 'all') return true;
+      if (t.scope === 'variant') return t.scopeId === variantGid;
       if (t.scope === 'product') return t.scopeId === productGid;
       if (t.scope === 'collection') return collectionGids.includes(t.scopeId);
       return false;

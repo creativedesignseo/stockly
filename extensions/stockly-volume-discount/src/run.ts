@@ -31,8 +31,23 @@ import type { RunInput, FunctionRunResult, Target } from "../generated/api";
 import { DiscountApplicationStrategy } from "../generated/api";
 
 type Aggregation = "per_line" | "cart_total";
+type Scope = "all" | "product" | "variant";
 
 interface ConfiguredTier {
+  /**
+   * Which lines this tier can apply to (ADR-008 P0 #3).
+   *  - 'all': every line
+   *  - 'product': only lines whose product GID matches scopeId
+   *  - 'variant': only lines whose variant GID matches scopeId
+   *
+   * Missing field treated as 'all' for back-compat with v2
+   * configurations (pre-variant-pricing).
+   *
+   * Collection-scoped tiers are NOT in this payload — see comment
+   * in discount-function-sync.server.ts/buildConfiguration.
+   */
+  scope?: Scope;
+  scopeId?: string | null;
   /** Inclusive minimum quantity that activates this tier. */
   minQty: number;
   /** Percentage off the base price (0–100). */
@@ -45,6 +60,33 @@ interface ConfiguredTier {
    * configurations still in the wild.
    */
   aggregation?: Aggregation;
+}
+
+/**
+ * Specificity ranking — variant beats product beats all. When multiple
+ * scopes qualify on a line, the more-specific scope's tier wins
+ * (highest discountPct within scope is the tiebreaker).
+ */
+const SCOPE_RANK: Record<Scope, number> = {
+  variant: 3,
+  product: 2,
+  all: 1,
+};
+
+/**
+ * Does this tier apply to this cart line? Compares the tier's scope
+ * against the line's variant + product GIDs.
+ */
+function tierAppliesToLine(
+  tier: ConfiguredTier,
+  variantGid: string,
+  productGid: string,
+): boolean {
+  const scope = tier.scope ?? "all";
+  if (scope === "all") return true;
+  if (scope === "variant") return tier.scopeId === variantGid;
+  if (scope === "product") return tier.scopeId === productGid;
+  return false;
 }
 
 interface FpqConfig {
@@ -178,10 +220,10 @@ export function run(input: RunInput): FunctionRunResult {
   if (!customerEligible) return NO_DISCOUNT;
 
   // 2.5 Partition tiers by aggregation mode.
-  //    - per_line tiers: each line evaluated independently
+  //    - per_line tiers: each line evaluated independently against
+  //      its own qty; also filtered by scope (variant/product/all).
   //    - cart_total tiers: cart-wide qty sum evaluated once; if met,
-  //      applies to every line (v1 shop-wide; per-scope filtering in
-  //      a follow-up commit when product metafields are wired)
+  //      applies to every line whose scope it matches.
   const perLineTiers = tiers.filter(
     (t) => (t.aggregation ?? "per_line") === "per_line",
   );
@@ -192,9 +234,6 @@ export function run(input: RunInput): FunctionRunResult {
     (sum, line) => sum + line.quantity,
     0,
   );
-  const cartWinningTier = cartTotalTiers
-    .filter((t) => t.minQty <= cartTotalQty)
-    .sort((a, b) => b.minQty - a.minQty)[0];
 
   // 3. Pre-compute per-line discount calculations.
   //    We need the would-be wholesale subtotals BEFORE the FPQ
@@ -204,13 +243,41 @@ export function run(input: RunInput): FunctionRunResult {
   //    much they actually pay at wholesale).
   const lineCalcs = input.cart.lines.map((line) => {
     const qty = line.quantity;
+
+    // Resolve this line's variant + product GIDs once for scope checks.
+    const merchandise = line.merchandise;
+    const variantGid =
+      merchandise?.__typename === "ProductVariant" ? merchandise.id : "";
+    const productGid =
+      merchandise?.__typename === "ProductVariant"
+        ? merchandise.product.id
+        : "";
+
+    // Per-line winner: best discount among tiers that (a) match this
+    // line's scope, (b) meet the per-line qty threshold. Specificity
+    // (variant > product > all) is the tiebreaker when discountPct ties.
     const perLineWinning = perLineTiers
+      .filter((t) => tierAppliesToLine(t, variantGid, productGid))
       .filter((t) => t.minQty <= qty)
-      .sort((a, b) => b.minQty - a.minQty)[0];
+      .sort((a, b) => {
+        const dDiff = b.discountPct - a.discountPct;
+        if (dDiff !== 0) return dDiff;
+        const sa = SCOPE_RANK[(a.scope ?? "all") as Scope];
+        const sb = SCOPE_RANK[(b.scope ?? "all") as Scope];
+        return sb - sa;
+      })[0];
+
+    // Cart-total winner for this line: of all cart_total tiers that
+    // match this line's scope, pick the highest discountPct whose
+    // minQty is met by the cart-wide qty sum.
+    const cartTotalWinning = cartTotalTiers
+      .filter((t) => tierAppliesToLine(t, variantGid, productGid))
+      .filter((t) => t.minQty <= cartTotalQty)
+      .sort((a, b) => b.discountPct - a.discountPct)[0];
 
     const candidates: ConfiguredTier[] = [];
     if (perLineWinning) candidates.push(perLineWinning);
-    if (cartWinningTier) candidates.push(cartWinningTier);
+    if (cartTotalWinning) candidates.push(cartTotalWinning);
     const winningTier = candidates.sort(
       (a, b) => b.discountPct - a.discountPct,
     )[0];

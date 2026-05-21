@@ -14,7 +14,7 @@
 import prisma from "../db.server";
 import type { Tier } from "@prisma/client";
 
-export type TierScope = "product" | "collection" | "all";
+export type TierScope = "product" | "variant" | "collection" | "all";
 export type TierAggregation = "per_line" | "cart_total";
 
 export interface ResolveTierInput {
@@ -51,11 +51,15 @@ export async function resolveTier(
   const { shopId, productGid, collectionGids = [], quantity } = input;
 
   // Pull all active tiers for the shop that could possibly match.
+  // Variant scope is resolved by the caller against line.merchandise.id;
+  // here we leave the OR open to any scope and let the precedence ranker
+  // pick the most-specific qualifying tier.
   const candidates = await prisma.tier.findMany({
     where: {
       shopId,
       active: true,
       OR: [
+        { scope: "variant" },
         { scope: "product", scopeId: productGid },
         { scope: "collection", scopeId: { in: collectionGids } },
         { scope: "all", scopeId: null },
@@ -65,7 +69,10 @@ export async function resolveTier(
   });
 
   // Rank by scope specificity, then by minQty (highest qualifying wins).
+  // Variant beats product beats collection beats all — matches the
+  // intuitive "more specific overrides less specific" rule.
   const scopeRank: Record<TierScope, number> = {
+    variant: 4,
     product: 3,
     collection: 2,
     all: 1,

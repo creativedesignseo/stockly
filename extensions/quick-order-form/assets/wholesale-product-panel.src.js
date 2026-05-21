@@ -204,6 +204,9 @@ class StocklyProductPanel extends HTMLElement {
 
   _tierApplies(tier) {
     if (tier.scope === 'all') return true;
+    if (tier.scope === 'variant') {
+      return tier.scopeId === `gid://shopify/ProductVariant/${this.selectedVariant?.id}`;
+    }
     if (tier.scope === 'product') return tier.scopeId === this.productGid;
     if (tier.scope === 'collection') return this.collectionGids.includes(tier.scopeId);
     return false;

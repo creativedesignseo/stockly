@@ -84,12 +84,15 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
-  if (!["product", "collection", "all"].includes(scope))
+  if (!["product", "variant", "collection", "all"].includes(scope))
     errors.scope = "Invalid scope";
   if (scope !== "all" && !scopeId)
-    errors.scopeId = "Scope ID is required for product/collection tiers";
+    errors.scopeId = "Scope ID is required for product/variant/collection tiers";
   if (!["per_line", "cart_total"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
+  if (scope === "variant" && aggregation === "cart_total") {
+    errors.aggregation = "Variant tiers must use per-line aggregation.";
+  }
 
   const minQty = Number(minQtyStr);
   if (!Number.isInteger(minQty) || minQty < 1)
@@ -205,6 +208,10 @@ export default function EditTier() {
                   { label: "All products in the shop", value: "all" },
                   { label: "A specific product", value: "product" },
                   {
+                    label: "A specific variant (e.g. size XL, color blue)",
+                    value: "variant",
+                  },
+                  {
                     label: "All products in a collection",
                     value: "collection",
                   },
@@ -216,7 +223,9 @@ export default function EditTier() {
                   label={
                     scope === "product"
                       ? "Product ID (Shopify GID)"
-                      : "Collection ID (Shopify GID)"
+                      : scope === "variant"
+                        ? "Variant ID (Shopify GID)"
+                        : "Collection ID (Shopify GID)"
                   }
                   name="scopeId"
                   autoComplete="off"
@@ -226,7 +235,9 @@ export default function EditTier() {
                   helpText={
                     scope === "product"
                       ? "e.g. gid://shopify/Product/123456789"
-                      : "e.g. gid://shopify/Collection/987654321"
+                      : scope === "variant"
+                        ? "e.g. gid://shopify/ProductVariant/987654321"
+                        : "e.g. gid://shopify/Collection/987654321"
                   }
                   requiredIndicator
                 />
