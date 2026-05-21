@@ -66,11 +66,11 @@
 
 ---
 
-## Sprint 2.5 — Wholesale Baseline % (Week 4 tail)
+## Sprint 2.5 — Wholesale Baseline % + Tier Aggregation (Week 4 tail)
 
-**Goal:** Add the universal wholesale discount layer that sits beneath the volume tiers. See [ADR-006](./docs/decisions/ADR-006-wholesale-baseline-and-product-panel.md).
+**Goal:** Add (1) the universal wholesale discount layer beneath volume tiers, and (2) cart-wide aggregation mode for tiers. See [ADR-006](./docs/decisions/ADR-006-wholesale-baseline-and-product-panel.md) and [ADR-007](./docs/decisions/ADR-007-tier-aggregation-cart-vs-line.md).
 
-### Deliverables
+### Wholesale Baseline deliverables
 - [ ] Prisma migration: `Shop.wholesaleBaselinePct Int @default(0)`
 - [ ] App Proxy response includes `shop.wholesaleBaselinePct`
 - [ ] Quick Order Form JS: compose `baseline × tier` multiplicatively
@@ -79,11 +79,21 @@
 - [ ] Admin: `/app/settings/pricing` with a number input for baseline
 - [ ] Unit tests for composition math (multiplicative, never additive)
 
+### Tier Aggregation deliverables
+- [ ] Prisma migration: `Tier.aggregation String @default("per_line")`
+- [ ] App Proxy response includes `aggregation` per tier
+- [ ] Discount Function `run.ts`: cart-wide qty summing for `cart_total` tiers; per-line for `per_line` tiers
+- [ ] Sync service: include `aggregation` in metafield JSON payload
+- [ ] Admin tier create/edit form: add aggregation select (per_line / cart_total)
+- [ ] Unit tests covering both modes
+
 ### Exit criteria
 - Merchant sets `wholesaleBaselinePct = 65` in admin.
 - Wholesale customer sees a €749,95 product priced at €262,48 in the QO Form (€749,95 × 0.35).
-- At qty 10 with a 10% tier, they see €236,23 (€262,48 × 0.90).
+- At qty 10 with a 10% tier (per_line), they see €236,23 (€262,48 × 0.90).
 - Cart and checkout show the same €236,23 thanks to the Discount Function.
+- A merchant configures a cart-wide tier "Assortment 12 (-10%)" with `aggregation: cart_total`.
+- Customer with 5 belts + 3 rings + 4 scarves (12 mixed units total) gets the -10% on every line — cart and checkout reflect it correctly.
 
 ---
 
