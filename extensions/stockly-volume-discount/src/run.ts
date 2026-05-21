@@ -166,31 +166,7 @@ export function run(input: RunInput): FunctionRunResult {
   const customerEligible = customer?.hasAnyTag === true;
   if (!customerEligible) return NO_DISCOUNT;
 
-  // 2.5 First-Purchase Qualifier (ADR-004). If the customer hasn't
-  //     yet been qualified (no wholesaleStatus metafield value), the
-  //     cart must meet the merchant's FPQ rules for the discount to
-  //     apply. The webhook handler writes this metafield to "qualify"
-  //     the customer after their first qualifying order; from then on
-  //     they buy freely.
-  const alreadyQualified =
-    typeof customer?.wholesaleStatus?.value === "string" &&
-    customer.wholesaleStatus.value.length > 0;
-
-  if (!alreadyQualified) {
-    const cartSubtotal = input.cart.lines.reduce((sum, line) => {
-      const perUnit = Number(line.cost?.amountPerQuantity?.amount ?? 0);
-      return sum + perUnit * line.quantity;
-    }, 0);
-    const cartQty = input.cart.lines.reduce(
-      (sum, line) => sum + line.quantity,
-      0,
-    );
-    if (!fpqMet(config.fpq, cartSubtotal, cartQty)) {
-      return NO_DISCOUNT;
-    }
-  }
-
-  // 3. Partition tiers by aggregation mode.
+  // 2.5 Partition tiers by aggregation mode.
   //    - per_line tiers: each line evaluated independently
   //    - cart_total tiers: cart-wide qty sum evaluated once; if met,
   //      applies to every line (v1 shop-wide; per-scope filtering in
@@ -200,7 +176,7 @@ export function run(input: RunInput): FunctionRunResult {
   );
   const cartTotalTiers = tiers.filter((t) => t.aggregation === "cart_total");
 
-  // Cart-wide qty for the cart_total branch.
+  // Cart-wide qty for the cart_total branch + FPQ quantity check.
   const cartTotalQty = input.cart.lines.reduce(
     (sum, line) => sum + line.quantity,
     0,
@@ -209,16 +185,18 @@ export function run(input: RunInput): FunctionRunResult {
     .filter((t) => t.minQty <= cartTotalQty)
     .sort((a, b) => b.minQty - a.minQty)[0];
 
-  // 4. For each line, pick the best tier between its per-line match
-  //    and any active cart-total tier, then compose with baseline.
-  const discounts = input.cart.lines.flatMap((line) => {
+  // 3. Pre-compute per-line discount calculations.
+  //    We need the would-be wholesale subtotals BEFORE the FPQ
+  //    check, because the FPQ is evaluated on the customer's
+  //    final wholesale spend, not the retail cart subtotal
+  //    (the customer's "minimum order €500" rule is about how
+  //    much they actually pay at wholesale).
+  const lineCalcs = input.cart.lines.map((line) => {
     const qty = line.quantity;
     const perLineWinning = perLineTiers
       .filter((t) => t.minQty <= qty)
       .sort((a, b) => b.minQty - a.minQty)[0];
 
-    // The "best" tier for THIS line is whichever gives the higher
-    // discount %, combining the two aggregation modes cleanly.
     const candidates: ConfiguredTier[] = [];
     if (perLineWinning) candidates.push(perLineWinning);
     if (cartWinningTier) candidates.push(cartWinningTier);
@@ -228,21 +206,60 @@ export function run(input: RunInput): FunctionRunResult {
 
     const tierPct = winningTier?.discountPct ?? 0;
     const composedPct = composeDiscountPct(baseline, tierPct);
-    if (composedPct <= 0) return [];
+    const lineRetail =
+      Number(line.cost?.amountPerQuantity?.amount ?? 0) * qty;
+    const lineWholesale = lineRetail * (1 - composedPct / 100);
+
+    return {
+      line,
+      qty,
+      winningTier,
+      tierPct,
+      composedPct,
+      lineRetail,
+      lineWholesale,
+    };
+  });
+
+  // Cart subtotal AT WHOLESALE (what the customer would pay if
+  // discount were applied) — this is what the FPQ amount is
+  // compared to, per ADR-004 clarified semantics: "the customer
+  // must spend at least €X on their first wholesale order", not
+  // "the customer's retail cart must equal €X".
+  const cartWholesaleSubtotal = lineCalcs.reduce(
+    (sum, c) => sum + c.lineWholesale,
+    0,
+  );
+
+  // 4. First-Purchase Qualifier gate.
+  const alreadyQualified =
+    typeof customer?.wholesaleStatus?.value === "string" &&
+    customer.wholesaleStatus.value.length > 0;
+
+  if (!alreadyQualified) {
+    if (!fpqMet(config.fpq, cartWholesaleSubtotal, cartTotalQty)) {
+      return NO_DISCOUNT;
+    }
+  }
+
+  // 5. Build discount entries from the pre-computed calculations.
+  const discounts = lineCalcs.flatMap((calc) => {
+    if (calc.composedPct <= 0) return [];
 
     let message = `Wholesale ${baseline}%`;
-    if (winningTier) {
-      const mode = winningTier.aggregation === "cart_total" ? "mixed" : "units";
-      message = `Wholesale ${baseline}% + ${tierPct}% volume (${winningTier.minQty}+ ${mode})`;
+    if (calc.winningTier) {
+      const mode =
+        calc.winningTier.aggregation === "cart_total" ? "mixed" : "units";
+      message = `Wholesale ${baseline}% + ${calc.tierPct}% volume (${calc.winningTier.minQty}+ ${mode})`;
     }
 
-    const target: Target = { cartLine: { id: line.id } };
+    const target: Target = { cartLine: { id: calc.line.id } };
     return [
       {
         targets: [target],
         value: {
           percentage: {
-            value: composedPct.toString(),
+            value: calc.composedPct.toString(),
           },
         },
         message,

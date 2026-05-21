@@ -360,6 +360,102 @@ class StocklyQuickOrder extends HTMLElement {
     this._updateFpqBanner();
   }
 
+  /**
+   * Update the FPQ progress banner (ADR-004). Only relevant for
+   * customers in the `approved_pre_fpq` state — qualified customers
+   * have already cleared the gate, visitors don't see the block.
+   *
+   * The FPQ amount is measured on the customer's WHOLESALE spend
+   * (what they'd actually pay if discount applied), NOT on retail.
+   * So "first order ≥ €500" means "you must commit €500 in wholesale
+   * terms" — the genuine business commitment.
+   *
+   * Hidden when: customer is qualified OR FPQ mode is "none" OR
+   * the threshold is already met. Otherwise renders progress like
+   * "Add €245 more to unlock wholesale pricing on your first order".
+   */
+  _updateFpqBanner() {
+    if (!this.fpqBannerEl) return;
+
+    if (
+      this.customerState !== 'approved_pre_fpq' ||
+      !this.fpq ||
+      this.fpq.mode === 'none'
+    ) {
+      this.fpqBannerEl.hidden = true;
+      return;
+    }
+
+    // Sum the already-rendered discounted line totals — that's the
+    // customer's wholesale spend (what they'd pay if the gate let
+    // them through), which is what the FPQ amount is compared to.
+    let cartWholesaleAmount = 0;
+    let cartTotalQty = 0;
+    this.rows.forEach((row) => {
+      const input = row.querySelector('.stockly-qo__qty');
+      const qty = parseInt(input.value, 10) || 0;
+      cartTotalQty += qty;
+
+      const lineTotalEl = row.querySelector('[data-stockly-line-total]');
+      if (lineTotalEl) {
+        const cents = this._parseMoneyToCents(lineTotalEl.textContent || '');
+        cartWholesaleAmount += cents / 100;
+      }
+    });
+
+    const amountMet =
+      this.fpq.amount && this.fpq.amount > 0
+        ? cartWholesaleAmount >= this.fpq.amount
+        : true;
+    const quantityMet =
+      this.fpq.quantity && this.fpq.quantity > 0
+        ? cartTotalQty >= this.fpq.quantity
+        : true;
+
+    let met = true;
+    if (this.fpq.mode === 'amount') met = amountMet;
+    else if (this.fpq.mode === 'quantity') met = quantityMet;
+    else if (this.fpq.mode === 'combined') {
+      met = this.fpq.combinedLogic === 'or'
+        ? amountMet || quantityMet
+        : amountMet && quantityMet;
+    }
+
+    if (met) {
+      this.fpqBannerEl.dataset.fpqState = 'met';
+      this.fpqBannerTextEl.textContent =
+        '✓ First-order minimum met — wholesale pricing applies at checkout.';
+      this.fpqBannerEl.hidden = false;
+      return;
+    }
+
+    // Build "add X more" hint for unmet rule(s).
+    const hints = [];
+    if (
+      (this.fpq.mode === 'amount' || this.fpq.mode === 'combined') &&
+      !amountMet &&
+      this.fpq.amount
+    ) {
+      const remaining = Math.max(0, this.fpq.amount - cartWholesaleAmount);
+      hints.push(`${this._formatMoney(Math.round(remaining * 100))} more`);
+    }
+    if (
+      (this.fpq.mode === 'quantity' || this.fpq.mode === 'combined') &&
+      !quantityMet &&
+      this.fpq.quantity
+    ) {
+      const remaining = Math.max(0, this.fpq.quantity - cartTotalQty);
+      hints.push(`${remaining} more unit${remaining === 1 ? '' : 's'}`);
+    }
+    const joiner = this.fpq.combinedLogic === 'or' ? ' or ' : ' and ';
+
+    this.fpqBannerEl.dataset.fpqState = 'unmet';
+    this.fpqBannerTextEl.textContent = hints.length
+      ? `Add ${hints.join(joiner)} in wholesale spend to unlock pricing on your first order.`
+      : 'Your first order must meet the wholesale minimum to unlock pricing.';
+    this.fpqBannerEl.hidden = false;
+  }
+
   async _addAllToCart() {
     const items = this.rows
       .map((row) => ({
@@ -387,6 +483,38 @@ class StocklyQuickOrder extends HTMLElement {
       console.error('[Stockly] add-to-cart failed', err);
       this.addAllBtn.disabled = false;
     }
+  }
+
+  /**
+   * Parse a money string like "$643.50" or "€643,50" or "643.50 EUR"
+   * back into integer cents. Used to derive the cart's wholesale
+   * subtotal from rendered line totals without recomputing the math.
+   */
+  _parseMoneyToCents(str) {
+    // Strip everything except digits, dot, comma, minus. Take the
+    // last separator as the decimal mark to handle both "1,234.50"
+    // and "1.234,50" conventions.
+    const cleaned = String(str).replace(/[^0-9.,-]/g, '');
+    if (!cleaned) return 0;
+    const lastDot = cleaned.lastIndexOf('.');
+    const lastComma = cleaned.lastIndexOf(',');
+    let decimalMark = '';
+    if (lastDot >= 0 && lastComma >= 0) {
+      decimalMark = lastDot > lastComma ? '.' : ',';
+    } else if (lastDot >= 0) {
+      decimalMark = '.';
+    } else if (lastComma >= 0) {
+      decimalMark = ',';
+    }
+    let normalized = cleaned;
+    if (decimalMark === ',') {
+      normalized = normalized.replace(/\./g, '').replace(',', '.');
+    } else {
+      normalized = normalized.replace(/,/g, '');
+    }
+    const value = parseFloat(normalized);
+    if (!Number.isFinite(value)) return 0;
+    return Math.round(value * 100);
   }
 
   _formatMoney(cents) {
