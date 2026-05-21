@@ -1,0 +1,562 @@
+/**
+ * Admin route: wholesale application queue (Sprint 4 P0 — ADR-008).
+ *
+ * URL: /app/customers/applications
+ *
+ * Lists every WholesaleApplication for the authenticated shop with
+ * filtering by status (pending / approved / rejected). Approve and
+ * Reject actions are inline on the row.
+ *
+ * Approve flow (the meaty part):
+ *   1. Find the application row + parse its email + cached customer id
+ *   2. Resolve the Shopify Customer (existing OR newly created):
+ *      - If the application has a shopifyCustomerId → use it directly
+ *      - Else query customers(query: "email:...") — match if exists
+ *      - Else customerCreate with email + first/last/phone from the app
+ *   3. customerUpdate adds the shop's wholesaleTag to the customer
+ *   4. Upsert a WholesaleCustomer row (Stockly's eligibility store)
+ *   5. Mark application status='approved' with audit fields
+ *
+ * Reject flow: just flip status='rejected'. No Shopify side-effect.
+ *
+ * The Shopify GraphQL mutations need the admin session — which only
+ * this route's loader/action has — so the business logic lives here
+ * (and the service layer stays free of Shopify SDK deps).
+ */
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { Form, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
+import { useState } from "react";
+import {
+  Page,
+  Card,
+  EmptyState,
+  IndexTable,
+  Badge,
+  Text,
+  Button,
+  Banner,
+  BlockStack,
+  InlineStack,
+  Tabs,
+  Modal,
+  TextField,
+  Box,
+} from "@shopify/polaris";
+import { TitleBar } from "@shopify/app-bridge-react";
+
+import { authenticateAdmin } from "../lib/auth.server";
+import {
+  listApplications,
+  getApplication,
+  markApplicationApproved,
+  markApplicationRejected,
+} from "../services/wholesale-applications.server";
+import { approveCustomer } from "../services/wholesale-customers.server";
+
+/* -------------------------------------------------------------------------- */
+/*                                  LOADER                                    */
+/* -------------------------------------------------------------------------- */
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
+  const { shop } = await authenticateAdmin(request);
+  const url = new URL(request.url);
+  const statusParam = url.searchParams.get("status");
+  const status =
+    statusParam === "approved" || statusParam === "rejected"
+      ? statusParam
+      : statusParam === "all"
+        ? undefined
+        : "pending";
+
+  const apps = await listApplications(shop.id, { status });
+  // Counts per status for the tab badges.
+  const [pending, approved, rejected] = await Promise.all([
+    listApplications(shop.id, { status: "pending" }),
+    listApplications(shop.id, { status: "approved" }),
+    listApplications(shop.id, { status: "rejected" }),
+  ]);
+
+  return {
+    apps,
+    activeStatus: status ?? "all",
+    counts: {
+      pending: pending.length,
+      approved: approved.length,
+      rejected: rejected.length,
+    },
+  };
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                  ACTION                                    */
+/* -------------------------------------------------------------------------- */
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { admin, shop } = await authenticateAdmin(request);
+  const form = await request.formData();
+  const intent = (form.get("intent") ?? "").toString();
+  const appId = (form.get("applicationId") ?? "").toString();
+  const reviewNote = (form.get("reviewNote") ?? "").toString();
+
+  if (!appId) {
+    return { ok: false, error: "Missing applicationId." } as const;
+  }
+
+  const app = await getApplication(shop.id, appId);
+  if (!app) {
+    return { ok: false, error: "Application not found." } as const;
+  }
+
+  if (intent === "reject") {
+    await markApplicationRejected(shop.id, appId, reviewNote);
+    return {
+      ok: true as const,
+      action: "rejected" as const,
+      email: app.email,
+    };
+  }
+
+  if (intent !== "approve") {
+    return { ok: false, error: `Unknown intent: ${intent}` } as const;
+  }
+
+  /* --------------------------- approve path -------------------------- */
+
+  // Resolve the Shopify customer id:
+  let shopifyCustomerId = app.shopifyCustomerId;
+  let existingTags: string[] = [];
+
+  // (1) If the application already has a customer id (logged-in flow),
+  //     fetch their current tags so we can append without overwriting.
+  if (shopifyCustomerId) {
+    const r = await admin.graphql(
+      `#graphql
+      query CustomerById($id: ID!) {
+        customer(id: $id) { id email tags }
+      }`,
+      {
+        variables: {
+          id: `gid://shopify/Customer/${shopifyCustomerId}`,
+        },
+      },
+    );
+    const body = (await r.json()) as {
+      data?: { customer?: { id: string; email: string; tags: string[] } };
+    };
+    if (body.data?.customer) {
+      existingTags = body.data.customer.tags ?? [];
+    } else {
+      // Cached id is stale (customer deleted). Fall back to email lookup.
+      shopifyCustomerId = null;
+    }
+  }
+
+  // (2) No customer id (or stale) — search by email.
+  if (!shopifyCustomerId) {
+    const r = await admin.graphql(
+      `#graphql
+      query CustomersByEmail($q: String!) {
+        customers(query: $q, first: 1) {
+          edges { node { id email tags } }
+        }
+      }`,
+      { variables: { q: `email:${app.email}` } },
+    );
+    const body = (await r.json()) as {
+      data?: {
+        customers?: {
+          edges: { node: { id: string; email: string; tags: string[] } }[];
+        };
+      };
+    };
+    const node = body.data?.customers?.edges?.[0]?.node;
+    if (node) {
+      shopifyCustomerId = node.id.replace("gid://shopify/Customer/", "");
+      existingTags = node.tags ?? [];
+    }
+  }
+
+  // (3) Still nothing → create the customer.
+  if (!shopifyCustomerId) {
+    const r = await admin.graphql(
+      `#graphql
+      mutation CustomerCreate($input: CustomerInput!) {
+        customerCreate(input: $input) {
+          customer { id email tags }
+          userErrors { field message }
+        }
+      }`,
+      {
+        variables: {
+          input: {
+            email: app.email,
+            firstName: app.firstName ?? undefined,
+            lastName: app.lastName ?? undefined,
+            phone: app.phone ?? undefined,
+            tags: [shop.wholesaleTag],
+            note: `Wholesale application approved on ${new Date().toISOString()}. Company: ${app.companyName}.`,
+          },
+        },
+      },
+    );
+    const body = (await r.json()) as {
+      data?: {
+        customerCreate?: {
+          customer: { id: string; tags: string[] } | null;
+          userErrors: { field: string[]; message: string }[];
+        };
+      };
+    };
+    const created = body.data?.customerCreate;
+    if (!created?.customer || (created.userErrors?.length ?? 0) > 0) {
+      const msg = created?.userErrors?.[0]?.message ?? "Customer create failed.";
+      return { ok: false, error: msg } as const;
+    }
+    shopifyCustomerId = created.customer.id.replace(
+      "gid://shopify/Customer/",
+      "",
+    );
+    existingTags = created.customer.tags ?? [];
+    // customerCreate already applied the tag — no second update needed.
+  } else {
+    // (4) Existing customer — append the wholesale tag if missing.
+    if (!existingTags.includes(shop.wholesaleTag)) {
+      const r = await admin.graphql(
+        `#graphql
+        mutation CustomerTagsAdd($id: ID!, $tags: [String!]!) {
+          tagsAdd(id: $id, tags: $tags) {
+            node { id }
+            userErrors { field message }
+          }
+        }`,
+        {
+          variables: {
+            id: `gid://shopify/Customer/${shopifyCustomerId}`,
+            tags: [shop.wholesaleTag],
+          },
+        },
+      );
+      const body = (await r.json()) as {
+        data?: {
+          tagsAdd?: {
+            userErrors: { field: string[]; message: string }[];
+          };
+        };
+      };
+      const errs = body.data?.tagsAdd?.userErrors ?? [];
+      if (errs.length > 0) {
+        return { ok: false, error: errs[0].message } as const;
+      }
+    }
+  }
+
+  // (5) Upsert the Stockly WholesaleCustomer row — eligibility track 2.
+  await approveCustomer({
+    shopId: shop.id,
+    shopifyCustomerId,
+    email: app.email,
+    notes: `Approved from application ${app.id}. Company: ${app.companyName}.`,
+  });
+
+  // (6) Flip application status.
+  await markApplicationApproved(shop.id, appId, reviewNote);
+
+  return {
+    ok: true as const,
+    action: "approved" as const,
+    email: app.email,
+    customerId: shopifyCustomerId,
+  };
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                    UI                                      */
+/* -------------------------------------------------------------------------- */
+
+export default function ApplicationsQueue() {
+  const { apps, activeStatus, counts } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
+  const submitting = navigation.state === "submitting";
+
+  const [modalApp, setModalApp] = useState<(typeof apps)[number] | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
+
+  const tabs = [
+    { id: "pending", content: `Pending (${counts.pending})`, status: "pending" },
+    { id: "approved", content: `Approved (${counts.approved})`, status: "approved" },
+    { id: "rejected", content: `Rejected (${counts.rejected})`, status: "rejected" },
+    { id: "all", content: "All", status: "all" },
+  ];
+  const activeIdx = Math.max(0, tabs.findIndex((t) => t.status === activeStatus));
+
+  const resourceName = { singular: "application", plural: "applications" };
+
+  return (
+    <Page backAction={{ content: "App", url: "/app" }}>
+      <TitleBar title="Wholesale applications" />
+      <BlockStack gap="400">
+        {actionData?.ok && "action" in actionData && actionData.action === "approved" && (
+          <Banner tone="success" title="Application approved">
+            <p>
+              {actionData.email} was tagged as <code>wholesale</code> in
+              Shopify and added to the eligibility list. They&apos;ll see
+              wholesale pricing on their next storefront visit.
+            </p>
+          </Banner>
+        )}
+        {actionData?.ok && "action" in actionData && actionData.action === "rejected" && (
+          <Banner tone="info" title="Application rejected">
+            <p>{actionData.email} was marked as rejected.</p>
+          </Banner>
+        )}
+        {actionData && "error" in actionData && (
+          <Banner tone="critical" title="Could not process">
+            <p>{actionData.error}</p>
+          </Banner>
+        )}
+
+        <Card padding="0">
+          <Tabs
+            tabs={tabs.map((t) => ({ id: t.id, content: t.content }))}
+            selected={activeIdx}
+            onSelect={(idx) => {
+              const status = tabs[idx].status;
+              const url = new URL(window.location.href);
+              if (status === "pending") {
+                url.searchParams.delete("status");
+              } else {
+                url.searchParams.set("status", status);
+              }
+              window.location.assign(url.toString());
+            }}
+          />
+
+          {apps.length === 0 ? (
+            <Box padding="600">
+              <EmptyState
+                heading={
+                  activeStatus === "pending"
+                    ? "No pending applications"
+                    : "Nothing here yet"
+                }
+                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+              >
+                <Text as="p" variant="bodyMd">
+                  {activeStatus === "pending"
+                    ? "When a visitor submits the storefront registration form, it will appear here."
+                    : "Try switching tabs."}
+                </Text>
+              </EmptyState>
+            </Box>
+          ) : (
+            <IndexTable
+              resourceName={resourceName}
+              itemCount={apps.length}
+              selectable={false}
+              headings={[
+                { title: "Company" },
+                { title: "Contact" },
+                { title: "Tax ID / Country" },
+                { title: "Submitted" },
+                { title: "Status" },
+                { title: "Actions" },
+              ]}
+            >
+              {apps.map((app, idx) => (
+                <IndexTable.Row id={app.id} key={app.id} position={idx}>
+                  <IndexTable.Cell>
+                    <BlockStack gap="050">
+                      <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        {app.companyName}
+                      </Text>
+                      {app.website && (
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          {app.website}
+                        </Text>
+                      )}
+                    </BlockStack>
+                  </IndexTable.Cell>
+                  <IndexTable.Cell>
+                    <BlockStack gap="050">
+                      <Text as="span" variant="bodyMd">
+                        {[app.firstName, app.lastName].filter(Boolean).join(" ") ||
+                          "—"}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {app.email}
+                      </Text>
+                      {app.phone && (
+                        <Text as="span" variant="bodySm" tone="subdued">
+                          {app.phone}
+                        </Text>
+                      )}
+                    </BlockStack>
+                  </IndexTable.Cell>
+                  <IndexTable.Cell>
+                    <BlockStack gap="050">
+                      <Text as="span" variant="bodyMd">
+                        {app.taxId || "—"}
+                      </Text>
+                      <Text as="span" variant="bodySm" tone="subdued">
+                        {app.country || ""}
+                      </Text>
+                    </BlockStack>
+                  </IndexTable.Cell>
+                  <IndexTable.Cell>
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      {new Date(app.createdAt).toLocaleDateString()}
+                    </Text>
+                  </IndexTable.Cell>
+                  <IndexTable.Cell>
+                    <StatusBadge status={app.status} />
+                  </IndexTable.Cell>
+                  <IndexTable.Cell>
+                    {app.status === "pending" ? (
+                      <InlineStack gap="200">
+                        <Form method="post">
+                          <input type="hidden" name="intent" value="approve" />
+                          <input type="hidden" name="applicationId" value={app.id} />
+                          <Button
+                            submit
+                            variant="primary"
+                            size="slim"
+                            loading={submitting}
+                          >
+                            Approve
+                          </Button>
+                        </Form>
+                        <Button
+                          tone="critical"
+                          size="slim"
+                          onClick={() => {
+                            setModalApp(app);
+                            setReviewNote("");
+                          }}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          variant="tertiary"
+                          size="slim"
+                          onClick={() => {
+                            setModalApp(app);
+                            setReviewNote("");
+                          }}
+                        >
+                          View
+                        </Button>
+                      </InlineStack>
+                    ) : (
+                      <Button
+                        variant="tertiary"
+                        size="slim"
+                        onClick={() => {
+                          setModalApp(app);
+                          setReviewNote(app.reviewNote ?? "");
+                        }}
+                      >
+                        View
+                      </Button>
+                    )}
+                  </IndexTable.Cell>
+                </IndexTable.Row>
+              ))}
+            </IndexTable>
+          )}
+        </Card>
+      </BlockStack>
+
+      {modalApp && (
+        <Modal
+          open
+          onClose={() => setModalApp(null)}
+          title={`Application — ${modalApp.companyName}`}
+          primaryAction={
+            modalApp.status === "pending"
+              ? {
+                  content: "Reject",
+                  destructive: true,
+                  onAction: () => {
+                    const fd = new FormData();
+                    fd.append("intent", "reject");
+                    fd.append("applicationId", modalApp.id);
+                    fd.append("reviewNote", reviewNote);
+                    fetch(window.location.pathname, {
+                      method: "POST",
+                      body: fd,
+                    }).then(() => window.location.reload());
+                  },
+                }
+              : undefined
+          }
+          secondaryActions={[
+            {
+              content: "Close",
+              onAction: () => setModalApp(null),
+            },
+          ]}
+        >
+          <Modal.Section>
+            <BlockStack gap="300">
+              <Field label="Company" value={modalApp.companyName} />
+              <Field
+                label="Contact"
+                value={
+                  [modalApp.firstName, modalApp.lastName]
+                    .filter(Boolean)
+                    .join(" ") || "—"
+                }
+              />
+              <Field label="Email" value={modalApp.email} />
+              {modalApp.phone && <Field label="Phone" value={modalApp.phone} />}
+              {modalApp.taxId && (
+                <Field label="Tax / VAT ID" value={modalApp.taxId} />
+              )}
+              {modalApp.country && (
+                <Field label="Country" value={modalApp.country} />
+              )}
+              {modalApp.website && (
+                <Field label="Website" value={modalApp.website} />
+              )}
+              {modalApp.notes && (
+                <Field label="Notes from applicant" value={modalApp.notes} />
+              )}
+              {modalApp.status !== "pending" && modalApp.reviewNote && (
+                <Field label="Merchant review note" value={modalApp.reviewNote} />
+              )}
+              {modalApp.status === "pending" && (
+                <TextField
+                  label="Review note (optional, internal)"
+                  autoComplete="off"
+                  multiline={3}
+                  value={reviewNote}
+                  onChange={setReviewNote}
+                />
+              )}
+            </BlockStack>
+          </Modal.Section>
+        </Modal>
+      )}
+    </Page>
+  );
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <BlockStack gap="050">
+      <Text as="span" variant="bodySm" tone="subdued">
+        {label}
+      </Text>
+      <Text as="span" variant="bodyMd">
+        {value}
+      </Text>
+    </BlockStack>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "approved") return <Badge tone="success">Approved</Badge>;
+  if (status === "rejected") return <Badge tone="critical">Rejected</Badge>;
+  return <Badge tone="attention">Pending</Badge>;
+}

@@ -24,5 +24,16 @@
     "your_price": "Your wholesale price",
     "you_save": "Save",
     "qty": "Qty"
+  },
+  "reg": {
+    "email": "Business email",
+    "company_name": "Company name",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "phone": "Phone",
+    "tax_id": "Tax / VAT ID",
+    "website": "Website",
+    "country": "Country",
+    "notes": "Tell us about your business"
   }
 }

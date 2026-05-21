@@ -1,0 +1,168 @@
+{%- comment -%}
+  Stockly — Wholesale Registration Form (Sprint 4 / ADR-008 P0)
+
+  Drop-in form for the merchant's storefront. Sits on any page or
+  section. Submits to /apps/stockly/apply via App Proxy → POST to our
+  Remix backend → creates a WholesaleApplication row in 'pending'
+  status. Merchant approves from /app/customers/applications.
+
+  No JS framework needed: the form is server-handled, the only client
+  enhancement is the AJAX-style fetch + success/error state swap.
+
+  Hidden when the visitor is already an approved wholesale customer
+  (no point letting them re-apply). Detection is best-effort via
+  Liquid customer.tags — we don't gate the endpoint because that's
+  the merchant's call.
+
+  Merchant adds this block via theme editor on any page. Recommended
+  pages: a dedicated /pages/wholesale-application, or the footer of
+  /pages/wholesale-order.
+{%- endcomment -%}
+
+{%- assign already_wholesale = false -%}
+{%- if customer and customer.tags contains 'wholesale' -%}
+  {%- assign already_wholesale = true -%}
+{%- endif -%}
+
+<stockly-registration
+  class="stockly-reg"
+  data-action-url="/apps/stockly/apply"
+  data-already-wholesale="{{ already_wholesale }}"
+  {{ block.shopify_attributes }}
+>
+  {%- if block.settings.heading != blank -%}
+    <h2 class="stockly-reg__heading">{{ block.settings.heading }}</h2>
+  {%- endif -%}
+  {%- if block.settings.intro != blank -%}
+    <p class="stockly-reg__intro">{{ block.settings.intro }}</p>
+  {%- endif -%}
+
+  <div class="stockly-reg__already" data-stockly-already hidden>
+    <p>{{ block.settings.already_wholesale_text }}</p>
+  </div>
+
+  <form class="stockly-reg__form" data-stockly-form novalidate>
+    <div class="stockly-reg__grid">
+      <label class="stockly-reg__field stockly-reg__field--required">
+        <span class="stockly-reg__label">{{ 'reg.email' | t }}</span>
+        <input
+          type="email"
+          name="email"
+          required
+          autocomplete="email"
+          value="{% if customer %}{{ customer.email }}{% endif %}"
+        >
+      </label>
+
+      <label class="stockly-reg__field stockly-reg__field--required">
+        <span class="stockly-reg__label">{{ 'reg.company_name' | t }}</span>
+        <input type="text" name="company_name" required maxlength="200">
+      </label>
+
+      <label class="stockly-reg__field">
+        <span class="stockly-reg__label">{{ 'reg.first_name' | t }}</span>
+        <input
+          type="text"
+          name="first_name"
+          autocomplete="given-name"
+          value="{% if customer %}{{ customer.first_name }}{% endif %}"
+        >
+      </label>
+
+      <label class="stockly-reg__field">
+        <span class="stockly-reg__label">{{ 'reg.last_name' | t }}</span>
+        <input
+          type="text"
+          name="last_name"
+          autocomplete="family-name"
+          value="{% if customer %}{{ customer.last_name }}{% endif %}"
+        >
+      </label>
+
+      <label class="stockly-reg__field">
+        <span class="stockly-reg__label">{{ 'reg.phone' | t }}</span>
+        <input type="tel" name="phone" autocomplete="tel">
+      </label>
+
+      <label class="stockly-reg__field">
+        <span class="stockly-reg__label">{{ 'reg.tax_id' | t }}</span>
+        <input type="text" name="tax_id">
+      </label>
+
+      <label class="stockly-reg__field">
+        <span class="stockly-reg__label">{{ 'reg.website' | t }}</span>
+        <input type="url" name="website" placeholder="https://">
+      </label>
+
+      <label class="stockly-reg__field">
+        <span class="stockly-reg__label">{{ 'reg.country' | t }}</span>
+        <input type="text" name="country">
+      </label>
+
+      <label class="stockly-reg__field stockly-reg__field--full">
+        <span class="stockly-reg__label">{{ 'reg.notes' | t }}</span>
+        <textarea name="notes" rows="4" maxlength="2000"></textarea>
+      </label>
+    </div>
+
+    <div class="stockly-reg__errors" data-stockly-errors hidden></div>
+
+    <div class="stockly-reg__actions">
+      <button type="submit" class="stockly-reg__submit" data-stockly-submit>
+        {{ block.settings.submit_label }}
+      </button>
+    </div>
+  </form>
+
+  <div class="stockly-reg__success" data-stockly-success hidden>
+    <h3 class="stockly-reg__success-heading">{{ block.settings.success_heading }}</h3>
+    <p>{{ block.settings.success_body }}</p>
+  </div>
+</stockly-registration>
+
+{% schema %}
+{
+  "name": "Wholesale Registration",
+  "target": "section",
+  "stylesheet": "registration-form.css",
+  "javascript": "registration-form.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Apply for wholesale access"
+    },
+    {
+      "type": "textarea",
+      "id": "intro",
+      "label": "Intro copy",
+      "default": "Tell us about your business. We review every application within 2 business days."
+    },
+    {
+      "type": "text",
+      "id": "submit_label",
+      "label": "Submit button label",
+      "default": "Submit application"
+    },
+    {
+      "type": "text",
+      "id": "success_heading",
+      "label": "Success heading",
+      "default": "Application received"
+    },
+    {
+      "type": "textarea",
+      "id": "success_body",
+      "label": "Success body",
+      "default": "Thanks — we'll review your application and email you within 2 business days."
+    },
+    {
+      "type": "textarea",
+      "id": "already_wholesale_text",
+      "label": "Already-wholesale notice",
+      "default": "You already have wholesale access. Head to the wholesale catalog to start ordering."
+    }
+  ]
+}
+{% endschema %}

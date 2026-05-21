@@ -88,6 +88,7 @@ model Shop {
 
   tiers              Tier[]
   wholesaleCustomers WholesaleCustomer[]
+  applications       WholesaleApplication[]
 }
 
 /// Volume pricing tier. `scope` is one of 'product' | 'collection' | 'all'.
@@ -151,5 +152,56 @@ model WholesaleCustomer {
   qualifyingOrderAmount    Float?
 
   @@unique([shopId, shopifyCustomerId])
+  @@index([shopId, email])
+}
+
+/// Wholesale account application. A retail visitor (or a logged-in
+/// retail customer) submits the form on the storefront; the merchant
+/// approves or rejects from the admin queue.
+///
+/// On approve we:
+///   1. Look up or create a Shopify Customer with this email
+///   2. Tag them with the shop's wholesaleTag (auto-tagging — ADR-008)
+///   3. Create a WholesaleCustomer row (which the App Proxy uses
+///      as the eligibility source-of-truth alongside the Shopify tag)
+///   4. Move this application's status to 'approved' (audit trail kept)
+///
+/// On reject we just flip the status — no Shopify side-effect.
+model WholesaleApplication {
+  id          String   @id @default(cuid())
+  shopId      String
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  /// 'pending' (default) | 'approved' | 'rejected'
+  status      String   @default("pending")
+
+  // Applicant identity
+  email       String
+  firstName   String?
+  lastName    String?
+  phone       String?
+
+  // Business details
+  companyName String
+  taxId       String?       // VAT / EIN / CIF
+  website     String?
+  country     String?
+  /// Free-text "tell us about your business" field. Trimmed/length-limited
+  /// at the form layer — the admin shows this to inform approval.
+  notes       String?
+
+  /// If the applicant was logged in when they submitted, we remember
+  /// their Shopify customer id so we can tag them directly on approval
+  /// (no need to invite a new account).
+  shopifyCustomerId String?
+
+  /// Merchant note added during review.
+  reviewNote  String?
+  reviewedAt  DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([shopId, status, createdAt])
   @@index([shopId, email])
 }

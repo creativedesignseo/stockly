@@ -1,0 +1,157 @@
+/*
+ * Stockly — Wholesale Registration Form styles.
+ *
+ * Theme-native: inherits font + colors. Branded via App Proxy if the
+ * merchant set primary/accent in admin.
+ */
+
+stockly-registration {
+  display: block;
+  --stockly-primary: #111;
+  --stockly-accent: #555;
+  --stockly-border: rgba(0, 0, 0, 0.12);
+  --stockly-bg-soft: rgba(0, 0, 0, 0.025);
+  font-family: var(--stockly-font, inherit);
+  color: inherit;
+  margin: 1.5rem 0;
+}
+
+stockly-registration .stockly-reg__heading {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+stockly-registration .stockly-reg__intro {
+  margin: 0 0 1.5rem;
+  color: var(--stockly-accent);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+stockly-registration .stockly-reg__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1rem;
+}
+
+stockly-registration .stockly-reg__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+stockly-registration .stockly-reg__field--full {
+  grid-column: 1 / -1;
+}
+
+stockly-registration .stockly-reg__label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--stockly-accent);
+}
+
+stockly-registration .stockly-reg__field--required .stockly-reg__label::after {
+  content: " *";
+  color: rgb(170, 50, 50);
+}
+
+stockly-registration .stockly-reg__field input,
+stockly-registration .stockly-reg__field textarea {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  border: 1px solid var(--stockly-border);
+  border-radius: 4px;
+  background: #fff;
+  color: inherit;
+}
+
+stockly-registration .stockly-reg__field input:focus,
+stockly-registration .stockly-reg__field textarea:focus {
+  outline: 2px solid var(--stockly-primary);
+  outline-offset: 1px;
+  border-color: var(--stockly-primary);
+}
+
+stockly-registration .stockly-reg__field textarea {
+  resize: vertical;
+  min-height: 5rem;
+}
+
+stockly-registration .stockly-reg__errors {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.875rem;
+  background: rgba(200, 60, 60, 0.08);
+  border: 1px solid rgba(200, 60, 60, 0.3);
+  border-radius: 4px;
+  color: rgb(170, 50, 50);
+}
+
+stockly-registration .stockly-reg__error {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+stockly-registration .stockly-reg__error + .stockly-reg__error {
+  margin-top: 0.375rem;
+}
+
+stockly-registration .stockly-reg__actions {
+  margin-top: 1.25rem;
+}
+
+stockly-registration .stockly-reg__submit {
+  appearance: none;
+  background: var(--stockly-primary);
+  color: #fff;
+  border: 0;
+  padding: 0.85rem 1.5rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+stockly-registration .stockly-reg__submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+stockly-registration .stockly-reg__submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+stockly-registration .stockly-reg__success,
+stockly-registration .stockly-reg__already {
+  padding: 1.25rem 1rem;
+  background: rgba(34, 139, 87, 0.08);
+  border: 1px solid rgba(34, 139, 87, 0.35);
+  border-radius: 6px;
+  color: rgb(28, 110, 70);
+}
+
+stockly-registration .stockly-reg__success-heading {
+  margin: 0 0 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+stockly-registration .stockly-reg__success p,
+stockly-registration .stockly-reg__already p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  stockly-registration .stockly-reg__grid {
+    grid-template-columns: 1fr;
+  }
+}
