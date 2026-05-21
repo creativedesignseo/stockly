@@ -29,6 +29,14 @@ stockly-product-panel[hidden] {
   display: none;
 }
 
+/* Same [hidden]-vs-block-display fix as the QOF: child elements with
+ * the hidden attribute were rendering because their block-specific
+ * display: flex rules out-specificity'd [hidden] { display: none }. */
+stockly-product-panel [hidden],
+stockly-product-panel [hidden] * {
+  display: none !important;
+}
+
 stockly-product-panel .stockly-wpp__header {
   display: flex;
   align-items: center;

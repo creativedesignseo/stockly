@@ -8,6 +8,14 @@ stockly-fpq-banner {
   color: inherit;
 }
 
+/* Block-level CSS rules below set display: flex on the banner, which
+ * was pinning it visible even when JS marked it hidden. Force the
+ * hidden contract back so retail visitors never see B2B chrome. */
+stockly-fpq-banner [hidden],
+stockly-fpq-banner [hidden] * {
+  display: none !important;
+}
+
 stockly-fpq-banner .stockly-fpq__banner {
   display: flex;
   align-items: center;

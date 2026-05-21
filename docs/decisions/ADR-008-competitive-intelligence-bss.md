@@ -147,6 +147,74 @@ These are UX patterns observed in BSS's admin that match industry-standard B2B a
 4. **"Built for Shopify B2B merchants" badge** at the top — leverages Shopify Plus B2B marketing if we go after Plus stores too.
 5. **In-flow plan upgrade** — Stockly upgrades happen inside the admin, not on a separate billing page.
 
+### BSS onboarding wizard — exact step-by-step (observed 2026-05-21)
+
+The wizard runs on first admin load and BSS collects intent data we
+should mirror. Captured here so we don't lose the structure when we
+build Stockly's wizard.
+
+**Step 1 — Merchant Profile**
+- "Where are you in your B2B journey?" (just starting / running B2B / migrating from another app)
+- "What's your business model?" (manufacturer / distributor / retailer w/ B2B / dropshipper / agency)
+- Drives the preset that gets pre-filled in the next steps (e.g.,
+  "manufacturer" → higher tier minimums and assortment thresholds)
+
+**Step 2 — Value Matching: "What are you looking for?"**
+Feature checklist (multi-select) presented as a 2-column grid with
+icon + title + one-line description per card. Captured options:
+- Special prices for certain customers or groups
+- Wholesale Registration & Approval Workflow ("Auto-Verify Registrations & Tag B2B Customers")
+- B2B Tax Display Control (Incl/Excl Tax)
+- Enforce Order Quantities for B2B Buyers (min/max quantities)
+- Net Payment Terms
+- Extra Fees & Surcharges for B2B Orders
+- Tax ID Validation & Tax Exemption
+- Public APIs & Import/Export Rules by CSV
+- Free-text "Others" field at the bottom for unlisted needs
+
+This is **lead-scoring gold**: it tells BSS sales which plan the
+merchant likely needs (e.g., checking "Net Payment Terms" or "Public
+APIs" signals Platinum-tier intent). Stockly should mirror this list,
+adapted to our feature surface — FPQ, Wholesale Product Panel, etc.
+
+**Step 3 — Plan Application: "Solicitud del plan de desarrollo"**
+- "Who wants to try our app?" radio: Store owner / Agency / Shopify app developer
+- Free-text "Could you share business situation and reason for requesting a development plan?"
+- CTA: "Send Request" with secondary "I'll do this later"
+- BSS uses this to gate access to the free dev-store plan and route
+  agencies vs. owners to different sales paths
+
+**Step 4 — Book a Demo**
+- Calendly-style booking widget
+- The wedge for Adspubli: this is where we offer in-person Barcelona
+  onboarding ("Spain-based merchants get hands-on setup with our
+  local team")
+
+### Why this matters for Stockly
+
+Two things BSS extracts here we should extract too:
+1. **Feature interest data per merchant** — informs roadmap (which
+   features are demanded most across pilots) AND lets us recommend
+   the right pricing tier without guessing.
+2. **Sales segmentation** — agency-led installs convert differently
+   from owner-led; routing them to a different next-step (e.g.,
+   white-label partnership pitch vs. self-serve onboarding) is more
+   effective than a generic flow.
+
+Stockly's wizard differs from BSS in two ways:
+- **3 steps not 4**, because we collapse Plan Application and Book
+  a Demo into one final "Want hands-on help from Adspubli?" CTA. Less
+  friction; our value isn't the dev plan, it's the local human.
+- **Wholesale-only options** — we strip non-B2B features (B2C
+  upselling etc.) since Stockly is the focused B2B tool. Cleaner
+  signal for what merchant actually needs.
+
+Implementation note (for future Sprint 4 #5): store the wizard
+answers as a `OnboardingResponse` model on the Shop, keyed by step;
+make it the single source for the dashboard's "next recommended
+action" engine (which presets to surface first, which tier templates
+to suggest, when to nudge the merchant towards an upgrade).
+
 ## Recommended ROADMAP additions
 
 Concrete edits to make in `ROADMAP.md` based on this research:

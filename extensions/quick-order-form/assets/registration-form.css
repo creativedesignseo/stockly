@@ -16,6 +16,14 @@ stockly-registration {
   margin: 1.5rem 0;
 }
 
+/* Restore [hidden] semantics — block-level display rules below
+ * out-specificity the user-agent default and would otherwise show
+ * the form when JS swapped to the success or already-wholesale state. */
+stockly-registration [hidden],
+stockly-registration [hidden] * {
+  display: none !important;
+}
+
 stockly-registration .stockly-reg__heading {
   margin: 0 0 0.5rem;
   font-size: 1.5rem;

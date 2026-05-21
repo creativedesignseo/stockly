@@ -21,6 +21,18 @@ stockly-quick-order {
   margin: 1.5rem 0;
 }
 
+/*
+ * The block-level rules below (e.g. .stockly-qo__ladder { display: flex })
+ * are more specific than the user-agent [hidden] { display: none } default
+ * and were pinning ladder / fpq banner / footer visible even when JS set
+ * the hidden attribute. This forces the hidden contract back. Apply with
+ * a strong selector so it wins over any merchant-overridden CSS too.
+ */
+stockly-quick-order [hidden],
+stockly-quick-order [hidden] * {
+  display: none !important;
+}
+
 stockly-quick-order .stockly-qo__heading {
   margin: 0 0 1rem;
   font-size: 1.5rem;
@@ -274,6 +286,17 @@ stockly-quick-order .stockly-qo__cta:hover:not(:disabled) {
 stockly-quick-order .stockly-qo__cta:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+stockly-quick-order .stockly-qo__add-error {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.875rem;
+  background: rgba(200, 60, 60, 0.08);
+  border: 1px solid rgba(200, 60, 60, 0.3);
+  border-radius: 4px;
+  color: rgb(170, 50, 50);
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 @media (max-width: 600px) {

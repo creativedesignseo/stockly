@@ -464,8 +464,12 @@ class StocklyQuickOrder extends HTMLElement {
       }))
       .filter((item) => item.quantity > 0);
 
-    if (items.length === 0) return;
+    if (items.length === 0) {
+      this._showAddError('Set at least one quantity above 0 before adding to cart.');
+      return;
+    }
 
+    this._clearAddError();
     this.addAllBtn.disabled = true;
     try {
       const res = await fetch('/cart/add.js', {
@@ -476,12 +480,47 @@ class StocklyQuickOrder extends HTMLElement {
         },
         body: JSON.stringify({ items }),
       });
-      if (!res.ok) throw new Error(`Cart add returned ${res.status}`);
+
+      // /cart/add.js returns JSON with { status, message, description }
+      // on errors. Surface the real message instead of a generic alert
+      // so the merchant can see why (variant not published, out of stock,
+      // unavailable for this market, etc.).
+      if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          detail = body.description || body.message || detail;
+        } catch { /* keep status */ }
+        throw new Error(detail);
+      }
       window.location.href = '/cart';
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[Stockly] add-to-cart failed', err);
+      this._showAddError(
+        `Couldn't add to cart: ${err.message || err}. ` +
+        `If the product isn't available for your market or wholesale catalog, ` +
+        `ask the store owner to publish it.`,
+      );
       this.addAllBtn.disabled = false;
+    }
+  }
+
+  _showAddError(text) {
+    if (!this._addErrEl) {
+      this._addErrEl = document.createElement('p');
+      this._addErrEl.className = 'stockly-qo__add-error';
+      this._addErrEl.setAttribute('role', 'alert');
+      this.footerEl.parentNode.insertBefore(this._addErrEl, this.footerEl.nextSibling);
+    }
+    this._addErrEl.textContent = text;
+    this._addErrEl.hidden = false;
+  }
+
+  _clearAddError() {
+    if (this._addErrEl) {
+      this._addErrEl.hidden = true;
+      this._addErrEl.textContent = '';
     }
   }
 
