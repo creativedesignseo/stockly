@@ -66,20 +66,50 @@
 
 ---
 
-## Sprint 3 — Branded Cart (Week 5)
+## Sprint 2.5 — Wholesale Baseline % (Week 4 tail)
 
-**Goal:** Replace generic cart with a branded, B2B-aware cart.
+**Goal:** Add the universal wholesale discount layer that sits beneath the volume tiers. See [ADR-006](./docs/decisions/ADR-006-wholesale-baseline-and-product-panel.md).
 
 ### Deliverables
+- [ ] Prisma migration: `Shop.wholesaleBaselinePct Int @default(0)`
+- [ ] App Proxy response includes `shop.wholesaleBaselinePct`
+- [ ] Quick Order Form JS: compose `baseline × tier` multiplicatively
+- [ ] Discount Function sync: include baseline in metafield payload
+- [ ] Discount Function `run.ts`: emit composed % per line (not raw tier %)
+- [ ] Admin: `/app/settings/pricing` with a number input for baseline
+- [ ] Unit tests for composition math (multiplicative, never additive)
+
+### Exit criteria
+- Merchant sets `wholesaleBaselinePct = 65` in admin.
+- Wholesale customer sees a €749,95 product priced at €262,48 in the QO Form (€749,95 × 0.35).
+- At qty 10 with a 10% tier, they see €236,23 (€262,48 × 0.90).
+- Cart and checkout show the same €236,23 thanks to the Discount Function.
+
+---
+
+## Sprint 3 — Wholesale Product Panel + Branded Cart (Week 5-6)
+
+**Goal:** (1) Build the per-product wholesale panel (Alibaba-style variant matrix). (2) Polish the cart for B2B context. See [ADR-006](./docs/decisions/ADR-006-wholesale-baseline-and-product-panel.md) for the panel.
+
+### Wholesale Product Panel deliverables
+- [ ] New Theme App Extension: `wholesale-product-panel` (`section` placement on product templates)
+- [ ] Visibility: renders only for wholesale-approved customers (Liquid + JS gate)
+- [ ] Liquid: variant matrix (one row per variant) + tier ladder + bulk total + Add bulk to cart
+- [ ] Web Component: shares hydration logic with Quick Order Form (extract shared module)
+- [ ] CSS theme-native with branding variables (premium feel, not Alibaba red)
+- [ ] Block schema: heading, "not eligible" copy, layout choices
+
+### Branded Cart deliverables (smaller now — Discount Function already handles discount math)
 - [ ] Theme App Extension: cart override (drawer or page mode)
 - [ ] Brand customization: colors, fonts, copy (from admin)
-- [ ] Custom error messages (replace Shopify's "12 minimum" generic page)
 - [ ] Tier upsell banner ("add 50 more to unlock 10% off")
 - [ ] Order minimum (€/$ threshold) display
 - [ ] Empty state: branded, not default Shopify
 
 ### Exit criteria
-- Cart on Piro looks 100% on-brand. When wholesaler doesn't meet 12-unit minimum, they see "Add X more — minimum 12 pieces" in Cormorant Garamond + rose, not the Shopify generic page.
+- Wholesale customer browses a product page on Piro → sees the Wholesale Product Panel above the retail UI with variant matrix + tier ladder + bulk total
+- Bulk add to cart works; discount applies via Discount Function
+- Cart page on Piro looks 100% on-brand
 
 ---
 
