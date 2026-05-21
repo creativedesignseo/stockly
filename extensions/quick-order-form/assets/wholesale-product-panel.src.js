@@ -353,72 +353,37 @@ class StocklyProductPanel extends HTMLElement {
   }
 
   /**
-   * FPQ progress banner for product-page context. Shows how close the
-   * customer is to clearing their first-order gate IF they add the
-   * current line. Uses /cart.js's existing items at retail × baseline
-   * (approximation, matches the cart banner's behavior) plus this
-   * panel's exact wholesale line.
+   * Minimal FPQ progress hint on the product page. Approves are gated
+   * via the dedicated cart-page fpq-banner block and the QOF banner;
+   * the panel just nudges "you need X more" when the cart + pending
+   * line still falls short. Hidden when met (no checkmark needed —
+   * the cart banner handles that state).
    */
   _updateFpqBanner(qty, wholesaleUnitCents) {
     if (!this.fpqEl) return;
     if (
       this.customerState !== 'approved_pre_fpq' ||
       !this.fpq ||
-      this.fpq.mode === 'none'
+      this.fpq.mode === 'none' ||
+      !this.fpq.amount
     ) {
       this.fpqEl.hidden = true;
       return;
     }
-
-    const baselineFactor = 1 - this.wholesaleBaselinePct / 100;
+    const bFactor = 1 - this.wholesaleBaselinePct / 100;
     let cartWholesale = 0;
-    let cartQty = 0;
-    if (this._cart && Array.isArray(this._cart.items)) {
-      this._cart.items.forEach((it) => {
-        const lineRetail = (it.original_line_price ?? it.line_price ?? 0) / 100;
-        cartWholesale += lineRetail * baselineFactor;
-        cartQty += it.quantity || 0;
-      });
-    }
-    const pendingWholesale = (wholesaleUnitCents * qty) / 100;
-    const projectedWholesale = cartWholesale + pendingWholesale;
-    const projectedQty = cartQty + qty;
-
-    const amountMet = this.fpq.amount && this.fpq.amount > 0
-      ? projectedWholesale >= this.fpq.amount
-      : true;
-    const qtyMet = this.fpq.quantity && this.fpq.quantity > 0
-      ? projectedQty >= this.fpq.quantity
-      : true;
-
-    let met = true;
-    if (this.fpq.mode === 'amount') met = amountMet;
-    else if (this.fpq.mode === 'quantity') met = qtyMet;
-    else if (this.fpq.mode === 'combined') {
-      met = this.fpq.combinedLogic === 'or' ? amountMet || qtyMet : amountMet && qtyMet;
-    }
-
-    if (met) {
-      this.fpqEl.dataset.fpqState = 'met';
-      this.fpqTextEl.textContent = 'First-order minimum met — wholesale pricing locked at checkout.';
-      this.fpqEl.hidden = false;
+    (this._cart?.items || []).forEach((it) => {
+      cartWholesale += ((it.original_line_price ?? it.line_price ?? 0) / 100) * bFactor;
+    });
+    const projected = cartWholesale + (wholesaleUnitCents * qty) / 100;
+    const remaining = this.fpq.amount - projected;
+    if (remaining <= 0) {
+      this.fpqEl.hidden = true;
       return;
     }
-
-    const hints = [];
-    if ((this.fpq.mode === 'amount' || this.fpq.mode === 'combined') && !amountMet && this.fpq.amount) {
-      const remaining = Math.max(0, this.fpq.amount - projectedWholesale);
-      hints.push(`${this._formatMoney(Math.round(remaining * 100))} more`);
-    }
-    if ((this.fpq.mode === 'quantity' || this.fpq.mode === 'combined') && !qtyMet && this.fpq.quantity) {
-      const remaining = Math.max(0, this.fpq.quantity - projectedQty);
-      hints.push(`${remaining} more unit${remaining === 1 ? '' : 's'}`);
-    }
-    const joiner = this.fpq.combinedLogic === 'or' ? ' or ' : ' and ';
     this.fpqEl.dataset.fpqState = 'unmet';
-    this.fpqTextEl.textContent = hints.length
-      ? `Add ${hints.join(joiner)} in wholesale spend to unlock pricing on your first order.`
-      : 'Your first order must meet the wholesale minimum to unlock pricing.';
+    this.fpqTextEl.textContent =
+      `Add ${this._formatMoney(Math.round(remaining * 100))} more in wholesale spend to unlock pricing.`;
     this.fpqEl.hidden = false;
   }
 
@@ -430,33 +395,21 @@ class StocklyProductPanel extends HTMLElement {
     try {
       const res = await fetch('/cart/add.js', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          items: [{ id: this.selectedVariant.id, quantity: qty }],
-        }),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ items: [{ id: this.selectedVariant.id, quantity: qty }] }),
       });
       if (!res.ok) throw new Error(`Cart add returned ${res.status}`);
-
       // Refresh cart snapshot so tier ladder + FPQ banner stay accurate.
       try {
-        const cartRes = await fetch('/cart.js', {
+        const r = await fetch('/cart.js', {
           credentials: 'same-origin',
           headers: { Accept: 'application/json' },
         });
-        if (cartRes.ok) this._cart = await cartRes.json();
-      } catch {
-        /* ignore */
-      }
-
+        if (r.ok) this._cart = await r.json();
+      } catch { /* ignore */ }
       this._showMsg(`Added ${qty} × ${this.productTitle} to your wholesale cart.`, 'ok');
       this._recalc();
-
-      // Tell the theme so the cart drawer/icon refreshes if listening.
       document.dispatchEvent(new CustomEvent('cart:refresh'));
-      document.dispatchEvent(new CustomEvent('cart:updated', { detail: this._cart }));
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('[Stockly] product panel add failed', err);
