@@ -71,6 +71,13 @@ async function findFunctionId(admin: AdminApiContext): Promise<string | null> {
 /**
  * Find an existing automatic discount for this shop that's backed
  * by our Function. We identify it by title (set on create).
+ *
+ * Note: `discountNodes(query: "type:automatic_app")` looks plausible
+ * but Shopify rejects it with `Input "automatic_app" is not an
+ * accepted value`. The accepted filter for app-Function discounts
+ * isn't well documented and behavior varies by API version, so we
+ * fetch unfiltered (up to 50, typical shops have <10 discounts) and
+ * filter in JS by __typename + title. Safer and version-stable.
  */
 async function findExistingDiscountId(
   admin: AdminApiContext,
@@ -78,7 +85,7 @@ async function findExistingDiscountId(
   const response = await admin.graphql(
     `#graphql
     query AppDiscounts {
-      discountNodes(first: 25, query: "type:automatic_app") {
+      discountNodes(first: 50) {
         nodes {
           id
           discount {
@@ -301,7 +308,15 @@ export async function syncTiersToFunction(
       );
     }
   } catch (err) {
+    // Surface the full error for easier diagnosis in dev logs. Without
+    // the stack + cause chain, silent failures (like the
+    // `type:automatic_app` invalid-query bug that bit us in testing)
+    // are very hard to spot.
     // eslint-disable-next-line no-console
     console.error("[Stockly] discount-function-sync failed:", err);
+    if (err instanceof Error && err.stack) {
+      // eslint-disable-next-line no-console
+      console.error(err.stack);
+    }
   }
 }
