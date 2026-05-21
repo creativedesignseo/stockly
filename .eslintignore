@@ -4,3 +4,10 @@ public/build
 shopify-app-remix
 */*.yml
 .shopify
+
+# Generated WASM/JS output from Shopify Functions
+extensions/*/dist/
+extensions/*/generated/
+
+# Function-local node_modules (each Function has its own subtree)
+extensions/*/node_modules/

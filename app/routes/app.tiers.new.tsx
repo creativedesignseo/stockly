@@ -21,6 +21,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import { createTier, type TierScope } from "../services/tiers.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
@@ -29,7 +30,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
+  const { admin, shop } = await authenticateAdmin(request);
   const form = await request.formData();
 
   const name = (form.get("name") ?? "").toString().trim();
@@ -65,6 +66,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     minQty,
     discountPct,
   });
+
+  // Sync to the Shopify Discount Function so checkout enforces it.
+  // Best-effort: errors are logged, not thrown — DB save is canonical.
+  await syncTiersToFunction(admin, shop.id);
 
   return redirect("/app/tiers");
 };

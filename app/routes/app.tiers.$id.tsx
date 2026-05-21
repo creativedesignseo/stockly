@@ -31,6 +31,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
   deleteTier,
   getTier,
@@ -50,7 +51,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ params, request }: ActionFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
+  const { admin, shop } = await authenticateAdmin(request);
   const id = params.id;
   if (!id) throw new Response("Tier id is required", { status: 400 });
 
@@ -64,6 +65,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
 
   if (intent === "delete") {
     await deleteTier(id);
+    await syncTiersToFunction(admin, shop.id);
     return redirect("/app/tiers");
   }
 
@@ -108,6 +110,8 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     discountPct,
     active,
   });
+
+  await syncTiersToFunction(admin, shop.id);
 
   return redirect("/app/tiers");
 };

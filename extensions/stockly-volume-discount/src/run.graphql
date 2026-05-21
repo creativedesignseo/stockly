@@ -1,0 +1,28 @@
+query RunInput {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        __typename
+        ... on ProductVariant {
+          id
+          product {
+            id
+          }
+        }
+      }
+    }
+    buyerIdentity {
+      customer {
+        id
+        hasAnyTag(tags: ["wholesale"])
+      }
+    }
+  }
+  discountNode {
+    metafield(namespace: "$app:stockly-volume-discount", key: "function-configuration") {
+      value
+    }
+  }
+}
