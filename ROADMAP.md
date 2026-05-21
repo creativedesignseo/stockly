@@ -44,19 +44,25 @@
 
 ---
 
-## Sprint 2 — Volume Pricing Display (Week 4)
+## Sprint 2 — Volume Pricing Display + B2B Lifecycle Foundation (Weeks 4-5)
 
-**Goal:** Wholesalers see tier pricing in real-time as quantity changes.
+**Goal:** (1) Wholesalers see tier pricing in real-time as quantity changes. (2) Lay the foundation for the configurable B2B customer lifecycle (see [ADR-004](./docs/decisions/ADR-004-first-purchase-qualifier.md) and [spec](./docs/spec/b2b-customer-lifecycle.md)).
 
-### Deliverables
-- [ ] Admin UI: define tiers per product/collection ("buy 10+, get 5% off; 50+, 10% off")
-- [ ] DB schema: `tiers` table (shop_id, scope, min_qty, discount_pct)
-- [ ] Storefront block: tier table on product page
-- [ ] Live recalculation in Quick Order Form when qty changes
-- [ ] "Add X more to unlock tier 2" contextual hint
+### Volume Pricing deliverables
+- [ ] Tier ladder displayed on Quick Order Form (Alibaba-style, top of table)
+- [ ] Per-row tier indicator when active ("-10% applied")
+- [ ] Next-tier nudge ("Add 3 more to unlock -10%")
+- [ ] Live recalculation already works (Sprint 1); add per-unit effective price display
+
+### B2B Lifecycle deliverables
+- [ ] DB migration: add FPQ fields to `Shop` (approvalRequired, fpqMode, fpqAmount, fpqQuantity, fpqCombinedLogic, postQualificationMOQ, fpqCurrency)
+- [ ] DB migration: extend `WholesaleCustomer` (approvalStatus, approvedAt/By, qualifiedAt, qualifyingOrderId/Amount, rejectionReason)
+- [ ] DB migration: new `WholesaleApplication` model
+- [ ] Update App Proxy response to include `customerState` + `fpq` object
+- [ ] Update Quick Order Form to respect 5 states (visitor / pending / approved_pre_fpq / qualified / rejected)
 
 ### Exit criteria
-- On product page, wholesaler types qty=25 and sees current tier highlighted + next-tier nudge.
+- Tier ladder visible on storefront. Customer in `approved_pre_fpq` sees FPQ progress banner. Customer in `qualified` buys freely. All states resolve correctly.
 
 ---
 
@@ -77,38 +83,60 @@
 
 ---
 
-## Sprint 4 — Admin UI (Weeks 6-7)
+## Sprint 4 — Admin UI + B2B Model Configuration (Weeks 6-7)
 
-**Goal:** Store owner can configure everything without touching code.
+**Goal:** Store owner can configure everything without touching code, INCLUDING the full B2B customer lifecycle.
 
 ### Deliverables
 - [ ] Polaris admin: dashboard page (overview)
-- [ ] Settings: branding (colors, fonts, logo upload)
-- [ ] Tiers manager: CRUD with bulk apply
-- [ ] Copy manager: edit all customer-facing messages (errors, hints, empty states)
-- [ ] Customer eligibility: tag-based + Company-based filters
-- [ ] Preview mode: see storefront with changes before publish
+- [ ] Settings → Branding (colors, fonts, logo upload — Vercel Blob)
+- [ ] Settings → Tiers manager: CRUD with tier shape preview ("Forma A/B/C" + breakpoint math)
+- [ ] Settings → Copy manager: edit customer-facing strings per state
+- [ ] Settings → B2B Model: preset selector (Premium Boutique, Artisan Wholesale, Aggressive Volume, Flexible Entry, Relationship-based, Self-serve) + custom config form
+- [ ] `/app/customers` — list with state filter (visitor/pending/approved_pre_fpq/qualified/rejected)
+- [ ] `/app/customers/applications` — applications review queue (approve/reject with optional reason)
+- [ ] `/app/customers/:id` — detail page with manual override of qualification
+- [ ] Preview mode: simulate "if customer orders X amount with Y units, they become Z state"
 
 ### Exit criteria
-- Store owner can change a tier discount + an error message + brand color, click Save, and see it reflected in the storefront within 10 seconds.
+- Store owner can select "Premium Boutique" preset → tier set to 10% @ qty 10 → edit a copy string → upload a logo → and see all of it on the storefront within 10 seconds.
+- Owner can approve a pending application from the queue and the customer is immediately promoted to `approved_pre_fpq`.
 
 ---
 
-## Sprint 5 — Testing & Beta (Week 8)
+## Sprint 5 — Production Migration + Testing & Beta (Week 8)
 
-**Goal:** Stabilize on real store (Piro), fix bugs, polish.
+**Goal:** Stabilize on real store (Piro), migrate from SQLite to Vercel Postgres, fix bugs, polish.
 
-### Deliverables
-- [ ] Install on production Piro (`piroaccessories.myshopify.com`)
-- [ ] Migration plan: existing wholesale flow → Stockly
-- [ ] Vitest unit tests (>50% coverage on business logic)
-- [ ] Playwright E2E: install → configure → wholesale customer order flow
+### Production infra deliverables (per [ADR-005](./docs/decisions/ADR-005-backend-choice.md))
+- [ ] Provision Vercel Pro project + Vercel Postgres + Vercel Blob
+- [ ] Configure Resend for transactional email (welcome, approval notifications, qualifying purchase celebration)
+- [ ] Wire Sentry for error tracking (free tier)
+- [ ] Migrate Prisma schema: SQLite → PostgreSQL (drop SQLite migration, fresh PG migration)
+- [ ] Adapt monetary fields to `Decimal` for precision
+- [ ] Deploy `main` to Vercel production, verify smoke tests
+- [ ] Set up Vercel Cron for reconciliation job (FPQ qualification scan)
+
+### Webhook handler deliverables
+- [ ] Shopify webhook `orders/paid` handler with HMAC verification
+- [ ] Promotion logic: detect qualifying purchase, update `qualifiedAt`
+- [ ] Reconciliation cron: scan recent orders for unqualified customers (safety net)
+
+### Testing deliverables
+- [ ] Vitest coverage >50% on business logic (resolveTier already done in Sprint 1; add FPQ resolution, eligibility algorithm)
+- [ ] Playwright E2E: install → configure preset → application submit → approval → qualifying order → free buying
 - [ ] Performance audit (Lighthouse on storefront: >85)
 - [ ] Bug triage + fix sprint
 - [ ] Documentation: user guide + setup video
 
+### Piro beta deliverables
+- [ ] Install on production Piro (`piroaccessories.myshopify.com`)
+- [ ] Migration plan: existing Piro wholesale flow → Stockly's Premium Boutique preset
+
 ### Exit criteria
-- Piro Jewelry runs Stockly in production for 7 days with zero critical bugs. Owner can demo it without my help.
+- Stockly runs on Vercel + Vercel Postgres in production
+- Piro Jewelry runs Stockly in production for 7 days with zero critical bugs
+- Owner can demo it without my help
 
 ---
 

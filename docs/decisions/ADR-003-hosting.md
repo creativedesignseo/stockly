@@ -1,8 +1,10 @@
 # ADR-003 — Hosting: Vercel + Supabase
 
 **Date:** May 20, 2026
-**Status:** Accepted
+**Status:** Superseded by [ADR-005](./ADR-005-backend-choice.md) on 2026-05-21
 **Deciders:** Jonatan Montilla
+
+> ⚠️ **This decision was superseded.** After deeper research and weighting solo-founder operational simplicity, the database choice shifted from Supabase to Vercel Postgres (consolidating to a single vendor). The Vercel hosting decision itself remains valid. See [ADR-005](./ADR-005-backend-choice.md) for the new direction.
 
 ---
 
