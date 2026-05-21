@@ -73,8 +73,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   // Tiers only matter for eligible customers — saves payload size
-  // for guests and non-wholesale customers.
-  const tiers = eligible ? await listTiers(shopRow.id) : [];
+  // for guests and non-wholesale customers. activeOnly so inactive
+  // tiers (kept for history) never leak to the storefront.
+  const tiers = eligible
+    ? await listTiers(shopRow.id, { activeOnly: true })
+    : [];
 
   return json(
     {

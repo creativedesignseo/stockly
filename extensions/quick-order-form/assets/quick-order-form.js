@@ -17,6 +17,7 @@ class StocklyQuickOrder extends HTMLElement {
   connectedCallback() {
     this.contextUrl = this.dataset.contextUrl || '/apps/stockly/context';
     this.customerTags = this.dataset.customerTags || '';
+    this.sourceCollectionGid = this.dataset.sourceCollectionGid || '';
 
     this.statesEl = this.querySelector('.stockly-qo__states');
     this.ladderEl = this.querySelector('.stockly-qo__ladder');
@@ -114,21 +115,35 @@ class StocklyQuickOrder extends HTMLElement {
   }
 
   /**
-   * Render the volume-tier ladder above the table. v1 shows only
-   * shop-wide tiers (scope='all'); product/collection-scoped tiers
-   * fold into per-row indicators in a follow-up commit.
+   * Render the volume-tier ladder above the table.
+   *
+   * Includes tiers that apply to the block's current view:
+   *   - All shop-wide tiers (scope='all'), AND
+   *   - Collection-scoped tiers whose scopeId matches the block's
+   *     configured source collection (when one is set).
+   *
+   * Product-scoped tiers stay out of the ladder — they'd be too
+   * noisy here; they get per-row indicators in a follow-up commit.
+   *
+   * Hidden when no qualifying tier exists.
    */
   _renderLadder() {
-    const shopWide = this.tiers
-      .filter((t) => t.scope === 'all')
+    const applicable = this.tiers
+      .filter((t) => {
+        if (t.scope === 'all') return true;
+        if (t.scope === 'collection' && this.sourceCollectionGid) {
+          return t.scopeId === this.sourceCollectionGid;
+        }
+        return false;
+      })
       .sort((a, b) => a.minQty - b.minQty);
 
-    if (shopWide.length === 0) {
+    if (applicable.length === 0) {
       this.ladderEl.hidden = true;
       return;
     }
 
-    this.ladderTiersEl.innerHTML = shopWide
+    this.ladderTiersEl.innerHTML = applicable
       .map(
         (t) => `
           <span

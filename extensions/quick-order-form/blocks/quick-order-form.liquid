@@ -23,6 +23,7 @@
   data-context-url="/apps/stockly/context"
   data-customer-id="{% if customer %}{{ customer.id }}{% endif %}"
   data-customer-tags="{% if customer %}{{ customer.tags | join: ',' | escape }}{% endif %}"
+  data-source-collection-gid="{% if source != blank %}gid://shopify/Collection/{{ source.id }}{% endif %}"
   {{ block.shopify_attributes }}
 >
   {%- if block.settings.heading != blank -%}

@@ -112,11 +112,21 @@ export function applyDiscount(basePrice: number, discountPct: number): number {
 }
 
 /**
- * List all tiers for a shop (admin UI).
+ * List tiers for a shop.
+ *
+ * Pass `activeOnly: true` for storefront-facing calls (App Proxy);
+ * inactive tiers should never reach the customer. Admin lists pass
+ * no options so merchants can see and manage inactive tiers too.
  */
-export async function listTiers(shopId: string) {
+export async function listTiers(
+  shopId: string,
+  options: { activeOnly?: boolean } = {},
+) {
   return prisma.tier.findMany({
-    where: { shopId },
+    where: {
+      shopId,
+      ...(options.activeOnly ? { active: true } : {}),
+    },
     orderBy: [{ position: "asc" }, { minQty: "asc" }],
   });
 }
