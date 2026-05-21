@@ -11,3 +11,8 @@ extensions/*/generated/
 
 # Function-local node_modules (each Function has its own subtree)
 extensions/*/node_modules/
+
+# Minified Theme App Extension JS — source-of-truth is the .src.js
+# sibling. The minified .js is what ships to Shopify CDN (must fit
+# under the 10KB AssetSizeAppBlockJavaScript limit).
+extensions/quick-order-form/assets/quick-order-form.js

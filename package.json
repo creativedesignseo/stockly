@@ -13,6 +13,7 @@
     "docker-start": "npm run setup && npm run start",
     "setup": "prisma generate && prisma migrate deploy",
     "postinstall": "prisma generate",
+    "build:qof": "npx --yes esbuild extensions/quick-order-form/assets/quick-order-form.src.js --minify --target=es2020 --legal-comments=none > extensions/quick-order-form/assets/quick-order-form.js",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
