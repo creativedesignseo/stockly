@@ -25,13 +25,22 @@ api_version = "2026-07"
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
-  # FPQ qualification (ADR-004). When a wholesale-tagged customer's
-  # paid order meets the shop's first-purchase qualifier, our handler
-  # writes a customer metafield that the Discount Function reads to
-  # skip the FPQ gate on subsequent carts.
-  [[webhooks.subscriptions]]
-  uri = "/webhooks/orders/paid"
-  topics = [ "orders/paid" ]
+# orders/paid webhook (ADR-004 FPQ qualification) is intentionally
+# NOT registered here yet. Shopify treats every orders/* topic as
+# "protected customer data" and refuses to register the subscription
+# until the app declares + gets approved for that data access via:
+#   Partner Dashboard → App → Configuration → Protected customer data
+# That step needs a Privacy Policy URL and is part of pre-launch
+# setup. For now, the qualification flow is exercised manually:
+#   - The handler code lives at app/routes/webhooks.orders.paid.tsx
+#   - Stockly admin will get a "Mark customer as qualified" button
+#     that writes both the DB row and the customer metafield
+#     (same effect as the webhook handler would have).
+# Once protected-customer-data approval lands, re-enable below:
+#
+#   [[webhooks.subscriptions]]
+#   uri = "/webhooks/orders/paid"
+#   topics = [ "orders/paid" ]
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]
