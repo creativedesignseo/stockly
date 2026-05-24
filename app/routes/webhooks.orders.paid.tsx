@@ -183,7 +183,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // eslint-disable-next-line no-console
   console.log(
-    `[Stockly webhook] Qualified customer ${customerId} via order ${order.admin_graphql_api_id} (€${orderAmount}, ${orderQty} units)`,
+    `[Stockly webhook] FPQ qualification triggered by order ${order.admin_graphql_api_id} on shop ${shop}`,
   );
 
   return new Response();
