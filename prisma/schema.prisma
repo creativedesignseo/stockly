@@ -86,9 +86,10 @@ model Shop {
   /// 1 = no minimum (default — once qualified, customer buys freely).
   postQualificationMOQ Int               @default(1)
 
-  tiers              Tier[]
-  wholesaleCustomers WholesaleCustomer[]
-  applications       WholesaleApplication[]
+  tiers                Tier[]
+  wholesaleCustomers   WholesaleCustomer[]
+  applications         WholesaleApplication[]
+  onboardingResponses  OnboardingResponse[]
 }
 
 /// Volume pricing tier. `scope` is one of 'product' | 'collection' | 'all'.
@@ -204,4 +205,26 @@ model WholesaleApplication {
 
   @@index([shopId, status, createdAt])
   @@index([shopId, email])
+}
+
+/// Lead-scoring + roadmap signal. Una fila por step del wizard que el
+/// merchant completa o salta. Usada para (1) recomendar tier de pricing,
+/// (2) priorizar roadmap por agregación, (3) ruteo de outreach Adspubli.
+model OnboardingResponse {
+  id            String   @id @default(cuid())
+  shopId        String
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  /// 1 | 2 | 3 — número de step
+  step          Int
+  /// JSON stringified. Shape depende del step:
+  ///   step 1: { journey, businessModel }
+  ///   step 2: { presetKey, overrides: { baselinePct?, fpqMode?, ... } }
+  ///   step 3: { wantsWhiteGlove: boolean, contactPreference?, message? }
+  responsesJson String
+  /// True si el merchant clickeó "I'll do this later"
+  skipped       Boolean  @default(false)
+  completedAt   DateTime @default(now())
+
+  @@index([shopId, step])
 }
