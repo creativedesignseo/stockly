@@ -15,7 +15,8 @@ embedded = true
 scopes = "write_products,write_publications,write_discounts,write_customers,read_orders"
 
 [webhooks]
-api_version = "2026-07"
+# Match SDK's ApiVersion.January25 — 2026-07 doesn't exist yet (today is 2026-05).
+api_version = "2025-01"
 
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"
