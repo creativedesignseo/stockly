@@ -12,7 +12,7 @@ embedded = true
 # read_orders     — Shopify requires this scope to subscribe to the
 # orders/paid webhook (otherwise app config update fails with
 # "Missing scope for webhook topic: orders/paid").
-scopes = "write_products,read_publications,write_publications,write_discounts,write_customers,read_orders"
+scopes = "write_products,write_publications,write_discounts,write_customers,read_orders"
 
 [webhooks]
 api_version = "2026-07"
