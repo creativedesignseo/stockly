@@ -2,7 +2,7 @@
 
 client_id = "fbc28fda2161d2fc40037b0d211b83c9"
 name = "stockly"
-application_url = "https://example.com"
+application_url = "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app"
 embedded = true
 
 [access_scopes]
@@ -43,13 +43,13 @@ api_version = "2026-07"
 #   topics = [ "orders/paid" ]
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app/api/auth" ]
 
 [app_proxy]
 # Storefront URL /apps/stockly/* is forwarded to our backend /proxy/*.
 # The full proxy URL is set automatically by the CLI to the dev tunnel
 # during development, and to the production app URL on deploy.
-url = "https://example.com/proxy"
+url = "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app/proxy"
 subpath = "stockly"
 prefix = "apps"
 
