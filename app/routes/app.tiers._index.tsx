@@ -23,11 +23,29 @@ import { listTiers } from "../services/tiers.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
   const tiers = await listTiers(shop.id);
-  return { tiers };
+  return {
+    tiers,
+    // Used to compute the "Effective %" column — the multiplicative
+    // composition of baseline × tier, which is what the customer
+    // actually sees at checkout. See ADR-006.
+    wholesaleBaselinePct: shop.wholesaleBaselinePct,
+  };
 };
 
+/**
+ * Multiplicative composition of baseline + tier discount (ADR-006).
+ *   final % off retail = 1 - (1 - baseline/100) × (1 - tier/100)
+ * Returns a number 0–100 rounded to 2 decimals.
+ */
+function composeEffectivePct(baseline: number, tier: number): number {
+  const b = Math.min(100, Math.max(0, baseline));
+  const t = Math.min(100, Math.max(0, tier));
+  const factor = (1 - b / 100) * (1 - t / 100);
+  return Math.round((1 - factor) * 10000) / 100;
+}
+
 export default function TiersIndex() {
-  const { tiers } = useLoaderData<typeof loader>();
+  const { tiers, wholesaleBaselinePct } = useLoaderData<typeof loader>();
   const resourceName = { singular: "tier", plural: "tiers" };
 
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
@@ -83,6 +101,7 @@ export default function TiersIndex() {
               { title: "Scope" },
               { title: "Min qty" },
               { title: "Discount" },
+              { title: "Effective" },
               { title: "Status" },
             ]}
           >
@@ -114,6 +133,13 @@ export default function TiersIndex() {
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
+                  <EffectiveCell
+                    baseline={wholesaleBaselinePct}
+                    tier={tier.discountPct}
+                    scope={tier.scope}
+                  />
+                </IndexTable.Cell>
+                <IndexTable.Cell>
                   <Badge tone={tier.active ? "success" : undefined}>
                     {tier.active ? "Active" : "Inactive"}
                   </Badge>
@@ -122,8 +148,56 @@ export default function TiersIndex() {
             ))}
           </IndexTable>
         </Card>
+        {wholesaleBaselinePct > 0 ? (
+          <Card>
+            <BlockStack gap="200">
+              <Text as="h3" variant="headingSm">
+                Cómo se calcula el Effective %
+              </Text>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                Stockly aplica el baseline wholesale primero, luego el descuento
+                del tier sobre el precio ya rebajado. Por ejemplo, baseline 50%
+                + tier 10% = customer paga 45% del retail (55% off, no 60%).
+                Esto evita que las composiciones puedan superar el 100% off.
+              </Text>
+            </BlockStack>
+          </Card>
+        ) : null}
       </BlockStack>
     </Page>
+  );
+}
+
+/**
+ * Renders the multiplicative effective % cell.
+ * - When baseline is 0, shows an em-dash in a subdued tone because the
+ *   effective discount would equal the tier discount (redundant).
+ * - When the tier is collection-scoped, appends an asterisk to flag that
+ *   enforcement is storefront-only (no Shopify-native discount applies).
+ */
+function EffectiveCell({
+  baseline,
+  tier,
+  scope,
+}: {
+  baseline: number;
+  tier: number;
+  scope?: string;
+}) {
+  if (baseline === 0) {
+    return (
+      <Text as="span" variant="bodyMd" tone="subdued">
+        —
+      </Text>
+    );
+  }
+  const effective = composeEffectivePct(baseline, tier).toFixed(2) + "%";
+  const suffix = scope === "collection" ? "*" : "";
+  return (
+    <Text as="span" variant="bodyMd" fontWeight="semibold" tone="success">
+      {effective}
+      {suffix}
+    </Text>
   );
 }
 
