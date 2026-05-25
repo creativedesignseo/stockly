@@ -36,18 +36,29 @@ export type ShopCopy = typeof DEFAULT_COPY;
 
 /**
  * Get or create a Shop row by its Shopify domain.
- * Called from `afterAuth` so every authenticated shop has a row.
+ *
+ * Uses upsert (single atomic statement) because the previous
+ * findUnique-then-create pattern raced when the Shopify embedded
+ * App Bridge fires multiple bootstrap requests in parallel — both
+ * pass findUnique=null, then both try .create, one wins, the other
+ * throws P2002 unique constraint, and authenticate.admin() bubbles
+ * the error → /app loader redirects to /auth/login without the
+ * shop query param → user sees the boilerplate "Log in" form.
+ *
+ * upsert is a single ON CONFLICT DO NOTHING / DO UPDATE statement
+ * in Postgres, so concurrent calls are safe.
  */
 export async function getOrCreateShop(shopDomain: string): Promise<Shop> {
-  const existing = await prisma.shop.findUnique({ where: { id: shopDomain } });
-  if (existing) return existing;
-
-  return prisma.shop.create({
-    data: {
+  return prisma.shop.upsert({
+    where: { id: shopDomain },
+    create: {
       id: shopDomain,
       branding: JSON.stringify(DEFAULT_BRANDING),
       copy: JSON.stringify(DEFAULT_COPY),
     },
+    // No fields to update on conflict — we just want the existing row.
+    // updatedAt is auto-managed by Prisma via @updatedAt.
+    update: {},
   });
 }
 
