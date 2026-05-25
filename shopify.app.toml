@@ -43,7 +43,7 @@ api_version = "2026-07"
 #   topics = [ "orders/paid" ]
 
 [auth]
-redirect_urls = [ "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app/api/auth" ]
+redirect_urls = [ "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app/auth/callback" ]
 
 [app_proxy]
 # Storefront URL /apps/stockly/* is forwarded to our backend /proxy/*.
