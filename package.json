@@ -49,6 +49,7 @@
     "vite-tsconfig-paths": "^5.0.1"
   },
   "devDependencies": {
+    "@flydotio/dockerfile": "^0.7.10",
     "@remix-run/eslint-config": "^2.16.1",
     "@remix-run/route-config": "^2.16.1",
     "@shopify/api-codegen-preset": "^1.1.1",
@@ -86,5 +87,8 @@
     "vite": "^6.2.2",
     "@shopify/shopify-api": "13.0.0"
   },
-  "author": "aimac"
+  "author": "aimac",
+  "dockerfile": {
+    "legacyPeerDeps": true
+  }
 }
