@@ -28,9 +28,22 @@ state) — see `progress/2026-05-26-approve-flow-fix.md`.
 These must close before charging a paying customer or submitting to the
 Shopify App Store.
 
-- [ ] **B0-1 — GDPR mandatory webhooks.** Implement `customers/data_request`,
-  `customers/redact`, `shop/redact` handlers, register in
-  `shopify.app.toml`. App Store auto-rejects without these. ~1 day.
+- [x] **B0-1 — DONE 2026-05-27.** Three new handlers:
+  - `app/routes/webhooks.customers.data_request.tsx` — looks up
+    WholesaleCustomer + WholesaleApplication rows by id/email and
+    structured-logs them for the merchant audit trail.
+  - `app/routes/webhooks.customers.redact.tsx` — hard-deletes
+    WholesaleCustomer + WholesaleApplication rows in a transaction.
+  - `app/routes/webhooks.shop.redact.tsx` — deletes Session rows and
+    the Shop row (cascade to Tier, WholesaleCustomer,
+    WholesaleApplication, OnboardingResponse via schema's
+    onDelete: Cascade).
+  All 3 verify HMAC automatically via `authenticate.webhook`
+  (returns 401 on tampering, exactly what App Store requires).
+  Registered in `shopify.app.toml` under `[[webhooks.subscriptions]]`
+  with the `compliance_topics` key (not regular `topics`).
+  Released to Partners via `npx shopify app deploy` in the same
+  session as the code deploy.
 - [ ] **B0-2 — Billing API.** Wire `billing` config in `shopifyApp()`, add
   `/app/billing` plan picker, call `appSubscriptionCreate` from onboarding.
   ~3 days.

@@ -3,11 +3,11 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-26 (EOD) — **B2B pricing engine E2E validated** + BSS competitive teardown documented
-**Last commit:** `0250d1f` — `fix(approve): admin-approved customers must bypass FPQ (bug C3 / P1-8)` (last code commit)
+**Last updated:** 2026-05-27 — C2 + B0-6 closed; starting B0-1 (GDPR webhooks)
+**Last commit:** `288a657` — `fix(infra): /healthz endpoint + Fly health checks + min_machines_running=1 (B0-6)`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v13` (manual deploy 2026-05-26 PM)
+**Fly version:** `v15` (manual deploy 2026-05-27, with healthz + no-cold-start config)
 **Shopify app version:** `stockly-18` (Protected Customer Data live, Custom distribution)
 
 ---

@@ -43,6 +43,23 @@ api_version = "2025-01"
   uri = "/webhooks/app/scopes_update"
   topics = [ "app/scopes_update" ]
 
+  # GDPR / privacy-law mandatory webhooks (B0-1).
+  # App Store auto-rejects submission without these. Each topic uses
+  # its own subscription block. Note: the toml key for these is
+  # `compliance_topics` (NOT `topics`) — Shopify validates the key
+  # strictly. Handler routes live at app/routes/webhooks.*.tsx.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
 # orders/paid webhook (ADR-004 FPQ qualification) is intentionally
 # NOT registered here yet. Shopify treats every orders/* topic as
 # "protected customer data" and refuses to register the subscription
