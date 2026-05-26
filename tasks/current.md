@@ -88,6 +88,16 @@ Shopify App Store.
   2026-05-26._
 - [ ] **P1-7** Register a custom domain to replace
   `stockly-lustrous-forest-4364.fly.dev`.
+- [ ] **P1-9** Quick Order Form currency consistency: in dev store with
+  a Spain-via-VPN visitor, the PRICE column rendered `€65,00` while
+  LINE TOTAL and ORDER TOTAL rendered `$631.80`. The math is correct
+  (validated 2026-05-26: 24 × €65 × 0.405 = €631.80), but mixing
+  symbols in the same table is jarring. Likely cause: product price
+  comes from Markets-resolved storefront context (EUR), while line
+  total is computed against the shop's primary currency (USD for the
+  dev store). Fix: resolve both via the same source — either format
+  with the storefront `Shopify.currency.active` everywhere, or pin
+  the QOF to the cart's currency.
 - [x] **P1-8 — DONE 2026-05-26.** `markApplicationApproved` already
   auto-tags as part of the approve action. The missing piece was
   `syncTiersToFunction` — now called immediately after `approveCustomer`
