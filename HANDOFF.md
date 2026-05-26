@@ -4,10 +4,10 @@
 > Single source of truth for current state + resume instructions.
 
 **Last updated:** 2026-05-26 (PM) — Approve flow E2E validated on dev store
-**Last commit:** `0cf8c30` — `fix(applications): dump graphQLErrors as JSON + detect ACCESS_DENIED`
+**Last commit:** `029aa5d` — `fix(applications): Modal always-mounted to avoid intermittent View bug`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v10` (manual deploy 2026-05-26 PM)
+**Fly version:** `v11` (manual deploy 2026-05-26 PM)
 **Shopify app version:** `stockly-18` (Protected Customer Data live, Custom distribution)
 
 ---

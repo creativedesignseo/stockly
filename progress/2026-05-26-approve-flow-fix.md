@@ -41,6 +41,14 @@ spinner that cleared with nothing visible.
     `JSON.stringify`s `graphQLErrors` (`util.inspect` was collapsing it
     to `[Array]` in Fly logs), and surfaces a specific remediation
     string when `extensions.code === ACCESS_DENIED`.
+  - **Commit `029aa5d`** — Modal switched from conditional render
+    `{modalApp && <Modal open ...>}` to always-mounted with
+    `open={modalApp !== null}`. Discovered by Jonatan: clicking **View**
+    on an Approved row right after a successful Approve sometimes did
+    nothing (fetcher revalidation re-render + modal mount collided in
+    the same React batch; Polaris portal animation lost). Refreshing
+    bypassed it. The always-mounted pattern is also the one Polaris
+    actually recommends.
 
 ## Commands run
 
@@ -131,3 +139,9 @@ price (this is where B0-3's C1/C2/C3 bugs may surface).
    version is live with the toml declarations. No reinstall required —
    confirmed empirically today. Production stores will require explicit
    merchant grant + Partners review (the B0-5 dependency).
+6. **Polaris `<Modal>` should be always-mounted, not conditionally
+   rendered.** Pattern `{open && <Modal open ...>}` introduces a race
+   between mount and the Polaris portal animation that surfaces under
+   concurrent updates (e.g. a fetcher revalidation hitting at the same
+   click). Always-mount + `open` prop is the documented Polaris pattern
+   for a reason.
