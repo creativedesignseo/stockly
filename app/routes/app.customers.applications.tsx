@@ -539,36 +539,48 @@ export default function ApplicationsQueue() {
         </Card>
       </BlockStack>
 
-      {modalApp && (
-        <Modal
-          open
-          onClose={() => setModalApp(null)}
-          title={`Application — ${modalApp.companyName}`}
-          primaryAction={
-            modalApp.status === "pending"
-              ? {
-                  content: "Reject",
-                  destructive: true,
-                  onAction: () => {
-                    const fd = new FormData();
-                    fd.append("intent", "reject");
-                    fd.append("applicationId", modalApp.id);
-                    fd.append("reviewNote", reviewNote);
-                    fetch(window.location.pathname, {
-                      method: "POST",
-                      body: fd,
-                    }).then(() => window.location.reload());
-                  },
-                }
-              : undefined
-          }
-          secondaryActions={[
-            {
-              content: "Close",
-              onAction: () => setModalApp(null),
-            },
-          ]}
-        >
+      {/*
+        Polaris Modal pattern: keep it always mounted in the React tree
+        and toggle the `open` prop. The previous conditional render
+        ({modalApp && <Modal open ... />}) caused intermittent failures
+        where the modal wouldn't open on the first click after an
+        Approve action — the fetcher revalidation re-render and the
+        modal mount/unmount happened in the same React batch, and
+        Polaris's portal animation occasionally lost. Always-mounted
+        means setModalApp(app) just toggles `open`; no remount risk.
+       */}
+      <Modal
+        open={modalApp !== null}
+        onClose={() => setModalApp(null)}
+        title={
+          modalApp ? `Application — ${modalApp.companyName}` : "Application"
+        }
+        primaryAction={
+          modalApp?.status === "pending"
+            ? {
+                content: "Reject",
+                destructive: true,
+                onAction: () => {
+                  const fd = new FormData();
+                  fd.append("intent", "reject");
+                  fd.append("applicationId", modalApp.id);
+                  fd.append("reviewNote", reviewNote);
+                  fetch(window.location.pathname, {
+                    method: "POST",
+                    body: fd,
+                  }).then(() => window.location.reload());
+                },
+              }
+            : undefined
+        }
+        secondaryActions={[
+          {
+            content: "Close",
+            onAction: () => setModalApp(null),
+          },
+        ]}
+      >
+        {modalApp && (
           <Modal.Section>
             <BlockStack gap="300">
               <Field label="Company" value={modalApp.companyName} />
@@ -608,8 +620,8 @@ export default function ApplicationsQueue() {
               )}
             </BlockStack>
           </Modal.Section>
-        </Modal>
-      )}
+        )}
+      </Modal>
     </Page>
   );
 }
