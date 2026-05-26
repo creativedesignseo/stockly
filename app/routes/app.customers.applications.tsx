@@ -24,7 +24,7 @@
  * (and the service layer stays free of Shopify SDK deps).
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Form, useActionData, useFetcher, useLoaderData, useNavigation } from "@remix-run/react";
+import { useActionData, useFetcher, useLoaderData } from "@remix-run/react";
 import { useState } from "react";
 import {
   Page,
@@ -332,8 +332,10 @@ async function actionImpl(request: Request) {
 export default function ApplicationsQueue() {
   const { apps, activeStatus, counts } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
-  const submitting = navigation.state === "submitting";
+  // Per-row loading state lives in the ApproveButton component via
+  // useFetcher (commit 935de4b). The page-level useNavigation()
+  // approach was removed because navigation.state === "submitting"
+  // lit up every Approve button at once whenever any row submitted.
 
   const [modalApp, setModalApp] = useState<(typeof apps)[number] | null>(null);
   const [reviewNote, setReviewNote] = useState("");
