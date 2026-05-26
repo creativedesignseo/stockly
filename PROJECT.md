@@ -19,7 +19,7 @@
 
 **Why us:**
 - Jonatan: Shopify Partner, direct experience deploying B2B for luxury brand (Piro Jewelry)
-- Discovered technical workarounds (e.g., `applicationLevel: ALL`) that show deep API knowledge
+- Validated non-obvious assemblies of documented Shopify APIs (Discount Functions for tier-based B2B pricing on Basic/Grow; `marketUpdate` with `applicationLevel: ALL` for catalog-level segmentation when Shopify B2B Companies are enabled) that show deep API knowledge — full rationale in [ADR-010](./docs/decisions/ADR-010-b2b-pricing-engine-on-basic-plan.md) and [docs/architecture/b2b-pricing-deep-dive.md](./docs/architecture/b2b-pricing-deep-dive.md)
 - Live pilot client (Piro) provides real-world validation
 - Premium positioning differentiates from 8-10 existing competitors
 

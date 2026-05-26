@@ -4,7 +4,7 @@
 > It has current sprint status, last commit, and the exact command to resume work.
 
 > Read this file at the start of every fresh Claude session on this project.
-> Last updated: May 20, 2026 (Sprint 0 ✅ complete — Sprint 1 next)
+> Last updated: May 26, 2026 (post multi-agent audit + B2B engine docs ported from Piro)
 
 ---
 
@@ -19,7 +19,7 @@ A Shopify App that brings enterprise-grade B2B wholesale features to Shopify Bas
 ## Origin story (why this exists)
 
 Built on top of the work Adspubli did for Piro Jewelry (May 2026):
-- Discovered the `applicationLevel: ALL` workaround that lets Basic-plan stores automate B2B catalog assignment (normally Plus-only at $2,300/mo)
+- Validated that documented Shopify APIs can deliver enterprise B2B features on Basic/Grow plans — features normally locked to Shopify Plus B2B at $2,300/mo. Two techniques carry the weight: **Shopify Discount Functions** (Stockly's primary pricing engine) and the **Markets `applicationLevel: ALL`** mutation (a companion technique for catalog-level segmentation when the merchant uses Shopify B2B Companies). Both are first-class Shopify APIs, not hacks or workarounds. See [ADR-010](./docs/decisions/ADR-010-b2b-pricing-engine-on-basic-plan.md) and [docs/architecture/b2b-pricing-deep-dive.md](./docs/architecture/b2b-pricing-deep-dive.md) for the full rationale and implementation map.
 - Built custom branded errors, login flows, drawer redesigns on Ella theme
 - Realized the same code/concepts can be productized for the App Store
 - Existing B2B apps (BSS, Bold, B2B Hub) are technically capable but visually generic — gap for a premium-positioned app
@@ -132,10 +132,12 @@ Decision logged in [docs/decisions/ADR-001-naming.md](./docs/decisions/ADR-001-n
 ## Key technical decisions (don't relitigate)
 
 1. **Remix over Next.js** — Shopify officially recommends Remix; better App Bridge integration. See ADR-002.
-2. **Supabase over self-hosted Postgres** — faster setup, free tier, branching for staging. See ADR-003.
-3. **Vercel over Railway/Fly** — best DX for Remix, generous free tier. See ADR-003.
-4. **Polaris React in admin, Liquid + Web Components in storefront** — Shopify's recommended split.
-5. **`applicationLevel: ALL` is core IP** — the technical insight from Piro work is the foundation. Document and protect it.
+2. **PostgreSQL via Fly Managed Postgres** — moved off Supabase + Vercel after 8h of serverless friction. See ADR-009 (current) and ADR-003/ADR-005 (history).
+3. **Polaris React in admin, Liquid + Web Components in storefront** — Shopify's recommended split.
+4. **Shopify Discount Functions as the B2B pricing engine** — the core technical differentiator. WASM module reads tier configuration from a metafield and applies discounts at checkout for wholesale customers. Plan-agnostic (works on Basic/Grow without Shopify Plus). See [ADR-010](./docs/decisions/ADR-010-b2b-pricing-engine-on-basic-plan.md) for the full rationale and why Discount Functions were chosen over alternatives (CompanyLocationCatalog, Shopify Scripts, storefront-only pricing). See [docs/architecture/b2b-pricing-deep-dive.md](./docs/architecture/b2b-pricing-deep-dive.md) for the implementation map and the companion Markets `applicationLevel: ALL` technique.
+5. **Multiplicative composition (baseline × tier)** — wholesale baseline % composes multiplicatively with tier %, not additively. See ADR-006.
+6. **First-Purchase Qualifier (FPQ) as a configurable gate** — see ADR-004.
+7. **Cart-total vs per-line tier aggregation as a tier-level switch** — see ADR-007.
 
 ---
 
@@ -196,7 +198,7 @@ Decision logged in [docs/decisions/ADR-001-naming.md](./docs/decisions/ADR-001-n
 ## Related work in Jonatan's filesystem
 
 - **Piro Jewelry codebase:** `~/Documents/Workspace/Clients/pirojewelry.com/` — the source theme + customizations Stockly builds on
-- **B2B auto-assign doc:** `~/Documents/Workspace/Clients/pirojewelry.com/08_wholesale/SOLUCION_AUTO_ASIGNACION_MARKET_B2B.md` — technical write-up of the `applicationLevel: ALL` solution
+- **Original Piro B2B write-up (historical):** `~/Documents/Workspace/Clients/pirojewelry.com/08_wholesale/SOLUCION_AUTO_ASIGNACION_MARKET_B2B.md` — engagement-specific record. **Canonical Stockly version is now [docs/architecture/b2b-pricing-deep-dive.md](./docs/architecture/b2b-pricing-deep-dive.md) inside this repo** (ported May 26, 2026, so the IP lives in the product repository).
 - **Shopify Admin CLI:** `shopify-admin` (in PATH) — for querying APIs. Store alias for Piro: `piro`.
 - **Adspubli email skill:** `~/.claude/skills/adspubli-email/SKILL.md` — for sending branded client emails (use for pilot outreach)
 

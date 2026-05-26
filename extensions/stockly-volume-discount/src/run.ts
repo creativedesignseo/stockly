@@ -1,13 +1,27 @@
 /**
  * Stockly Volume Discount — Shopify Function (Product Discount).
  *
- * Runs at cart evaluation and checkout. For wholesale-tagged customers,
- * applies per-line percentage discounts based on the merchant's tier
- * configuration, sourced from a metafield on the DiscountNode.
+ * THIS IS STOCKLY'S CORE PRICING ENGINE.
+ *
+ * It is the mechanism by which Stockly delivers automated, per-customer,
+ * tier-based wholesale pricing on Shopify Basic/Grow plans — features
+ * normally locked to Shopify Plus B2B at $2,300/mo. Discount Functions
+ * are an official, plan-agnostic Shopify API (not a workaround). See
+ * `docs/decisions/ADR-010-b2b-pricing-engine-on-basic-plan.md` for the
+ * full architectural rationale and `docs/architecture/b2b-pricing-deep-
+ * dive.md` for the implementation map (including the companion Markets
+ * `applicationLevel: ALL` technique for catalog-level segmentation when
+ * Shopify B2B Companies are enabled).
+ *
+ * Runs at cart evaluation and checkout. For wholesale-eligible customers
+ * (tag-based or qualified-customer-GID-based), applies per-line
+ * percentage discounts based on the merchant's tier configuration,
+ * sourced from a metafield on the DiscountNode.
  *
  * Why: Sprint 1 shipped client-side tier calculation in the Quick Order
  * Form, but the discount was display-only — Shopify's cart used base
- * prices. This Function enforces the discount server-side at checkout.
+ * prices. This Function enforces the discount server-side at checkout,
+ * so what the customer sees in the storefront matches what they pay.
  *
  * Config shape on `discountNode.metafield("$app:stockly-volume-discount",
  * "function-configuration")`:

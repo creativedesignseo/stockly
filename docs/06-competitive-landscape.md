@@ -106,7 +106,7 @@ Many small apps offering wholesale pricing as a feature inside a broader app (di
 
 1. **Domain expertise from Piro** — real-world deployment, real customer pain understood
 2. **Premium brand reputation** (early days but building)
-3. **The `applicationLevel: ALL` insight** — most apps don't know about this Shopify hack, takes time to discover
+3. **Deep Shopify API knowledge (Discount Functions + Markets `applicationLevel: ALL`)** — documented Shopify mechanisms that competitors haven't assembled into a B2B pricing engine for Basic/Grow plans. Not a hack: both are first-class, plan-supported APIs. Discovery required reading the GraphQL schema directly rather than the admin UI. See [ADR-010](./decisions/ADR-010-b2b-pricing-engine-on-basic-plan.md).
 4. **Theme-native execution** — hard to replicate without designer-developer founder
 5. **Speed of iteration** — solo founder + AI co-pilot ships in days vs weeks
 6. **Adspubli agency clients pipeline** — built-in distribution to premium DTC brands
