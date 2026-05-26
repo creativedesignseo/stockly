@@ -2,7 +2,7 @@
 
 client_id = "fbc28fda2161d2fc40037b0d211b83c9"
 name = "stockly"
-application_url = "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app"
+application_url = "https://stockly-lustrous-forest-4364.fly.dev"
 embedded = true
 
 [access_scopes]
@@ -13,6 +13,23 @@ embedded = true
 # orders/paid webhook (otherwise app config update fails with
 # "Missing scope for webhook topic: orders/paid").
 scopes = "write_products,write_publications,write_discounts,write_customers,read_orders"
+
+# Protected customer data access — required since 2024 for ANY app
+# that reads/creates Customer records with PII (name, email, phone).
+# Without this, customerCreate / customers(query:email:...) return
+# ACCESS_DENIED even with write_customers scope granted.
+# For dev stores, approval is immediate when configured here.
+[access.admin]
+direct_api_mode = "online"
+embedded_app_direct_api_access = false
+
+[access.protected_customer_data_permissions]
+customer_data = "level_1"
+customer_fields = [
+  { customer_field = "name", permission = "level_1" },
+  { customer_field = "email", permission = "level_1" },
+  { customer_field = "phone", permission = "level_1" },
+]
 
 [webhooks]
 # Match SDK's ApiVersion.January25 — 2026-07 doesn't exist yet (today is 2026-05).
@@ -44,13 +61,17 @@ api_version = "2025-01"
 #   topics = [ "orders/paid" ]
 
 [auth]
-redirect_urls = [ "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app/auth/callback" ]
+redirect_urls = [
+  "https://stockly-lustrous-forest-4364.fly.dev/auth/callback",
+  "https://stockly-lustrous-forest-4364.fly.dev/auth/shopify/callback",
+  "https://stockly-lustrous-forest-4364.fly.dev/api/auth/callback"
+]
 
 [app_proxy]
 # Storefront URL /apps/stockly/* is forwarded to our backend /proxy/*.
 # The full proxy URL is set automatically by the CLI to the dev tunnel
 # during development, and to the production app URL on deploy.
-url = "https://stockly-creativedesignseo-gmailcoms-projects.vercel.app/proxy"
+url = "https://stockly-lustrous-forest-4364.fly.dev/proxy"
 subpath = "stockly"
 prefix = "apps"
 
