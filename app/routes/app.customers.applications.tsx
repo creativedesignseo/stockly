@@ -24,7 +24,7 @@
  * (and the service layer stays free of Shopify SDK deps).
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData, useSearchParams } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import {
   Page,
@@ -365,9 +365,30 @@ export default function ApplicationsQueue() {
   // approveResult replaces useActionData for approve: useFetcher responses
   // don't flow through useActionData (that only sees navigation submissions).
   const [approveResult, setApproveResult] = useState<ApproveResult>(null);
+  // setSearchParams (not window.location.assign) — inside a Shopify
+  // embedded iframe a full page reload drops host/embedded/id_token from
+  // the URL and triggers an OAuth redirect loop (ERR_TOO_MANY_REDIRECTS).
+  // setSearchParams updates via History API + re-runs loaders, keeping
+  // the embed context intact.
+  const [, setSearchParams] = useSearchParams();
 
   const [modalApp, setModalApp] = useState<(typeof apps)[number] | null>(null);
   const [reviewNote, setReviewNote] = useState("");
+  // Reject runs through its own fetcher: same as Approve, we cannot
+  // use window.location.reload() inside the Shopify embedded iframe
+  // because that drops host/embedded/id_token and triggers an OAuth
+  // redirect loop. fetcher.submit + Remix's automatic loader
+  // revalidation keeps us inside the embed.
+  const rejectFetcher = useFetcher<typeof action>();
+  useEffect(() => {
+    if (rejectFetcher.state !== "idle" || !rejectFetcher.data) return;
+    if (rejectFetcher.data.ok) {
+      // Reject succeeded — close the modal. Loader revalidation handles
+      // moving the row from Pending to Rejected automatically.
+      setModalApp(null);
+      setReviewNote("");
+    }
+  }, [rejectFetcher.state, rejectFetcher.data]);
 
   const tabs = [
     { id: "pending", content: `Pending (${counts.pending})`, status: "pending" },
@@ -404,13 +425,18 @@ export default function ApplicationsQueue() {
             selected={activeIdx}
             onSelect={(idx) => {
               const status = tabs[idx].status;
-              const url = new URL(window.location.href);
-              if (status === "pending") {
-                url.searchParams.delete("status");
-              } else {
-                url.searchParams.set("status", status);
-              }
-              window.location.assign(url.toString());
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (status === "pending") {
+                    next.delete("status");
+                  } else {
+                    next.set("status", status);
+                  }
+                  return next;
+                },
+                { replace: true },
+              );
             }}
           />
 
@@ -560,15 +586,13 @@ export default function ApplicationsQueue() {
             ? {
                 content: "Reject",
                 destructive: true,
+                loading: rejectFetcher.state !== "idle",
                 onAction: () => {
                   const fd = new FormData();
                   fd.append("intent", "reject");
                   fd.append("applicationId", modalApp.id);
                   fd.append("reviewNote", reviewNote);
-                  fetch(window.location.pathname, {
-                    method: "POST",
-                    body: fd,
-                  }).then(() => window.location.reload());
+                  rejectFetcher.submit(fd, { method: "POST" });
                 },
               }
             : undefined
