@@ -1,9 +1,21 @@
 # Stockly — Roadmap
 
-**Timeline:** 10 weeks to MVP launch
+> **Status as of 2026-05-26:** Sprints 0-4 are **complete and shipped**
+> to production on Fly.io. The deliverable lists below for those
+> sprints are kept as historical reference, not as an active plan.
+> For the current operational state see [HANDOFF.md](./HANDOFF.md).
+> For the active P0/P1 queue see [tasks/current.md](./tasks/current.md).
+> Sprints 5-10 remain the forward plan; treat them as the source of
+> truth for upcoming work.
+
+**Original timeline:** 10 weeks to MVP launch
 **Start:** May 20, 2026
-**Target MVP launch:** August 2026
+**Original target MVP launch:** August 2026
 **Cadence:** 1-week sprints (some 2-week for heavier work)
+**Stack pivot during execution:** Vercel + Supabase → Fly.io + Fly
+Managed Postgres (Sprint 4, documented in [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md)).
+The pre-pivot Supabase/Vercel deliverables below should be read as
+"the original plan we executed against, then adjusted."
 
 ---
 

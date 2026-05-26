@@ -2,9 +2,13 @@
 
 > The B2B wholesale app for Shopify stores that don't pay for Plus.
 
-**Status:** 🚧 Pre-MVP — Sprint 0 (Foundation)
+**Status:** Live in production on Fly.io · Sprint 4 complete · pre-App-Store
 **Started:** May 20, 2026
-**Target MVP:** August 2026 (10 weeks)
+**Target App Store submission:** ~September 2026 (post audit P0 closure)
+
+> **Resuming work?** Start with [HANDOFF.md](./HANDOFF.md) — it has the
+> current operational state, last commit, and the recommended next
+> action. The README below is a brief overview, not the source of truth.
 
 ---
 
@@ -48,13 +52,17 @@ mobile-first, customizable theming.
 
 ```
 Framework:    Remix + TypeScript
-Shopify:      App Bridge + Polaris + Theme App Extensions
-Database:     PostgreSQL (Supabase)
-Hosting:      Vercel
-APIs:         Shopify Admin GraphQL + Storefront API
-Testing:      Vitest + Playwright
-CI/CD:        GitHub Actions
+Shopify:      App Bridge + Polaris + Theme App Extensions + Discount Function
+Database:     PostgreSQL via Fly Managed Postgres (region iad)
+Hosting:      Fly.io (region iad, Dockerfile multi-stage Debian)
+APIs:         Shopify Admin GraphQL + Storefront API + App Proxy
+Testing:      Vitest (unit) + Playwright (E2E, ad-hoc)
+CI/CD:        GitHub Actions → auto-deploy to Fly.io on push to main
 ```
+
+See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for why
+Fly.io and not Vercel (the original 2026-05-20 choice, replaced after
+the migration documented in [HANDOFF.md](./HANDOFF.md)).
 
 ---
 
