@@ -93,6 +93,37 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 /* -------------------------------------------------------------------------- */
 
 export const action = async ({ request }: ActionFunctionArgs) => {
+  try {
+    return await actionImpl(request);
+  } catch (err) {
+    // Catch ALL errors — GraphQL fetch failures, unexpected Shopify
+    // responses, Prisma errors — and surface a readable message to the
+    // merchant via the action data instead of throwing a 500 that the
+    // route-error boundary catches as a generic "Application Error".
+    // eslint-disable-next-line no-console
+    console.error("[applications-action] caught:", err);
+    let message = "Unexpected error processing this action.";
+    if (err instanceof Error) {
+      // Shopify GraphQL client wraps errors in a `graphQLErrors` array.
+      const anyErr = err as unknown as {
+        graphQLErrors?: { message: string }[];
+        body?: { errors?: { graphQLErrors?: { message: string }[] } };
+      };
+      const gqlErrors =
+        anyErr.graphQLErrors ??
+        anyErr.body?.errors?.graphQLErrors ??
+        [];
+      if (gqlErrors.length > 0) {
+        message = `Shopify rejected: ${gqlErrors.map((e) => e.message).join("; ").slice(0, 400)}`;
+      } else {
+        message = err.message.slice(0, 400);
+      }
+    }
+    return { ok: false, error: message } as const;
+  }
+};
+
+async function actionImpl(request: Request) {
   const { admin, shop } = await authenticateAdmin(request);
   const form = await request.formData();
   const intent = (form.get("intent") ?? "").toString();
@@ -275,7 +306,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     email: app.email,
     customerId: shopifyCustomerId,
   };
-};
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                    UI                                      */
