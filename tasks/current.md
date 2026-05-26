@@ -59,8 +59,9 @@ Shopify App Store.
   `orders/paid` handler.
 - [ ] **P1-5** Discount Function test fixtures: baseline×tier, FPQ
   pre/post, variant>product>all specificity, cart_total vs per_line.
-- [ ] **P1-6** Remove `app.additional.tsx` and the "Additional page"
-  NavMenu entry (template residue visible to merchants).
+- [x] **P1-6** Remove `app.additional.tsx` and the "Additional page"
+  NavMenu entry (template residue visible to merchants). _Done
+  2026-05-26._
 - [ ] **P1-7** Register a custom domain to replace
   `stockly-lustrous-forest-4364.fly.dev`.
 - [ ] **P1-8** `markApplicationApproved` auto-tags the customer and
@@ -78,11 +79,8 @@ Shopify App Store.
 
 ## Known pre-existing failures (not blockers, but on the floor)
 
-- **Lint: 2 unused imports** in
-  `app/routes/app.customers.applications.tsx` (lines 27 and 336 —
-  `Form` and `submitting`). Residue from commit `935de4b` (per-row
-  useFetcher migration). 2-minute fix: remove the unused names.
-  Detected by `scripts/verify.sh` on 2026-05-26.
+_None outstanding. Lint warnings from `935de4b` (unused `Form` /
+`navigation` / `submitting`) cleaned up on 2026-05-26._
 
 ---
 

@@ -49,7 +49,6 @@ export default function App() {
         <Link to="/app/settings/pricing">Pricing</Link>
         <Link to="/app/customers/applications">Applications</Link>
         <Link to="/app/qualify-customer">Qualify customer</Link>
-        <Link to="/app/additional">Additional page</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>
