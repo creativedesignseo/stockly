@@ -53,6 +53,7 @@ import {
   normalizePhone,
 } from "../services/wholesale-applications.server";
 import { approveCustomer } from "../services/wholesale-customers.server";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
 
 /* -------------------------------------------------------------------------- */
 /*                                  LOADER                                    */
@@ -333,6 +334,7 @@ async function actionImpl(request: Request) {
   }
 
   // (5) Upsert the Stockly WholesaleCustomer row — eligibility track 2.
+  //     This also sets qualifiedAt=now (admin approval bypasses FPQ).
   await approveCustomer({
     shopId: shop.id,
     shopifyCustomerId,
@@ -342,6 +344,20 @@ async function actionImpl(request: Request) {
 
   // (6) Flip application status.
   await markApplicationApproved(shop.id, appId, reviewNote);
+
+  // (7) Re-sync the Discount Function's metafield so the new customer's
+  //     GID lands in `qualifiedCustomers` immediately — otherwise the
+  //     Function evaluates them against FPQ on their next cart and they
+  //     pay retail despite being admin-approved (bug C3 / P1-8).
+  //     We swallow sync errors so the approval itself doesn't fail if
+  //     Shopify is having a bad minute; the merchant can manually
+  //     re-trigger via /app/settings/pricing → Save. Logged for ops.
+  try {
+    await syncTiersToFunction(admin, shop.id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[applications-action] syncTiersToFunction failed:", err);
+  }
 
   return {
     ok: true as const,

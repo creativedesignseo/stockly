@@ -91,6 +91,19 @@ export async function approveCustomer(data: {
   email?: string;
   notes?: string;
 }) {
+  // Admin approval implies wholesale qualification — the customer
+  // bypasses the FPQ gate (the FPQ is for track-1 self-registered
+  // customers who must first prove themselves with a qualifying order;
+  // track-2 admin-approved customers are qualified by the act of
+  // approval itself).
+  //
+  // Setting qualifiedAt is essential because discount-function-sync
+  // populates the Function's `qualifiedCustomers` list ONLY from rows
+  // where qualifiedAt IS NOT NULL. A customer with qualifiedAt=null is
+  // invisible to the Function's bypass list and gets evaluated against
+  // FPQ on every cart — meaning admin-approved customers were silently
+  // paying retail at checkout (bug C3 / P1-8 in tasks/current.md).
+  const now = new Date();
   return prisma.wholesaleCustomer.upsert({
     where: {
       shopId_shopifyCustomerId: {
@@ -98,8 +111,9 @@ export async function approveCustomer(data: {
         shopifyCustomerId: data.shopifyCustomerId,
       },
     },
-    create: data,
-    update: { email: data.email, notes: data.notes },
+    create: { ...data, qualifiedAt: now },
+    // Re-approve refreshes the qualification timestamp. Idempotent.
+    update: { email: data.email, notes: data.notes, qualifiedAt: now },
   });
 }
 
