@@ -84,6 +84,17 @@ stockly-registration .stockly-reg__field textarea:focus {
   border-color: var(--stockly-primary);
 }
 
+stockly-registration .stockly-reg__field input:invalid:not(:placeholder-shown) {
+  border-color: rgb(170, 50, 50);
+}
+
+stockly-registration .stockly-reg__hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--stockly-accent);
+}
+
 stockly-registration .stockly-reg__field textarea {
   resize: vertical;
   min-height: 5rem;

@@ -50,6 +50,7 @@ import {
   getApplication,
   markApplicationApproved,
   markApplicationRejected,
+  normalizePhone,
 } from "../services/wholesale-applications.server";
 import { approveCustomer } from "../services/wholesale-customers.server";
 
@@ -192,7 +193,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
             email: app.email,
             firstName: app.firstName ?? undefined,
             lastName: app.lastName ?? undefined,
-            phone: app.phone ?? undefined,
+            // Shopify rejects non-E.164 phones with "Phone is invalid".
+            // If the phone we have isn't clean E.164 (legacy applications
+            // submitted before the frontend validator landed), skip it
+            // rather than failing the whole approval — better UX.
+            phone: (() => {
+              const p = normalizePhone(app.phone);
+              return p && /^\+[1-9]\d{7,14}$/.test(p) ? p : undefined;
+            })(),
             tags: [shop.wholesaleTag],
             note: `Wholesale application approved on ${new Date().toISOString()}. Company: ${app.companyName}.`,
           },

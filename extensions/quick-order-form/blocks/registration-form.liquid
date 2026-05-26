@@ -81,7 +81,15 @@
 
       <label class="stockly-reg__field">
         <span class="stockly-reg__label">{{ 'reg.phone' | t }}</span>
-        <input type="tel" name="phone" autocomplete="tel">
+        <input
+          type="tel"
+          name="phone"
+          autocomplete="tel"
+          placeholder="+34 555 44 33 22"
+          pattern="^\+[1-9]\d{0,3}[\s\-().\d]{7,17}$"
+          title="Include country code, e.g. +34 555 44 33 22"
+        >
+        <small class="stockly-reg__hint">Optional. Include country code (+34, +1, etc.)</small>
       </label>
 
       <label class="stockly-reg__field">

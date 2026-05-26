@@ -57,7 +57,33 @@ export function validateApplication(
   if (input.notes && input.notes.length > 2000) {
     errors.push("Notes are too long (2000 char max).");
   }
+
+  // Phone: optional, but if provided must be E.164 format (Shopify
+  // requirement for customerCreate mutation). Accept variations the
+  // user might type and we normalize/reject at the boundary.
+  const phone = (input.phone ?? "").trim();
+  if (phone) {
+    // Strip spaces, dashes, parens before validating
+    const cleaned = phone.replace(/[\s\-().]/g, "");
+    // E.164: starts with + and 8-15 digits
+    if (!/^\+[1-9]\d{7,14}$/.test(cleaned)) {
+      errors.push(
+        "Phone must include country code in international format. Example: +34 555 44 33 22 or +1 305 555 1234.",
+      );
+    }
+  }
+
   return errors;
+}
+
+/**
+ * Normalize a phone to E.164 (strips spaces/dashes/parens, keeps +).
+ * Caller should already have validated with validateApplication.
+ */
+export function normalizePhone(phone: string | undefined | null): string | undefined {
+  if (!phone) return undefined;
+  const cleaned = phone.trim().replace(/[\s\-().]/g, "");
+  return cleaned || undefined;
 }
 
 /**
