@@ -24,7 +24,7 @@
  * (and the service layer stays free of Shopify SDK deps).
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Form, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
+import { Form, useActionData, useFetcher, useLoaderData, useNavigation } from "@remix-run/react";
 import { useState } from "react";
 import {
   Page,
@@ -470,18 +470,8 @@ export default function ApplicationsQueue() {
                   <IndexTable.Cell>
                     {app.status === "pending" ? (
                       <InlineStack gap="200">
-                        <Form method="post">
-                          <input type="hidden" name="intent" value="approve" />
-                          <input type="hidden" name="applicationId" value={app.id} />
-                          <Button
-                            submit
-                            variant="primary"
-                            size="slim"
-                            loading={submitting}
-                          >
-                            Approve
-                          </Button>
-                        </Form>
+                        <ApproveButton applicationId={app.id} />
+                        {/* Reject + View are below, share a modal */}
                         <Button
                           tone="critical"
                           size="slim"
@@ -595,6 +585,26 @@ export default function ApplicationsQueue() {
         </Modal>
       )}
     </Page>
+  );
+}
+
+/**
+ * Per-row Approve button using useFetcher so loading state is
+ * isolated to the row being submitted. Previously the global
+ * `navigation.state === "submitting"` lit up every Approve button
+ * in the list at once.
+ */
+function ApproveButton({ applicationId }: { applicationId: string }) {
+  const fetcher = useFetcher<typeof action>();
+  const isSubmitting = fetcher.state !== "idle";
+  return (
+    <fetcher.Form method="post">
+      <input type="hidden" name="intent" value="approve" />
+      <input type="hidden" name="applicationId" value={applicationId} />
+      <Button submit variant="primary" size="slim" loading={isSubmitting}>
+        Approve
+      </Button>
+    </fetcher.Form>
   );
 }
 
