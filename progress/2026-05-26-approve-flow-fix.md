@@ -58,6 +58,31 @@ spinner that cleared with nothing visible.
     embed context → loop → Chrome aborts. Discovered by Jonatan
     clicking the **Approved** tab after a successful Approve.
 
+- `app/services/wholesale-customers.server.ts` +
+  `app/routes/app.customers.applications.tsx`
+  - **Commit `0250d1f`** — **the bug that quietly broke the business.**
+    Admin-approved (track-2) customers were paying retail at checkout
+    despite having the `wholesale` tag and a WholesaleCustomer row.
+    Root cause: `approveCustomer` created rows with `qualifiedAt=null`,
+    and the Discount Function's `qualifiedCustomers` bypass list is
+    sourced from `WholesaleCustomer.qualifiedAt != null` only. With a
+    null timestamp, the Function evaluated FPQ on every cart (€500
+    minimum) → cart of €58.50 wholesale fails → no discount → checkout
+    charges retail (€130 instead of €58.50). Two-part fix:
+    1. `approveCustomer` now sets `qualifiedAt=new Date()` on both
+       create and update. Admin approval IS the qualifying event for
+       track-2; there's no FPQ to clear.
+    2. The approve action now calls
+       `syncTiersToFunction(admin, shop.id)` after
+       `markApplicationApproved`, so the Function metafield gets the
+       new customer's GID without waiting for the next merchant
+       settings save.
+    Backfill applied via `fly ssh` + Prisma to set `qualifiedAt =
+    new Date()` on the 2 already-approved customers (count: 2). Sync
+    triggered via clicking **Approve** on the third pending
+    application (`globalnetworkprime`), which exercised the new code
+    path and populated the metafield with all 3 GIDs at once.
+
 ## Commands run
 
 ```bash
@@ -81,18 +106,26 @@ stores). Without it, the "Request access" form does not surface.
 
 ## Verification
 
-- `bash scripts/verify.sh` → green (pre-deploy).
-- Fly v10 came up healthy, release_command `prisma db push` passed.
+- `bash scripts/verify.sh` → green (pre every deploy).
+- Fly v10 → v11 → v12 → v13 all came up healthy.
 - Jonatan clicked **Approve** on Creative Design Seo
-  (creativedesignseo@gmail.com) — banner showed:
-  > "Application approved — creativedesignseo@gmail.com was tagged as
-  > wholesale in Shopify and added to the eligibility list."
-- The row moved from Pending (3 → 2) to Approved (0 → 1).
+  (creativedesignseo@gmail.com) — banner showed success.
+  Row moved Pending (3 → 2) → Approved (0 → 1). Then approved
+  `adspublioficial`. Both passed. Third (`globalnetworkprime`)
+  approved later, triggering the sync that closed C3.
 
-Pending cross-checks (left for Jonatan):
-- Shopify Admin → Clientes → confirm `wholesale` tag landed.
-- `/app/customers/qualified` → confirm WholesaleCustomer row exists.
-- Test a second Approve to confirm the flow is repeatable, not a fluke.
+Cross-checks completed (all green):
+- **DB (via fly ssh + Prisma)**: 3 WholesaleApplication rows,
+  WholesaleCustomer rows for the 2 approved with valid Shopify GIDs
+  (`10103069901128`, `10125693387080`).
+- **Shopify Admin**: "Test Wholesale" customer
+  (creativedesignseo@gmail.com) shows `wholesale` tag applied.
+- **Storefront + Cart drawer**: retail crossed out, wholesale price
+  shown with `Wholesale 55%` label on every line.
+- **Checkout (the one that matters)**: €130 retail cart →
+  €58.50 wholesale subtotal, line-level discount labels
+  `WHOLESALE 55% (-€46.75)` and `WHOLESALE 55% (-€24.75)`, Shopify
+  shows `TOTAL SAVINGS €71.50`. Total with shipping: €71.49.
 
 ## Open risks
 
@@ -160,3 +193,18 @@ price (this is where B0-3's C1/C2/C3 bugs may surface).
    `ERR_TOO_MANY_REDIRECTS`. Always go through Remix navigation
    (`useSearchParams`, `useNavigate`, `useFetcher`, `useRevalidator`).
    This rule has no exceptions in admin routes.
+8. **Two-track wholesale qualification: `approvedAt` ≠ `qualifiedAt`.**
+   `approvedAt` says "the merchant accepted them"; `qualifiedAt` says
+   "the FPQ gate is cleared, no further hurdles". For track-2 customers
+   the act of admin approval IS the qualifying event — both timestamps
+   should be set in the same upsert. For track-1 customers, `approvedAt`
+   is set at registration and `qualifiedAt` is set later by
+   `webhooks.orders.paid.tsx` after the first qualifying order. Conflate
+   them and admin-approved customers silently pay retail forever.
+9. **Any code path that mutates wholesale eligibility MUST call
+   `syncTiersToFunction`.** The Function reads from a Shopify metafield,
+   which is a flat-out cached projection of our DB state. Without an
+   explicit sync, Shopify keeps serving stale eligibility data. Today
+   we added the sync to the approve action; the FPQ webhook handler
+   (`webhooks.orders.paid.tsx`) still needs the same call — tracked as
+   C2 in `tasks/current.md`.

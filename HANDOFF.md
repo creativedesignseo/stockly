@@ -3,11 +3,11 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-26 (PM) — Approve flow E2E validated on dev store
-**Last commit:** `4a115c8` — `fix(applications): kill ERR_TOO_MANY_REDIRECTS on tab click + same fix for Reject`
+**Last updated:** 2026-05-26 (PM) — **B2B pricing engine E2E validated** (checkout charges wholesale)
+**Last commit:** `0250d1f` — `fix(approve): admin-approved customers must bypass FPQ (bug C3 / P1-8)`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v12` (manual deploy 2026-05-26 PM)
+**Fly version:** `v13` (manual deploy 2026-05-26 PM)
 **Shopify app version:** `stockly-18` (Protected Customer Data live, Custom distribution)
 
 ---
@@ -83,10 +83,22 @@ See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for the full reasoning
 - Storefront blocks active: Quick Order Form, Wholesale FPQ Banner, Wholesale Product Panel, Wholesale Registration
 - **Admin Approve action** (`POST /app/customers/applications` with
   `intent=approve`): resolves Shopify Customer (by id → by email → create),
-  tags as `wholesale`, upserts WholesaleCustomer row, marks application
-  approved. Errors now surface to the merchant via Polaris Banner
-  (commit `81b7546`). Protected Customer Data access is live and granted
-  on the dev store under Custom distribution.
+  tags as `wholesale`, upserts WholesaleCustomer row with
+  `qualifiedAt=now` (bypass FPQ), marks application approved, **and
+  re-syncs the Discount Function metafield** so the new customer's GID
+  lands in `qualifiedCustomers` immediately. Errors surface to the
+  merchant via Polaris Banner (commit `81b7546`). Protected Customer
+  Data access is live and granted on the dev store under Custom
+  distribution.
+- **B2B pricing engine E2E** (Discount Function `stockly-volume-discount`
+  + `wholesaleBaselinePct` 55):
+  - Customer logs in to storefront
+  - Cart drawer shows retail price ~~tachado~~ and wholesale price for
+    every line, with "Wholesale 55%" label
+  - Checkout subtotal applies the discount: €130 retail → €58.50
+    wholesale, "TOTAL SAVINGS €71.50" shown by Shopify
+  - Validated 2026-05-26 PM with Test Wholesale customer
+    (creativedesignseo@gmail.com, Shopify GID 10103069901128)
 
 ---
 

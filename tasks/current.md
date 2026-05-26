@@ -35,11 +35,24 @@ Shopify App Store.
   `/app/billing` plan picker, call `appSubscriptionCreate` from onboarding.
   ~3 days.
 - [ ] **B0-3 — Discount Function pricing bugs (C1, C2, C3).**
-  - C1: `webhooks.orders.paid` evaluates FPQ against the wrong amount
-  - C2: Function not re-synced after FPQ webhook promotes a customer
-  - C3: Track-2 (DB-row, no tag) customers see wholesale on storefront
-    but pay retail at checkout
-  ~2-3 days + tests.
+  - C1: `webhooks.orders.paid` evaluates FPQ against the wrong amount —
+    pending verification; the Function itself evaluates FPQ against
+    `cartWholesaleSubtotal` (correct per ADR-004). The bug may live in
+    the webhook handler, not the Function. To be reproduced.
+  - C2: Function not re-synced after FPQ webhook promotes a customer —
+    still open; `webhooks.orders.paid.tsx` needs the same
+    `syncTiersToFunction(admin, shopId)` call we added to the approve
+    action today. Trivial port of commit `0250d1f`.
+  - [x] **C3 — DONE 2026-05-26.** Admin-approved (track-2) customers
+    were paying retail at checkout because `approveCustomer` was
+    creating WholesaleCustomer rows with `qualifiedAt=null`, and the
+    Function's `qualifiedCustomers` bypass list is sourced ONLY from
+    rows with `qualifiedAt != null`. Fix in commit `0250d1f`:
+    `approveCustomer` now sets `qualifiedAt=now`, and the approve
+    action calls `syncTiersToFunction` immediately after. Validated
+    E2E on dev store — checkout charges €58.50 wholesale on a €130
+    retail cart, with `WHOLESALE 55%` labels on each line. See
+    `progress/2026-05-26-approve-flow-fix.md` for the full chain.
 - [x] **B0-4 — Rotate `DATABASE_URL` password.** _Done 2026-05-26._
   Forensic investigation revealed the credential lived inside the
   Vercel project `stockly` (Vercel Marketplace → Prisma Postgres
@@ -75,8 +88,10 @@ Shopify App Store.
   2026-05-26._
 - [ ] **P1-7** Register a custom domain to replace
   `stockly-lustrous-forest-4364.fly.dev`.
-- [ ] **P1-8** `markApplicationApproved` auto-tags the customer and
-  triggers `syncTiersToFunction` so admin and checkout never diverge.
+- [x] **P1-8 — DONE 2026-05-26.** `markApplicationApproved` already
+  auto-tags as part of the approve action. The missing piece was
+  `syncTiersToFunction` — now called immediately after `approveCustomer`
+  in commit `0250d1f`. Closed together with C3.
 
 ---
 
