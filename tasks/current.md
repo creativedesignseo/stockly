@@ -4,17 +4,20 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-05-26
+**Last updated:** 2026-05-26 (PM session)
 
 ---
 
 ## Current state
 
-Stockly is **live in production on Fly.io** (`stockly-lustrous-forest-4364`).
+Stockly is **live in production on Fly.io** (`stockly-lustrous-forest-4364`,
+Fly v10, Shopify app `stockly-18`, Custom distribution).
 Sprint 4 (admin pages, applications queue, pricing settings, onboarding
 wizard, qualify-customer tool) is complete and verified on the dev store
-`desarrollo-adspubli.myshopify.com`. A 12-agent audit ran on this date —
-findings drive the P0/P1 lists below.
+`desarrollo-adspubli.myshopify.com`. A 12-agent audit ran earlier today —
+findings drive the P0/P1 lists below. The PM session validated the
+admin Approve flow E2E (first wholesale application moved to approved
+state) — see `progress/2026-05-26-approve-flow-fix.md`.
 
 **Source of truth for "what works":** `HANDOFF.md`.
 
@@ -125,3 +128,28 @@ pilot #2".
   generic subagents and 4 skills — adapted to the detected stack and
   hosting. Created 2026-05-26 right after the Stockly harness work
   proved the pattern.
+
+- **PM 2026-05-26 findings worth keeping in mind**:
+  - `useFetcher` responses do NOT populate `useActionData`. Any
+    fetcher-driven action must lift `fetcher.data` to a parent
+    `useState` for banners to render. (Fixed in `app.customers.applications.tsx`.)
+  - `console.error(err)` collapses nested arrays via `util.inspect`
+    (`graphQLErrors: [Array]`). Always `JSON.stringify` graphQLErrors in
+    catch blocks for debuggable Fly logs.
+  - `fly deploy` and `shopify app deploy` are independent pipelines.
+    The toml-declared `protected_customer_data_permissions` only takes
+    effect after `shopify app deploy` releases a new app version.
+  - Selecting a **Distribution method** (Custom or App Store) is a
+    prerequisite for requesting Protected Customer Data — Shopify hides
+    the request form silently if no distribution is set, even on dev
+    stores.
+  - Dev stores **auto-grant** Protected Customer Data once the app
+    version with the toml declarations is live (no merchant reinstall
+    required). Production stores will require explicit grant + Partners
+    review (blocked by **B0-5** Privacy Policy URL).
+
+- **`.github/workflows/fly-deploy.yml`** exists locally but is currently
+  **untracked** in git. No CI/CD for Fly today; every deploy is manual.
+  Decision pending: commit + add `FLY_API_TOKEN` GitHub secret (so push
+  to `main` auto-deploys), or keep manual until pilot #2. Tracked here
+  to avoid re-discovering this twice.

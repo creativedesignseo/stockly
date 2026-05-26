@@ -3,10 +3,12 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-26 — Production live on Fly.io
-**Last commit:** `e56a2fd` — `fix(auth): preserve search params in /app → /app/onboarding redirect`
+**Last updated:** 2026-05-26 (PM) — Approve flow E2E validated on dev store
+**Last commit:** `0cf8c30` — `fix(applications): dump graphQLErrors as JSON + detect ACCESS_DENIED`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
+**Fly version:** `v10` (manual deploy 2026-05-26 PM)
+**Shopify app version:** `stockly-18` (Protected Customer Data live, Custom distribution)
 
 ---
 
@@ -15,14 +17,21 @@
 **Stockly is LIVE in production on Fly.io.**
 - App: `stockly-lustrous-forest-4364` (region `iad`, us-east)
 - DB: Fly Managed Postgres `stockly-db` (region `iad`)
-- Shopify app version: `stockly-15` published, active
+- Shopify app version: `stockly-18` published, active (Protected Customer Data level_1 live)
 - Installed and functional on `desarrollo-adspubli.myshopify.com`
 - Onboarding wizard verified loading
 - Form de wholesale verified end-to-end (201 created in Postgres)
+- **Admin Approve flow verified E2E on dev store** (PM session 2026-05-26).
+  First wholesale application moved to `approved` state, Shopify Customer
+  tagged. See `progress/2026-05-26-approve-flow-fix.md`.
 
 **Pending validation by Jonatan:**
-- Complete wizard 3 steps (Step 1 → Preset → Adspubli CTA)
-- Test full B2B flow: registration → admin approve → customer login → order
+- Cross-check: Shopify Admin → Clientes → confirm `wholesale` tag on the
+  approved customer
+- Cross-check: `/app/customers/qualified` shows the WholesaleCustomer row
+- Approve a 2nd application to confirm the path is repeatable
+- Storefront test: log in as approved customer, confirm wholesale pricing
+  renders + checkout charges discounted price (where B0-3 C1/C2/C3 may surface)
 - Decide pilot #2 and #3 targets
 
 **Out of scope until Sprint 5:**
@@ -72,6 +81,12 @@ See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for the full reasoning
 - Admin iframe in Shopify loads the wizard
 - Sprint 4 admin pages live: `/app`, `/app/onboarding`, `/app/tiers`, `/app/customers/applications`, `/app/settings/pricing`, `/app/qualify-customer`
 - Storefront blocks active: Quick Order Form, Wholesale FPQ Banner, Wholesale Product Panel, Wholesale Registration
+- **Admin Approve action** (`POST /app/customers/applications` with
+  `intent=approve`): resolves Shopify Customer (by id → by email → create),
+  tags as `wholesale`, upserts WholesaleCustomer row, marks application
+  approved. Errors now surface to the merchant via Polaris Banner
+  (commit `81b7546`). Protected Customer Data access is live and granted
+  on the dev store under Custom distribution.
 
 ---
 
