@@ -24,8 +24,8 @@
  * (and the service layer stays free of Shopify SDK deps).
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { useActionData, useFetcher, useLoaderData } from "@remix-run/react";
-import { useState } from "react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import {
   Page,
   Card,
@@ -329,13 +329,16 @@ async function actionImpl(request: Request) {
 /*                                    UI                                      */
 /* -------------------------------------------------------------------------- */
 
+type ApproveResult =
+  | { ok: true; email: string }
+  | { ok: false; error: string }
+  | null;
+
 export default function ApplicationsQueue() {
   const { apps, activeStatus, counts } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
-  // Per-row loading state lives in the ApproveButton component via
-  // useFetcher (commit 935de4b). The page-level useNavigation()
-  // approach was removed because navigation.state === "submitting"
-  // lit up every Approve button at once whenever any row submitted.
+  // approveResult replaces useActionData for approve: useFetcher responses
+  // don't flow through useActionData (that only sees navigation submissions).
+  const [approveResult, setApproveResult] = useState<ApproveResult>(null);
 
   const [modalApp, setModalApp] = useState<(typeof apps)[number] | null>(null);
   const [reviewNote, setReviewNote] = useState("");
@@ -354,23 +357,18 @@ export default function ApplicationsQueue() {
     <Page backAction={{ content: "App", url: "/app" }}>
       <TitleBar title="Wholesale applications" />
       <BlockStack gap="400">
-        {actionData?.ok && "action" in actionData && actionData.action === "approved" && (
+        {approveResult?.ok && (
           <Banner tone="success" title="Application approved">
             <p>
-              {actionData.email} was tagged as <code>wholesale</code> in
+              {approveResult.email} was tagged as <code>wholesale</code> in
               Shopify and added to the eligibility list. They&apos;ll see
               wholesale pricing on their next storefront visit.
             </p>
           </Banner>
         )}
-        {actionData?.ok && "action" in actionData && actionData.action === "rejected" && (
-          <Banner tone="info" title="Application rejected">
-            <p>{actionData.email} was marked as rejected.</p>
-          </Banner>
-        )}
-        {actionData && "error" in actionData && (
-          <Banner tone="critical" title="Could not process">
-            <p>{actionData.error}</p>
+        {approveResult && !approveResult.ok && (
+          <Banner tone="critical" title="Could not approve">
+            <p>{approveResult.error}</p>
           </Banner>
         )}
 
@@ -472,7 +470,7 @@ export default function ApplicationsQueue() {
                   <IndexTable.Cell>
                     {app.status === "pending" ? (
                       <InlineStack gap="200">
-                        <ApproveButton applicationId={app.id} />
+                        <ApproveButton applicationId={app.id} onResult={setApproveResult} />
                         {/* Reject + View are below, share a modal */}
                         <Button
                           tone="critical"
@@ -590,15 +588,28 @@ export default function ApplicationsQueue() {
   );
 }
 
-/**
- * Per-row Approve button using useFetcher so loading state is
- * isolated to the row being submitted. Previously the global
- * `navigation.state === "submitting"` lit up every Approve button
- * in the list at once.
- */
-function ApproveButton({ applicationId }: { applicationId: string }) {
+function ApproveButton({
+  applicationId,
+  onResult,
+}: {
+  applicationId: string;
+  onResult: (r: ApproveResult) => void;
+}) {
   const fetcher = useFetcher<typeof action>();
   const isSubmitting = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    const d = fetcher.data;
+    if (!d.ok) {
+      onResult({ ok: false, error: (d as { error: string }).error });
+    } else {
+      onResult({ ok: true, email: (d as { email: string }).email });
+    }
+  // onResult is a setState setter — stable ref, safe to omit from deps.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data]);
+
   return (
     <fetcher.Form method="post">
       <input type="hidden" name="intent" value="approve" />
