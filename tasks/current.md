@@ -73,9 +73,14 @@ Shopify App Store.
   (HTTP 200, secrets still deployed).
 - [ ] **B0-5 — Privacy Policy + Terms of Service URLs.** Required for
   Protected Customer Data approval AND App Store listing. ~1 day.
-- [ ] **B0-6 — Fly health checks + `min_machines_running = 1`.** Current
-  `fly.toml` has no health checks and 0-machine idle, contradicting
-  ADR-009's "no cold starts". ~30 min.
+- [x] **B0-6 — DONE 2026-05-27.** `fly.toml` now has
+  `min_machines_running = 1` (primary machine never sleeps) and
+  `auto_stop_machines = 'suspend'` (secondaries resume in ~100ms
+  instead of cold-starting in 5-30s). New `app/routes/healthz.tsx`
+  exposes a lightweight liveness endpoint (no DB, no Shopify auth)
+  and `[[http_service.checks]]` polls it every 30s with 5s timeout,
+  10s grace at boot. ADR-009's "no cold starts" promise now holds in
+  the config, not just the doc.
 
 ---
 
