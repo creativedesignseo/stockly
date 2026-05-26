@@ -84,7 +84,8 @@ RUN npm prune --omit=dev --legacy-peer-deps
 FROM base AS runtime
 
 ENV NODE_ENV=production \
-    PORT=3000
+    PORT=3000 \
+    HOST=0.0.0.0
 
 # Copy production node_modules (with generated Prisma client + rhel engine).
 COPY --from=builder /app/node_modules ./node_modules
