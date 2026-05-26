@@ -104,17 +104,43 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.error("[applications-action] caught:", err);
     let message = "Unexpected error processing this action.";
     if (err instanceof Error) {
-      // Shopify GraphQL client wraps errors in a `graphQLErrors` array.
+      // Shopify GraphQL client wraps errors in a `graphQLErrors` array
+      // either on the error itself or nested under `body.errors`.
       const anyErr = err as unknown as {
-        graphQLErrors?: { message: string }[];
-        body?: { errors?: { graphQLErrors?: { message: string }[] } };
+        graphQLErrors?: { message: string; extensions?: { code?: string } }[];
+        body?: {
+          errors?: {
+            graphQLErrors?: { message: string; extensions?: { code?: string } }[];
+          };
+        };
       };
       const gqlErrors =
         anyErr.graphQLErrors ??
         anyErr.body?.errors?.graphQLErrors ??
         [];
       if (gqlErrors.length > 0) {
-        message = `Shopify rejected: ${gqlErrors.map((e) => e.message).join("; ").slice(0, 400)}`;
+        // Log structured detail so we can debug from Fly logs (util.inspect
+        // collapses nested arrays/objects by default — JSON.stringify expands).
+        // eslint-disable-next-line no-console
+        console.error(
+          "[applications-action] graphQLErrors:",
+          JSON.stringify(gqlErrors, null, 2),
+        );
+        // If any error has extensions.code === ACCESS_DENIED, surface the
+        // Protected Customer Data guidance specifically.
+        const accessDenied = gqlErrors.find(
+          (e) => e.extensions?.code === "ACCESS_DENIED",
+        );
+        if (accessDenied) {
+          message =
+            "Stockly needs 'Protected customer data access' approved for this app. " +
+            "Run `npx shopify app deploy` from the project root to sync the access " +
+            "request to Partners Dashboard, then approve it under " +
+            "App → Configuration → Protected customer data. " +
+            `Original Shopify message: ${accessDenied.message}`;
+        } else {
+          message = `Shopify rejected: ${gqlErrors.map((e) => e.message).join("; ").slice(0, 400)}`;
+        }
       } else {
         message = err.message.slice(0, 400);
       }
