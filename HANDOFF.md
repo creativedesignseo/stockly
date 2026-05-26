@@ -3,8 +3,8 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-26 (PM) — **B2B pricing engine E2E validated** (checkout charges wholesale)
-**Last commit:** `0250d1f` — `fix(approve): admin-approved customers must bypass FPQ (bug C3 / P1-8)`
+**Last updated:** 2026-05-26 (EOD) — **B2B pricing engine E2E validated** + BSS competitive teardown documented
+**Last commit:** `0250d1f` — `fix(approve): admin-approved customers must bypass FPQ (bug C3 / P1-8)` (last code commit)
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
 **Fly version:** `v13` (manual deploy 2026-05-26 PM)
@@ -190,8 +190,11 @@ The Adspubli onboarding service pitch (Barcelona-local white-glove) is in Sprint
 - [PROJECT.md](./PROJECT.md) — full plan, scope, market
 - [ROADMAP.md](./ROADMAP.md) — 10-week sprint plan
 - [CLAUDE.md](./CLAUDE.md) — AI conventions
-- [docs/decisions/](./docs/decisions/) — all 9 ADRs
+- [docs/decisions/](./docs/decisions/) — all 10 ADRs (ADR-010 is the B2B pricing engine)
+- [docs/architecture/b2b-pricing-deep-dive.md](./docs/architecture/b2b-pricing-deep-dive.md) — full engineering teardown of the pricing engine
 - [docs/spec/b2b-customer-lifecycle.md](./docs/spec/b2b-customer-lifecycle.md)
+- [docs/competitive/](./docs/competitive/) — competitor engineering teardowns. Currently: BSS B2B Solution (the largest direct competitor).
+- [progress/2026-05-26-approve-flow-fix.md](./progress/2026-05-26-approve-flow-fix.md) — full journal of the day Stockly's checkout pricing was validated E2E for the first time
 
 Memory files (loaded automatically in every Claude session):
 - Index: `~/.claude/projects/-Users-aimac-Documents-Workspace-Clients-stockly/MEMORY.md`

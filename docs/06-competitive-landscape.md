@@ -30,10 +30,11 @@ Many small apps offering wholesale pricing as a feature inside a broader app (di
 ## Detailed competitor analysis
 
 ### BSS B2B Wholesale Solution
-- **Strengths:** Feature breadth (every B2B feature you can think of), strong support, mature codebase
-- **Weaknesses:** Generic Polaris admin UI, generic storefront block styling, steep learning curve, "kitchen sink" UX
+- **Strengths:** Feature breadth (every B2B feature you can think of), strong support, mature codebase, 5+ years in market (launched Sep 2020)
+- **Weaknesses:** Generic Polaris admin UI, generic storefront block styling, steep learning curve, "kitchen sink" UX, **pre-Discount-Function architecture** (structural debt — see technical profile)
 - **Reviews mention:** "Powerful but overwhelming," "support is good but I shouldn't need it for basic things"
-- **Pricing:** Free starter → up to $130/mo for top tier
+- **Pricing (re-verified 2026-05-26):** Free dev partner / Essential $25 / Advanced $50 / Platinum $100 — annual plans save 10-20%
+- **Stack:** Node.js + Express behind Cloudflare. Origin host hidden. See [`competitive/bss-b2b-solution-technical-profile.md`](./competitive/bss-b2b-solution-technical-profile.md) for the full engineering teardown + feature gap matrix.
 
 ### B2B Wholesale Hub
 - **Strengths:** Clean modern UI for the category, good docs, recognizable brand
@@ -119,7 +120,7 @@ Many small apps offering wholesale pricing as a feature inside a broader app (di
 |---|---|---|---|
 | Bold | $9.99 | $29 | $79 |
 | B2B Hub | $39 | $79 | $149 |
-| BSS B2B | Free | $50 | $130 |
+| BSS B2B (verified 2026-05-26) | Free dev / $25 | $50 | $100 |
 | SparkLayer | $199 | $399 | $999+ |
 | **Stockly (planned)** | **$39** | **$79** | **$149** |
 
