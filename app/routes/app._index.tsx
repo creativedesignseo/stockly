@@ -36,8 +36,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   // First-install gate — send the merchant through the wizard before
   // they ever see the dashboard.
+  //
+  // CRITICAL: preserve query params (shop, host, embedded, id_token) when
+  // redirecting between admin routes. Without them, the destination
+  // loader's authenticate.admin() can't find Shopify context and falls
+  // back to /auth/login, which renders the boilerplate "Log in" form
+  // instead of our app. Lost an entire afternoon to this in production.
   if (!shop.onboarded) {
-    throw redirect("/app/onboarding");
+    const url = new URL(request.url);
+    const search = url.searchParams.toString();
+    throw redirect(`/app/onboarding${search ? "?" + search : ""}`);
   }
 
   const [activeTiers, pendingApps, qualifiedCustomers] = await Promise.all([
