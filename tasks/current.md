@@ -37,9 +37,17 @@ Shopify App Store.
   - C3: Track-2 (DB-row, no tag) customers see wholesale on storefront
     but pay retail at checkout
   ~2-3 days + tests.
-- [ ] **B0-4 — Rotate `DATABASE_URL` password.** Old Prisma/Vercel
-  credential is in `.env.local` on disk. Rotate in Prisma Data Platform,
-  revoke `VERCEL_OIDC_TOKEN`, delete file. ~30 min.
+- [x] **B0-4 — Rotate `DATABASE_URL` password.** _Done 2026-05-26._
+  Forensic investigation revealed the credential lived inside the
+  Vercel project `stockly` (Vercel Marketplace → Prisma Postgres
+  integration), not in a standalone Prisma account. Resolution:
+  deleted the entire Vercel project via `vercel project rm stockly`,
+  which cascaded to env vars (DATABASE_URL, SHOPIFY_API_SECRET,
+  SHOPIFY_API_KEY, PRISMA_DATABASE_URL, POSTGRES_URL) and the
+  associated Prisma Postgres DB. Also deleted local `.env.local`
+  (4 zombie vars: DATABASE_URL, POSTGRES_URL, PRISMA_DATABASE_URL,
+  VERCEL_OIDC_TOKEN). Production on Fly.io confirmed unaffected
+  (HTTP 200, secrets still deployed).
 - [ ] **B0-5 — Privacy Policy + Terms of Service URLs.** Required for
   Protected Customer Data approval AND App Store listing. ~1 day.
 - [ ] **B0-6 — Fly health checks + `min_machines_running = 1`.** Current
