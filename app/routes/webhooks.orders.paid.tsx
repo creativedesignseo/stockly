@@ -16,6 +16,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
 
 const METAFIELD_NAMESPACE = "$app:stockly-volume-discount";
 const METAFIELD_KEY = "wholesale-status";
@@ -180,6 +181,33 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     },
   );
+
+  // Re-sync the Discount Function's shop-level configuration so this
+  // newly-qualified customer's GID lands in `qualifiedCustomers` for
+  // all subsequent carts. The per-customer wholesale-status metafield
+  // we wrote above is enough for the Function's per-customer FPQ-check
+  // path, but the bypass-list path is only refreshed by this sync —
+  // and the bypass list is what short-circuits the FPQ evaluation
+  // first, so without this the next cart still walks the FPQ path
+  // (which is correct but redundant work and a known regression
+  // surface). Same fix as commit 0250d1f for admin-approved customers
+  // (bug C3 / P1-8); this addresses the track-1 self-qualified
+  // equivalent (bug C2).
+  //
+  // Errors swallowed: the customer metafield is already written so
+  // qualification IS in effect; a sync failure just means the bypass
+  // list is stale until the next merchant action triggers a sync.
+  // Returning non-200 here would make Shopify retry the whole webhook,
+  // which would re-do the (already-done) qualification work.
+  try {
+    await syncTiersToFunction(admin, shopRow.id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      "[Stockly webhook orders/paid] syncTiersToFunction failed:",
+      err,
+    );
+  }
 
   // eslint-disable-next-line no-console
   console.log(

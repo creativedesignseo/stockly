@@ -39,10 +39,17 @@ Shopify App Store.
     pending verification; the Function itself evaluates FPQ against
     `cartWholesaleSubtotal` (correct per ADR-004). The bug may live in
     the webhook handler, not the Function. To be reproduced.
-  - C2: Function not re-synced after FPQ webhook promotes a customer —
-    still open; `webhooks.orders.paid.tsx` needs the same
-    `syncTiersToFunction(admin, shopId)` call we added to the approve
-    action today. Trivial port of commit `0250d1f`.
+  - [x] **C2 — DONE 2026-05-27.** `webhooks.orders.paid.tsx` now calls
+    `syncTiersToFunction(admin, shopRow.id)` after the per-customer
+    metafield write, mirroring the approve action's pattern. Errors
+    swallowed (logged, not thrown) — qualification is already in
+    effect via the per-customer metafield; the sync just refreshes
+    the bypass list on the shop-level configuration metafield. **The
+    webhook subscription itself is still NOT registered** in
+    `shopify.app.toml` (commented out) — that's a separate gate that
+    requires Protected Customer Data + a real Privacy Policy URL
+    (B0-5). Code is ready; enabling the subscription is a 2-line
+    diff once B0-5 lands.
   - [x] **C3 — DONE 2026-05-26.** Admin-approved (track-2) customers
     were paying retail at checkout because `approveCustomer` was
     creating WholesaleCustomer rows with `qualifiedAt=null`, and the
