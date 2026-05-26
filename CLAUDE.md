@@ -34,20 +34,26 @@ Built on top of the work Adspubli did for Piro Jewelry (May 2026):
 
 ---
 
-## Tech Stack (decided)
+## Tech Stack (decided — current as of 2026-05-26)
 
 ```
-Framework:   Remix + TypeScript
-Shopify:     App Bridge + Polaris React + Theme App Extensions
-Database:    PostgreSQL on Supabase (free tier → paid at scale)
-Hosting:     Vercel (free tier 100k req/mo → paid)
-APIs:        Shopify Admin GraphQL API + Storefront API
-Testing:     Vitest (unit) + Playwright (E2E)
-CI/CD:       GitHub Actions
+Framework:   Remix + TypeScript (Shopify template, "legacy" but functional)
+Shopify:     App Bridge + Polaris React + Theme App Extensions + Discount Function
+Database:    PostgreSQL via Fly Managed Postgres (region iad, pgbouncer pooled)
+Hosting:     Fly.io containers (region iad, Dockerfile multi-stage Debian)
+APIs:        Shopify Admin GraphQL API + Storefront API + App Proxy
+Testing:     Vitest (unit) + Playwright (E2E, ad-hoc)
+CI/CD:       GitHub auto-deploy on push to main (Fly.io integration)
 Storefront:  Liquid + Web Components in Theme App Extensions
 ```
 
-See [docs/04-tech-stack.md](./docs/04-tech-stack.md) and ADRs in [docs/decisions/](./docs/decisions/) for rationale.
+Production URL: **https://stockly-lustrous-forest-4364.fly.dev**
+Shopify app handle: `stockly-12` on install records
+Active Shopify app version: `stockly-15`
+
+See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for the Fly.io decision (supersedes the Vercel choice we tried first and abandoned after 8h of serverless friction). All other tech decisions in [docs/decisions/](./docs/decisions/).
+
+**CRITICAL**: before any deploy/infra work, read the [shopify-remix-deploy-gotchas memory](~/.claude/projects/-Users-aimac-Documents-Workspace-Clients-stockly/memory/shopify-remix-deploy-gotchas.md) — 14 specific bugs documented with symptom→fix mapping.
 
 ---
 

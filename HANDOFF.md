@@ -1,203 +1,171 @@
-# 🤝 HANDOFF — Resume work hands-off
+# HANDOFF — Resume work hands-off
 
-> **Read this file first** if you're starting a fresh session on Stockly.
-> This is the single source of truth for current state and resume instructions.
+> Read this first if you're starting a fresh session on Stockly.
+> Single source of truth for current state + resume instructions.
 
-**Last updated:** May 20, 2026 — Sprint 1 in progress
-**Last commit:** `4ac6a9d` — "feat(sprint-1): App Proxy context endpoint"
+**Last updated:** 2026-05-26 — Production live on Fly.io
+**Last commit:** `e56a2fd` — `fix(auth): preserve search params in /app → /app/onboarding redirect`
 **GitHub:** https://github.com/creativedesignseo/stockly
-**CI:** ✅ Passing (lint + typecheck + build)
+**Production URL:** https://stockly-lustrous-forest-4364.fly.dev
 
 ---
 
-## 🎯 What is this project?
+## TL;DR — current state
 
-**Stockly** — a premium-positioned Shopify App for B2B wholesale on Basic/Grow stores. Working name (commercial brand TBD at Month 3).
+**Stockly is LIVE in production on Fly.io.**
+- App: `stockly-lustrous-forest-4364` (region `iad`, us-east)
+- DB: Fly Managed Postgres `stockly-db` (region `iad`)
+- Shopify app version: `stockly-15` published, active
+- Installed and functional on `desarrollo-adspubli.myshopify.com`
+- Onboarding wizard verified loading
+- Form de wholesale verified end-to-end (201 created in Postgres)
 
-If you're confused on context, read in this order:
-1. [README.md](./README.md) — 60-second overview
-2. [PROJECT.md](./PROJECT.md) — full plan
-3. [CLAUDE.md](./CLAUDE.md) — AI co-pilot conventions
-4. [ROADMAP.md](./ROADMAP.md) — 10-week sprint plan
+**Pending validation by Jonatan:**
+- Complete wizard 3 steps (Step 1 → Preset → Adspubli CTA)
+- Test full B2B flow: registration → admin approve → customer login → order
+- Decide pilot #2 and #3 targets
 
----
-
-## 📍 Current state — Sprint 1 🟡 IN PROGRESS
-
-### Sprint 0 ✅ done (foundation)
-- Repo + GitHub + CI (lint + typecheck + build all green)
-- Shopify Remix scaffold integrated
-- App installed on `desarrollo-adspubli.myshopify.com`
-- OAuth + GraphQL Admin API verified
-
-### Sprint 1 — what's shipped so far
-- ✅ Domain models (`Shop`, `Tier`, `WholesaleCustomer`) + migration applied
-- ✅ Service layer (`tiers`, `shops`, `wholesale-customers`)
-- ✅ Auth wrapper that auto-creates Shop row on first install
-- ✅ Admin UI: `/app/tiers` list + `/app/tiers/new` create form (Polaris)
-- ✅ App Proxy endpoint `/apps/stockly/context` (eligibility + branding + copy + tiers in one call)
-- ✅ Dependency conflict fix (pinned `@shopify/shopify-api` to 13.0.0)
-- ✅ GitHub Actions CI (lint + typecheck + build)
-
-### Sprint 1 — what's still needed (next steps)
-1. **Theme App Extension scaffold** — run `shopify app generate extension` (interactive CLI)
-2. **Quick Order Form block** — Liquid + Web Component, calls App Proxy + Storefront API
-3. **Edit tier route** (`/app/tiers/:id`) + delete action
-4. **Seed dev store** — 10 products + 1 wholesale-tagged customer + page with block
-5. **Unit tests for `resolveTier`** — core business logic deserves coverage
+**Out of scope until Sprint 5:**
+- orders/paid webhook (needs Shopify protected customer data approval)
+- Email notifications on application status change
+- Variant-level pricing checkout enforcement for collection scope
 
 ---
 
-## ⏯️ Resume marker — pick up here
+## Architecture today (post Vercel→Fly migration)
 
-The session that left this handoff (May 20, 2026 evening) was working
-in a different repo folder (Piro Jewelry) and just moved to this one
-to keep the project context properly scoped.
-
-**Immediate next action when you resume:**
-
-```bash
-cd /Users/aimac/Documents/Workspace/Clients/stockly
-# If npm run dev is not running:
-npm run dev
-# Then in another terminal:
-shopify app generate extension
-#   → choose: Theme app extension
-#   → name: quick-order-form
+```
+                    GitHub creativedesignseo/stockly
+                              ↓ push to main
+                    ┌─────────────────────────┐
+                    │ Fly.io (region iad)     │
+                    │                          │
+                    │ ┌──────────────────────┐ │
+                    │ │ Container (Node 20)  │ │   ← Dockerfile multi-stage,
+                    │ │ Remix + Polaris      │ │     debian-bookworm-slim,
+                    │ │ remix-serve :3000    │ │     binary engine
+                    │ └──────────┬───────────┘ │     rhel-openssl-3.0.x
+                    │            ↕              │
+                    │ ┌──────────────────────┐ │
+                    │ │ Managed Postgres     │ │   ← pgbouncer pool,
+                    │ │ stockly-db           │ │     all Stockly tables
+                    │ └──────────────────────┘ │
+                    └─────────────────────────┘
+                              ↑
+                              │ App Proxy + iframe + webhooks
+                    ┌─────────────────────────┐
+                    │ Shopify (stockly-15)    │
+                    │ desarrollo-adspubli     │
+                    └─────────────────────────┘
 ```
 
-After the extension is scaffolded, you (or the next Claude session)
-should:
-1. Implement the Liquid block in `extensions/quick-order-form/blocks/`
-2. Add a Web Component asset that fetches `/apps/stockly/context`
-3. Render the table with tier-aware totals
-4. Seed the dev store with test products + a customer tagged `wholesale`
-5. Embed the block on a page `/pages/wholesale-order`
-
-See [docs/sprints/sprint-1-log.md](./docs/sprints/sprint-1-log.md)
-for the full deliverable checklist.
+See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for the full reasoning of WHY Fly.io specifically (and why Vercel was the wrong call).
 
 ---
 
-## 🔌 Resume from a fresh terminal (zero state)
+## What works (validated 2026-05-26)
+
+- `https://stockly-lustrous-forest-4364.fly.dev/` returns 200
+- `/app?shop=...&embedded=1&host=...&id_token=...` returns 302 (correct embedded bootstrap)
+- `/auth/login?shop=...` returns 302 (OAuth start)
+- `/apps/stockly/apply` (App Proxy POST from storefront) returns 201 with JSON
+- Admin iframe in Shopify loads the wizard
+- Sprint 4 admin pages live: `/app`, `/app/onboarding`, `/app/tiers`, `/app/customers/applications`, `/app/settings/pricing`, `/app/qualify-customer`
+- Storefront blocks active: Quick Order Form, Wholesale FPQ Banner, Wholesale Product Panel, Wholesale Registration
+
+---
+
+## Resume work checklist (next session)
+
+1. **Confirm production is alive:**
+   ```bash
+   cd /Users/aimac/Documents/Workspace/Clients/stockly
+   fly status --app stockly-lustrous-forest-4364
+   curl -sI -A "Mozilla/5.0" https://stockly-lustrous-forest-4364.fly.dev/
+   ```
+   Expected: machines `started` + HTTP 200.
+
+2. **Check what's pending:** read `ROADMAP.md` and `docs/sprints/sprint-N.md` retros if they exist.
+
+3. **Recent context:** read commit log of last session (`git log --oneline -20`). Today's commits all start with `fix(...)` documenting bugs in [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md).
+
+4. **DON'T touch infra unless asked.** Production is fragile after the migration. Any deploy-related work — check [shopify-remix-deploy-gotchas memory](https://github.com/creativedesignseo/stockly/blob/main/docs/decisions/ADR-009-backend-fly-io.md) FIRST.
+
+---
+
+## Critical deploy commands
 
 ```bash
-# 1. Clone (if on a new machine)
-git clone https://github.com/creativedesignseo/stockly.git
-cd stockly
+# Deploy (auto on push to main, or manual)
+fly deploy --app stockly-lustrous-forest-4364
 
-# 2. Install deps (~5 min, ~700MB)
-npm install
+# Logs (use --no-tail; interactive mode blocks shell scripts)
+fly logs --app stockly-lustrous-forest-4364 --no-tail
 
-# 3. Generate Prisma client
-npx prisma generate
+# SSH into running machine
+fly ssh console -a stockly-lustrous-forest-4364
 
-# 4. Apply migrations
-npx prisma migrate deploy
+# Run schema update against prod DB
+fly ssh console -a stockly-lustrous-forest-4364 -C 'npx prisma db push --skip-generate'
 
-# 5. Start dev — opens browser for Partner login on first run
-npm run dev
+# Set/update env var (NEVER use echo — adds trailing \n)
+fly secrets set SHOPIFY_API_KEY="value" --app stockly-lustrous-forest-4364
+# OR for piped values:
+printf "value" | fly secrets set KEY=- --app stockly-lustrous-forest-4364
+
+# Push Shopify app config (URLs in shopify.app.toml)
+npx --yes shopify app deploy --force --message "What changed"
 ```
-
-When prompted:
-- **Store:** select `desarrollo-adspubli.myshopify.com` (NEVER pick adspubli or hotel-us — those are real)
-- **App link:** select existing app "Stockly" in Partner Dashboard (if it already exists)
-
-After it's running, press `p` in the terminal to open the app preview in the dev store admin.
 
 ---
 
-## 🔐 Where the secrets live (NOT in this repo)
+## Files modified in the 2026-05-26 migration
 
-Nothing sensitive is committed. The Shopify CLI manages secrets locally:
+Build/infra:
+- `Dockerfile` — rewritten multi-stage with Debian + binaryTargets + .npmrc + HOST=0.0.0.0
+- `fly.toml` — NEW (region iad, release_command for prisma db push)
+- `vercel.json` — DELETED
+- `vite.config.ts` — removed `vercelPreset()` import
+- `package.json` — removed `@vercel/remix` dep
+- `prisma/schema.prisma` — added `binaryTargets = ["native", "rhel-openssl-3.0.x"]`
+- `shopify.app.toml` — URLs auto-updated by `shopify app deploy` to point to Fly
 
-| What | Where | Notes |
+Code fixes:
+- `app/services/shops.server.ts` — `getOrCreateShop` uses `upsert` (race-safe)
+- `app/routes/app._index.tsx` — preserves `searchParams` in redirect to `/app/onboarding`
+
+---
+
+## Open decisions / TODOs
+
+- **`stockly-lustrous-forest-4364` is the auto-assigned URL** because `stockly` was taken globally. When Stockly has revenue, register a custom domain (`app.stockly.io` or similar) and update Shopify Partners + DNS.
+- **Vercel project** still exists, dormant. Delete after 1 week of stable Fly to avoid confusion.
+- **Migrations**: still using `prisma db push`. Move to versioned migrations when there's customer data to protect (Sprint 5 or later).
+- **Custom domain on Fly**: `fly certs create app.stockly.io` once domain registered.
+- **Multi-region**: when EU merchants matter, `fly machine clone --region cdg` (Paris). One command.
+
+---
+
+## Pilot status
+
+| # | Store | Status |
 |---|---|---|
-| `client_secret` | macOS Keychain (managed by Shopify CLI) | Never visible in files. Persists across sessions. |
-| OAuth access tokens | `prisma/dev.sqlite` (local only, gitignored) | Per-shop session storage. Regenerated on install. |
-| `.shopify/` folder | Local only (gitignored) | CLI cache, tunnel state. Regenerable. |
-| `client_id` | `shopify.app.toml` (committed) | **Public** identifier — safe to commit. |
-| Partner account access | Browser session for Shopify Partners | Login at https://partners.shopify.com |
+| 1 | Piro Jewelry (`piroaccessories.myshopify.com`) | B2B active for months. Stockly install pending merchant approval. |
+| 2 | TBD | Not identified yet |
+| 3 | TBD | Not identified yet |
 
-**If the dev machine is lost:** clone the repo, run `npm install` + `npm run dev`, log into Partners again. Everything regenerates. **Zero recovery work needed beyond a fresh Partner login.**
+The Adspubli onboarding service pitch (Barcelona-local white-glove) is in Sprint 4's onboarding wizard Step 3.
 
 ---
 
-## 🚦 Safety / what NOT to do
+## Pointers to deeper docs
 
-| Don't | Why |
-|---|---|
-| Don't install on `adspubli.myshopify.com` | Real agency store |
-| Don't install on `hotel-us.myshopify.com` | Real client store |
-| Don't install on `piroaccessories.myshopify.com` until Sprint 5 | Real Piro production |
-| Don't `npm audit fix --force` | Will break Shopify deps; revisit at Sprint 5 |
-| Don't change `shopify.app.toml` `client_id` manually | Shopify CLI manages this; manual edits break OAuth |
-| Don't commit `.env`, `.shopify/`, `dev.sqlite`, `node_modules/` | Already gitignored — keep it that way |
+- [PROJECT.md](./PROJECT.md) — full plan, scope, market
+- [ROADMAP.md](./ROADMAP.md) — 10-week sprint plan
+- [CLAUDE.md](./CLAUDE.md) — AI conventions
+- [docs/decisions/](./docs/decisions/) — all 9 ADRs
+- [docs/spec/b2b-customer-lifecycle.md](./docs/spec/b2b-customer-lifecycle.md)
 
----
-
-## 💼 Business context (5-second version)
-
-- **Owner:** Jonatan Montilla (Adspubli, Barcelona)
-- **Phase 1 goal:** 3 pilot clients × $4-5k setup + $300-500/mo by Month 4
-- **Phase 1 pilot #1:** Piro Jewelry (already running custom B2B — they're the case study)
-- **Phase 2 goal:** Public app on Shopify App Store, $39-149/mo pricing
-- **24-month conservative target:** $216k ARR (300 clients × $60 ARPU)
-- **Shopify revenue share:** 0% on first $1M/year, 15% above
-
----
-
-## 📦 GitHub repo structure (what's backed up)
-
-```
-stockly/
-├── HANDOFF.md ← you are here
-├── README.md            • PROJECT.md         • ROADMAP.md         • CLAUDE.md
-├── app/                 ← Remix routes + business logic
-├── extensions/          ← Theme App Extensions (empty, ready)
-├── prisma/              ← schema + migrations (SQLite for now)
-├── public/              ← static assets
-├── docs/
-│   ├── 00-sprint-0-setup.md       ← setup guide
-│   ├── 01-market-research.md      ← $32.1T B2B market analysis
-│   ├── 02-positioning.md          ← premium luxury brand angle
-│   ├── 03-features-mvp.md         ← F1-F5 with acceptance criteria
-│   ├── 04-tech-stack.md           ← Remix + Polaris + Supabase + Vercel
-│   ├── 05-business-model.md       ← $216k-600k ARR projections
-│   ├── 06-competitive-landscape.md ← BSS, B2B Hub, SparkLayer analysis
-│   ├── scaffold-reference.md      ← original Shopify Remix README
-│   ├── decisions/
-│   │   ├── ADR-001-naming.md      ← "Stockly" working name
-│   │   ├── ADR-002-framework.md   ← Remix > Next.js
-│   │   └── ADR-003-hosting.md     ← Vercel + Supabase
-│   └── sprints/
-│       └── sprint-0-log.md        ← every command + decision today
-├── shopify.app.toml     ← Shopify app config (client_id PUBLIC, safe)
-├── shopify.web.toml     ← Remix web config
-├── package.json         ← deps + scripts
-├── tsconfig.json        • vite.config.ts     • .eslintrc.cjs
-├── .gitignore           ← protects node_modules, .env, .shopify/, *.sqlite
-└── .vscode/             ← shared editor settings (extensions, MCP hints)
-```
-
----
-
-## 🆘 If something breaks
-
-1. **`npm run dev` fails on first run:** delete `.shopify/` folder, retry
-2. **OAuth loop:** uninstall app from dev store admin, run `npm run dev` again
-3. **Prisma errors:** `npx prisma generate && npx prisma migrate deploy`
-4. **Lost track of state:** read this HANDOFF.md + the most recent `docs/sprints/sprint-N-log.md`
-5. **Don't know where to start:** check `git log --oneline` for the last 5 commits, then read `ROADMAP.md` for current sprint
-
----
-
-## 📞 Contact
-
-- **Owner:** Jonatan Montilla — info@adspubli.com
-- **Repo:** https://github.com/creativedesignseo/stockly (private, Adspubli IP)
-- **Partner Dashboard:** https://partners.shopify.com (Jonatan's login)
-
----
-
-**Remember:** this is Adspubli's IP. The technical insight (`applicationLevel: ALL` workaround proven on Piro Jewelry) is the foundation of the entire product. Move fast, ship to pilots, prepare for App Store.
+Memory files (loaded automatically in every Claude session):
+- Index: `~/.claude/projects/-Users-aimac-Documents-Workspace-Clients-stockly/MEMORY.md`
+- Key entries: `backend-choice-fly`, `shopify-remix-deploy-gotchas`, `b2b-customer-lifecycle`, `wholesale-pricing-composition`
