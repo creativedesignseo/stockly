@@ -1,3 +1,41 @@
+# Build & cache artifacts
 .cache
 build
 node_modules
+
+# Local env (Fly injects secrets at runtime)
+.env
+.env.*
+!.env.example
+
+# Local DB / Prisma artifacts that shouldn't ship
+prisma/dev.sqlite
+prisma/dev.sqlite-journal
+prisma/migrations.sqlite-archive
+
+# Dev tooling / IDE
+.vscode
+.idea
+.git
+.github
+.claude
+
+# Vercel / other host configs (Fly is the target)
+.vercel
+vercel.json
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+coverage
+
+# OS junk
+.DS_Store
+
+# Docs (not needed in the image)
+*.md
+docs
+
+# Explicitly DO NOT ignore .npmrc — required for `npm ci --legacy-peer-deps`.
+!.npmrc
