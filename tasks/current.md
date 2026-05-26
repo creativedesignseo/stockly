@@ -112,3 +112,16 @@ pilot #2".
 - Net 30/60 terms (Phase 2)
 - Quote system (Phase 2)
 - Analytics dashboard (Phase 2)
+
+---
+
+## Notes / reusable assets created during this project
+
+- **`harness-bootstrap` global skill** (lives at
+  `~/.claude/skills/harness-bootstrap/`) generalizes this project's
+  harness pattern. Invoke it from any new project root with a phrase
+  like "set up the harness here" and it will scaffold AGENTS.md,
+  CLAUDE.md, scripts/verify.sh, tasks/current.md, progress/, plus 5
+  generic subagents and 4 skills — adapted to the detected stack and
+  hosting. Created 2026-05-26 right after the Stockly harness work
+  proved the pattern.
