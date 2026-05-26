@@ -4,10 +4,10 @@
 > Single source of truth for current state + resume instructions.
 
 **Last updated:** 2026-05-26 (PM) — Approve flow E2E validated on dev store
-**Last commit:** `029aa5d` — `fix(applications): Modal always-mounted to avoid intermittent View bug`
+**Last commit:** `4a115c8` — `fix(applications): kill ERR_TOO_MANY_REDIRECTS on tab click + same fix for Reject`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v11` (manual deploy 2026-05-26 PM)
+**Fly version:** `v12` (manual deploy 2026-05-26 PM)
 **Shopify app version:** `stockly-18` (Protected Customer Data live, Custom distribution)
 
 ---

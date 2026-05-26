@@ -49,6 +49,14 @@ spinner that cleared with nothing visible.
     the same React batch; Polaris portal animation lost). Refreshing
     bypassed it. The always-mounted pattern is also the one Polaris
     actually recommends.
+  - **Commit `4a115c8`** — replaced `window.location.assign` (Tabs)
+    and `window.location.reload` (Reject) with Remix-native navigation
+    (`setSearchParams`) and a fetcher (`rejectFetcher.submit`). Both
+    were causing `ERR_TOO_MANY_REDIRECTS` inside the Shopify embedded
+    iframe: a full page reload drops `host` / `embedded` / `id_token`
+    from the URL → OAuth redirect → /app → applications → still no
+    embed context → loop → Chrome aborts. Discovered by Jonatan
+    clicking the **Approved** tab after a successful Approve.
 
 ## Commands run
 
@@ -145,3 +153,10 @@ price (this is where B0-3's C1/C2/C3 bugs may surface).
    concurrent updates (e.g. a fetcher revalidation hitting at the same
    click). Always-mount + `open` prop is the documented Polaris pattern
    for a reason.
+7. **Never use `window.location.*` inside the Shopify embedded admin
+   iframe.** A full reload drops the embed context (`host`,
+   `embedded=1`, `id_token`) and the app re-enters OAuth without that
+   context — infinite redirect loop, Chrome aborts with
+   `ERR_TOO_MANY_REDIRECTS`. Always go through Remix navigation
+   (`useSearchParams`, `useNavigate`, `useFetcher`, `useRevalidator`).
+   This rule has no exceptions in admin routes.
