@@ -3,12 +3,12 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-27 — C2 + B0-6 closed; starting B0-1 (GDPR webhooks)
-**Last commit:** `288a657` — `fix(infra): /healthz endpoint + Fly health checks + min_machines_running=1 (B0-6)`
+**Last updated:** 2026-05-27 — B0-3 C2 + B0-6 + B0-1 GDPR webhooks closed
+**Last commit:** `d9eb887` — `feat(gdpr): mandatory privacy webhooks (B0-1)`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v15` (manual deploy 2026-05-27, with healthz + no-cold-start config)
-**Shopify app version:** `stockly-18` (Protected Customer Data live, Custom distribution)
+**Fly version:** `v16` (manual deploy 2026-05-27 with GDPR handlers)
+**Shopify app version:** `stockly-19` (GDPR compliance_topics registered + Protected Customer Data + Custom distribution)
 
 ---
 
