@@ -3,11 +3,14 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // Vercel Functions run on Amazon Linux 2 with OpenSSL 3.0. Without
-  // an explicit target the generated client only ships the local-OS
-  // engine (Mac on dev), causing runtime "Unable to open database
-  // file" errors on production because the engine falls back to a
-  // SQLite-flavoured binary.
+  // Fly.io runs Debian bookworm-slim (OpenSSL 3.0) in our container.
+  // Without an explicit target the generated client only ships the
+  // local-OS engine (Mac on dev), causing runtime "Unable to open
+  // database file" errors on production because the engine falls
+  // back to a SQLite-flavoured binary. The rhel-openssl-3.0.x target
+  // is the right one for any modern Linux container with OpenSSL 3.x.
+  // See docs/decisions/ADR-009-backend-fly-io.md for the migration
+  // history (Vercel → Fly.io).
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -15,9 +18,9 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  // Production: Vercel Postgres (DATABASE_URL set in Vercel env).
-  // Local dev: set DATABASE_URL to a local Postgres URL or to the
-  // Vercel Postgres preview/dev branch (vercel env pull .env).
+  // Production: Fly Managed Postgres (DATABASE_URL set via
+  // `fly secrets set` on app stockly-lustrous-forest-4364).
+  // Local dev: set DATABASE_URL in .env to a local Postgres URL.
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
