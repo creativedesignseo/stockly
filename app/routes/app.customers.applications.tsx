@@ -245,7 +245,24 @@ async function actionImpl(request: Request) {
           userErrors: { field: string[]; message: string }[];
         };
       };
+      // Top-level errors (different from userErrors!) appear when Shopify
+      // GraphQL itself rejects the request — most commonly ACCESS_DENIED
+      // when "Protected customer data access" isn't approved in Partners
+      // Dashboard, but also rate limits, throttling, etc.
+      errors?: { message: string; extensions?: { code: string } }[];
     };
+    // Check top-level Shopify errors FIRST (these are different from
+    // userErrors and indicate Shopify itself rejected the request,
+    // not a validation failure).
+    if (body.errors && body.errors.length > 0) {
+      const e = body.errors[0];
+      const code = e.extensions?.code;
+      const friendlyMsg =
+        code === "ACCESS_DENIED"
+          ? "Stockly needs 'Protected customer data access' approved in Shopify Partners Dashboard → API access → Protected customer data. Without it, the app cannot create or read Customer records. See https://shopify.dev/docs/apps/launch/protected-customer-data"
+          : e.message;
+      return { ok: false, error: friendlyMsg } as const;
+    }
     const created = body.data?.customerCreate;
     if (!created?.customer || (created.userErrors?.length ?? 0) > 0) {
       const msg = created?.userErrors?.[0]?.message ?? "Customer create failed.";
