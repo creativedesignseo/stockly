@@ -336,9 +336,9 @@ export default function PricingHub() {
                   // When no rules exist yet, drop the merchant straight
                   // into /app/pricing/new (no point seeing an empty
                   // list). Once at least one exists, take them to the
-                  // list view at /app/tiers (still the legacy URL —
-                  // list view migration is a separate task).
-                  url: tiers.total === 0 ? "/app/pricing/new" : "/app/tiers",
+                  // Sami-style list at /app/pricing/list. Legacy
+                  // /app/tiers route still works for bookmarks.
+                  url: tiers.total === 0 ? "/app/pricing/new" : "/app/pricing/list",
                 }}
               />
 
