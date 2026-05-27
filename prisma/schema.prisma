@@ -102,6 +102,15 @@ model Shop {
   wholesaleCustomers   WholesaleCustomer[]
   applications         WholesaleApplication[]
   onboardingResponses  OnboardingResponse[]
+
+  /// Singleton — one editable Registration Form per shop (RF Phase 1A,
+  /// ADR-013). Created lazily by `ensureDefaultRegistrationForm` on
+  /// first install or on first storefront fetch.
+  registrationForm     RegistrationForm?
+  /// Generic submission table that replaces WholesaleApplication.
+  /// Both tables coexist during the soak window (Phase 1A–1F); the
+  /// legacy table is dropped in Phase 1G.
+  formApplications     Application[]
 }
 
 /// Volume pricing tier. `scope` is one of 'product' | 'collection' | 'all'.
@@ -291,6 +300,94 @@ model WholesaleApplication {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([shopId, status, createdAt])
+  @@index([shopId, email])
+}
+
+// ---------------------------------------------------------------------------
+// Registration Form Builder (ADR-013, Phase 1A — 2026-05-28)
+// ---------------------------------------------------------------------------
+
+/// Sami-style schema-driven Registration Form. One row per shop
+/// (singleton) — seeded lazily by `ensureDefaultRegistrationForm` with
+/// a back-compat default that mirrors the legacy hardcoded 8-field form
+/// 1:1 so existing storefront POSTs keep validating during the soak.
+///
+/// Stored as JSON blobs (not normalized tables) because:
+///   - Phase 1 only supports a single form per shop (no FK fan-out).
+///   - The shape evolves with the builder UI; adding a column for every
+///     new field-type knob would mean a schema migration per UX change.
+///   - The storefront renderer just deserializes and emits inputs — no
+///     SQL joins needed at request time.
+model RegistrationForm {
+  id          String   @id @default(cuid())
+  shopId      String   @unique
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  /// 'active' is served by the storefront block; 'draft' falls back to
+  /// the seeded default form so the storefront never breaks.
+  status      String   @default("active")
+
+  /// Definition JSON. Shape (TS = RegistrationFormDefinition):
+  ///   { steps: [{ id, titleEn, fields: FormField[] }] }
+  /// Phase 1: `steps` is always length 1 (multi-step deferred to P2).
+  definition  Json
+
+  /// Appearance JSON. Shape (TS = FormAppearance):
+  ///   { layout: 'default' | 'boxed', width: number,
+  ///     colors: { main, heading, label, description, option,
+  ///               paragraph, paragraphBg },
+  ///     background: { type: 'color', color: string },
+  ///     customCss: string }
+  appearance  Json
+
+  /// Settings JSON. Shape (TS = FormSettings):
+  ///   { titleEn: string, redirectUrl?: string,
+  ///     errorMessages: { required, invalid, invalidEmail, invalidPhone,
+  ///       tooLong, tooShort, mismatch, networkError, genericError } }
+  settings    Json
+
+  /// Monotonic counter bumped on every save. Used by the storefront
+  /// fetch as a cache-busting hint and by the admin preview to detect
+  /// stale renders.
+  version     Int      @default(1)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// Generic form submission. Replaces `WholesaleApplication`. The full
+/// payload lives in `responses` Json (keyed by field key, including
+/// snake_case legacy keys for back-compat). `email` is denormalized
+/// for fast GDPR webhook lookups and queue filtering.
+model Application {
+  id                String   @id @default(cuid())
+  shopId            String
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  status            String   @default("pending")  // pending | approved | rejected
+
+  /// Full submission as JSON, keyed by the form definition's field keys.
+  /// Example (legacy seed default):
+  ///   { email, first_name, last_name, phone, company_name, tax_id,
+  ///     website, country, notes }
+  responses         Json
+
+  /// Always derived from responses.email (lowercased + trimmed) at
+  /// write time. Denormalized so GDPR redact / customer-data-request
+  /// webhooks don't have to JSON-scan every row.
+  email             String
+
+  /// Numeric Shopify customer id, if the applicant was logged in when
+  /// they submitted (App Proxy `logged_in_customer_id` query param).
+  shopifyCustomerId String?
+
+  reviewNote        String?
+  reviewedAt        DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([shopId, status, createdAt])
   @@index([shopId, email])
