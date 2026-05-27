@@ -269,7 +269,7 @@ export default function PricingList() {
                 key={tier.id}
                 position={index}
                 selected={selectedResources.includes(tier.id)}
-                onClick={() => navigate(`/app/tiers/${tier.id}`)}
+                onClick={() => navigate(`/app/pricing/${tier.id}`)}
               >
                 <IndexTable.Cell>
                   <Text as="span" variant="bodySm" tone="subdued">

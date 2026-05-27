@@ -199,12 +199,21 @@ export async function updateTier(
     scopeId: string | null;
     minQty: number;
     discountPct: number;
+    discountType: TierDiscountType;
+    discountAmount: number | null;
     aggregation: TierAggregation;
     active: boolean;
     position: number;
   }>,
 ) {
-  return prisma.tier.update({ where: { id }, data });
+  // Match createTier's invariant: when switching to percentage type,
+  // null out the fixed-amount field so the DB never carries stale
+  // mixed-type data that the Function could misinterpret.
+  const cleaned: typeof data = { ...data };
+  if (cleaned.discountType === "percentage") {
+    cleaned.discountAmount = null;
+  }
+  return prisma.tier.update({ where: { id }, data: cleaned });
 }
 
 /**
