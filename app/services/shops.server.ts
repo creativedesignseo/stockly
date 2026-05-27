@@ -7,6 +7,7 @@
  */
 import prisma from "../db.server";
 import type { Shop } from "@prisma/client";
+import { ensureDefaultRegistrationForm } from "./registrationForms.server";
 
 /**
  * Default branding applied to new shops. Picked to be brand-neutral —
@@ -49,7 +50,7 @@ export type ShopCopy = typeof DEFAULT_COPY;
  * in Postgres, so concurrent calls are safe.
  */
 export async function getOrCreateShop(shopDomain: string): Promise<Shop> {
-  return prisma.shop.upsert({
+  const shop = await prisma.shop.upsert({
     where: { id: shopDomain },
     create: {
       id: shopDomain,
@@ -60,6 +61,14 @@ export async function getOrCreateShop(shopDomain: string): Promise<Shop> {
     // updatedAt is auto-managed by Prisma via @updatedAt.
     update: {},
   });
+
+  // Lazily seed the back-compat Registration Form (ADR-013, Phase 1B)
+  // so any freshly-installed shop AND any pre-existing shop reaching
+  // this code path acquires a working form definition. Idempotent —
+  // safe to call on every login bootstrap.
+  await ensureDefaultRegistrationForm(shop.id);
+
+  return shop;
 }
 
 /**

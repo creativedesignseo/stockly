@@ -1,0 +1,184 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`merchant-facing TEMPLATES > snapshot — full template shape (catches accidental drift) 1`] = `
+{
+  "modern": {
+    "steps": [
+      {
+        "fields": [
+          {
+            "id": "f-first-name",
+            "key": "first_name",
+            "label": "First name",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-last-name",
+            "key": "last_name",
+            "label": "Last name",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-email",
+            "key": "email",
+            "label": "Email",
+            "required": true,
+            "type": "email",
+            "width": "half",
+          },
+          {
+            "id": "f-phone",
+            "key": "phone",
+            "label": "Phone",
+            "placeholder": "+34 555 44 33 22",
+            "required": true,
+            "type": "phone",
+            "width": "half",
+          },
+          {
+            "helpText": "At least 8 characters.",
+            "id": "f-password",
+            "key": "password",
+            "label": "Password",
+            "required": true,
+            "type": "password",
+            "width": "full",
+          },
+        ],
+        "id": "step-modern",
+        "titleEn": "Create your account",
+      },
+    ],
+  },
+  "samitaB2B": {
+    "steps": [
+      {
+        "fields": [
+          {
+            "id": "f-company-name",
+            "key": "company_name",
+            "label": "Company name",
+            "required": true,
+            "type": "text",
+            "width": "full",
+          },
+          {
+            "id": "f-tax-id",
+            "key": "tax_id",
+            "label": "Tax ID (VAT / EIN / CIF)",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-website",
+            "key": "website",
+            "label": "Website",
+            "placeholder": "https://",
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-first-name",
+            "key": "first_name",
+            "label": "First name",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-last-name",
+            "key": "last_name",
+            "label": "Last name",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-email",
+            "key": "email",
+            "label": "Email",
+            "required": true,
+            "type": "email",
+            "width": "half",
+          },
+          {
+            "id": "f-phone",
+            "key": "phone",
+            "label": "Phone",
+            "placeholder": "+34 555 44 33 22",
+            "required": true,
+            "type": "phone",
+            "width": "half",
+          },
+          {
+            "id": "f-country",
+            "key": "country",
+            "label": "Country",
+            "required": true,
+            "type": "country",
+            "width": "half",
+          },
+          {
+            "helpText": "Volume estimate, target categories, etc.",
+            "id": "f-notes",
+            "key": "notes",
+            "label": "Tell us about your business",
+            "type": "textarea",
+            "width": "full",
+          },
+        ],
+        "id": "step-samita",
+        "titleEn": "Apply for wholesale access",
+      },
+    ],
+  },
+  "standard": {
+    "steps": [
+      {
+        "fields": [
+          {
+            "id": "f-first-name",
+            "key": "first_name",
+            "label": "First name",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-last-name",
+            "key": "last_name",
+            "label": "Last name",
+            "required": true,
+            "type": "text",
+            "width": "half",
+          },
+          {
+            "id": "f-email",
+            "key": "email",
+            "label": "Email",
+            "required": true,
+            "type": "email",
+            "width": "full",
+          },
+          {
+            "helpText": "At least 8 characters.",
+            "id": "f-password",
+            "key": "password",
+            "label": "Password",
+            "required": true,
+            "type": "password",
+            "width": "full",
+          },
+        ],
+        "id": "step-standard",
+        "titleEn": "Create your account",
+      },
+    ],
+  },
+}
+`;
