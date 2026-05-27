@@ -55,6 +55,7 @@ import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
   createTier,
   type TierAggregation,
+  type TierDiscountType,
   type TierScope,
 } from "../services/tiers.server";
 
@@ -89,7 +90,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const scope = (form.get("scope") ?? "all").toString() as TierScope;
   const scopeId = (form.get("scopeId") ?? "").toString().trim() || null;
   const minQtyStr = (form.get("minQty") ?? "").toString();
+  const discountType = (form.get("discountType") ?? "percentage")
+    .toString() as TierDiscountType;
   const discountPctStr = (form.get("discountPct") ?? "").toString();
+  const discountAmountStr = (form.get("discountAmount") ?? "").toString();
   const aggregation = (form.get("aggregation") ?? "per_line").toString() as TierAggregation;
 
   const errors: Record<string, string> = {};
@@ -110,14 +114,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!Number.isInteger(minQty) || minQty < 1)
     errors.minQty = "Minimum quantity must be a positive integer";
 
-  const discountPct = Number(discountPctStr);
-  if (Number.isNaN(discountPct) || discountPct < 0 || discountPct > 100)
-    errors.discountPct = "Discount must be between 0 and 100";
+  if (!["percentage", "fixed_amount"].includes(discountType))
+    errors.discountType = "Invalid discount type";
+
+  // Branch validation by type. The value field is always one of
+  // discountPct (for percentage) or discountAmount (for fixed_amount).
+  let discountPct = 0;
+  let discountAmount: number | null = null;
+  if (discountType === "percentage") {
+    discountPct = Number(discountPctStr);
+    if (Number.isNaN(discountPct) || discountPct < 0 || discountPct > 100)
+      errors.discountPct = "Discount must be between 0 and 100";
+  } else {
+    discountAmount = Number(discountAmountStr);
+    if (Number.isNaN(discountAmount) || discountAmount <= 0)
+      errors.discountAmount =
+        "Amount must be a positive number (in shop currency)";
+  }
 
   if (Object.keys(errors).length > 0) {
     return json({
       errors,
-      values: { name, scope, scopeId, minQtyStr, discountPctStr, aggregation },
+      values: {
+        name,
+        scope,
+        scopeId,
+        minQtyStr,
+        discountType,
+        discountPctStr,
+        discountAmountStr,
+        aggregation,
+      },
     });
   }
 
@@ -128,6 +155,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     scopeId,
     minQty,
     discountPct,
+    discountType,
+    discountAmount,
     aggregation,
   });
 
@@ -216,8 +245,14 @@ export default function NewTier() {
   const [minQty, setMinQty] = useState<string>(
     actionData?.values?.minQtyStr ?? "10",
   );
+  const [discountType, setDiscountType] = useState<TierDiscountType>(
+    (actionData?.values?.discountType as TierDiscountType) ?? "percentage",
+  );
   const [discountPct, setDiscountPct] = useState<string>(
     actionData?.values?.discountPctStr ?? "10",
+  );
+  const [discountAmount, setDiscountAmount] = useState<string>(
+    actionData?.values?.discountAmountStr ?? "",
   );
   const [aggregation, setAggregation] = useState<TierAggregation>(
     (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
@@ -239,7 +274,11 @@ export default function NewTier() {
     scope: (actionData?.values?.scope as TierScope) ?? ("all" as TierScope),
     scopeId: actionData?.values?.scopeId ?? "",
     minQty: actionData?.values?.minQtyStr ?? "10",
+    discountType:
+      (actionData?.values?.discountType as TierDiscountType) ??
+      ("percentage" as TierDiscountType),
     discountPct: actionData?.values?.discountPctStr ?? "10",
+    discountAmount: actionData?.values?.discountAmountStr ?? "",
     aggregation:
       (actionData?.values?.aggregation as TierAggregation) ??
       ("per_line" as TierAggregation),
@@ -249,7 +288,9 @@ export default function NewTier() {
     scope !== initial.scope ||
     scopeId !== initial.scopeId ||
     minQty !== initial.minQty ||
+    discountType !== initial.discountType ||
     discountPct !== initial.discountPct ||
+    discountAmount !== initial.discountAmount ||
     aggregation !== initial.aggregation;
 
   const SAVE_BAR_ID = "pricing-new-save-bar";
@@ -274,7 +315,9 @@ export default function NewTier() {
     setScopeId(initial.scopeId);
     setScopeLabel("");
     setMinQty(initial.minQty);
+    setDiscountType(initial.discountType);
     setDiscountPct(initial.discountPct);
+    setDiscountAmount(initial.discountAmount);
     setAggregation(initial.aggregation);
   };
 
@@ -292,12 +335,24 @@ export default function NewTier() {
     setScopeLabel(picked.title ?? "");
   };
 
-  /* ----- preview math ----- */
-  const tierPct = Number(discountPct) || 0;
-  const baselineFactor = 1 - baselinePct / 100;
-  const tierFactor = 1 - tierPct / 100;
+  /* ----- preview math -----
+   *  baseline always applies multiplicatively first. Then the tier
+   *  either layers on as another multiplicative factor (percentage)
+   *  or subtracts a flat amount per unit (fixed_amount). Preview
+   *  assumes qty=1 on a €100 retail unit so the merchant can read
+   *  the impact at a glance.
+   */
   const previewRetail = 100;
-  const previewWholesale = previewRetail * baselineFactor * tierFactor;
+  const baselineFactor = 1 - baselinePct / 100;
+  const tierPct = Number(discountPct) || 0;
+  const tierAmount = Number(discountAmount) || 0;
+  const tierFactor =
+    discountType === "percentage" ? 1 - tierPct / 100 : 1;
+  const fixedDeduction = discountType === "fixed_amount" ? tierAmount : 0;
+  const previewWholesale = Math.max(
+    0,
+    previewRetail * baselineFactor * tierFactor - fixedDeduction,
+  );
   const previewSavings = previewRetail - previewWholesale;
 
   /* ----- summary derived strings ----- */
@@ -315,7 +370,14 @@ export default function NewTier() {
     ? `${minQty} units · ${aggregation === "per_line" ? "per line" : "cart total"}`
     : "—";
 
-  const discountSummary = discountPct ? `${discountPct}% off` : "—";
+  const discountSummary =
+    discountType === "fixed_amount"
+      ? tierAmount
+        ? `€${tierAmount} off per unit`
+        : "—"
+      : tierPct
+        ? `${tierPct}% off`
+        : "—";
 
   return (
     <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
@@ -346,6 +408,7 @@ export default function NewTier() {
          */}
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="aggregation" value={aggregation} />
+        <input type="hidden" name="discountType" value={discountType} />
 
         <Layout>
           {/* ===================== Main column ===================== */}
@@ -526,27 +589,67 @@ export default function NewTier() {
                       Discount
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      Percent off the base price, on top of the wholesale
-                      baseline. Stacks multiplicatively — see the preview on
-                      the right.
+                      How is the wholesale price calculated? Both options
+                      compose with the shop&apos;s wholesale baseline — the
+                      Preview panel on the right shows the live math.
                     </Text>
                   </BlockStack>
 
-                  <TextField
-                    label="Discount percent"
-                    name="discountPct"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    autoComplete="off"
-                    value={discountPct}
-                    onChange={setDiscountPct}
-                    error={errors.discountPct}
-                    suffix="%"
-                    helpText="Between 0 and 100."
-                    requiredIndicator
-                  />
+                  {/*
+                    2-card grid (Sami pattern). Only two types ship in v1:
+                    Percentage and Fixed amount. "Fixed wholesale price"
+                    and "Custom price list" deferred — those overlap with
+                    the Per-customer overrides card on the Pricing hub
+                    (Coming soon) and weren't worth scaffolding as fakes.
+                   */}
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    <ChoiceCard
+                      selected={discountType === "percentage"}
+                      onSelect={() => setDiscountType("percentage")}
+                      title="Percentage discount"
+                      description="Example: 10% off the line price."
+                    />
+                    <ChoiceCard
+                      selected={discountType === "fixed_amount"}
+                      onSelect={() => setDiscountType("fixed_amount")}
+                      title="Fixed amount discount"
+                      description="Example: €10 off each unit."
+                    />
+                  </InlineGrid>
+
+                  {discountType === "percentage" ? (
+                    <TextField
+                      label="Discount percent"
+                      name="discountPct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      autoComplete="off"
+                      value={discountPct}
+                      onChange={setDiscountPct}
+                      error={errors.discountPct}
+                      suffix="%"
+                      helpText="Between 0 and 100. Composes multiplicatively on top of the baseline."
+                      requiredIndicator
+                    />
+                  ) : (
+                    <TextField
+                      label="Amount off per unit"
+                      name="discountAmount"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      autoComplete="off"
+                      value={discountAmount}
+                      onChange={setDiscountAmount}
+                      error={errors.discountAmount}
+                      prefix="€"
+                      helpText="Flat amount subtracted from each unit AFTER the baseline applies. Use shop-currency value."
+                      placeholder="10.00"
+                      requiredIndicator
+                    />
+                  )}
                 </BlockStack>
               </Card>
 
@@ -607,10 +710,17 @@ export default function NewTier() {
                     label={`Baseline (${baselinePct}%)`}
                     value={`× ${baselineFactor.toFixed(2)}`}
                   />
-                  <SummaryRow
-                    label={`This tier (${tierPct}%)`}
-                    value={`× ${tierFactor.toFixed(2)}`}
-                  />
+                  {discountType === "percentage" ? (
+                    <SummaryRow
+                      label={`This rule (${tierPct}%)`}
+                      value={`× ${tierFactor.toFixed(2)}`}
+                    />
+                  ) : (
+                    <SummaryRow
+                      label={`This rule (flat)`}
+                      value={`− €${tierAmount.toFixed(2)}`}
+                    />
+                  )}
                   <Divider />
                   <SummaryRow
                     label="Wholesale price"

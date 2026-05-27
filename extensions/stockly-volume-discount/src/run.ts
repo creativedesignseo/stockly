@@ -64,8 +64,15 @@ interface ConfiguredTier {
   scopeId?: string | null;
   /** Inclusive minimum quantity that activates this tier. */
   minQty: number;
-  /** Percentage off the base price (0–100). */
+  /** Percentage off the base price (0–100). Used when
+   * discountType is "percentage" (or missing — back-compat). */
   discountPct: number;
+  /** "percentage" (default) or "fixed_amount". Added 2026-05-27
+   * to support Sami-style "$10 off each unit" tier semantics. */
+  discountType?: "percentage" | "fixed_amount";
+  /** Flat money amount off PER UNIT, in shop currency. Only
+   * meaningful when discountType = "fixed_amount". */
+  discountAmount?: number;
   /**
    * How minQty is evaluated against the cart (ADR-007).
    * 'per_line' (default): each line's qty individually checked.
@@ -296,17 +303,35 @@ export function run(input: RunInput): FunctionRunResult {
       (a, b) => b.discountPct - a.discountPct,
     )[0];
 
-    const tierPct = winningTier?.discountPct ?? 0;
+    // Tier type semantics:
+    //   - "percentage" (or missing for back-compat): tierPct
+    //     applies multiplicatively with baseline (current behavior).
+    //   - "fixed_amount": discountAmount is subtracted per unit
+    //     AFTER the baseline applies. tierPct = 0 for the
+    //     percentage composition step.
+    const tierType = winningTier?.discountType ?? "percentage";
+    const tierPct =
+      tierType === "percentage" ? (winningTier?.discountPct ?? 0) : 0;
+    const tierFixedPerUnit =
+      tierType === "fixed_amount" ? (winningTier?.discountAmount ?? 0) : 0;
     const composedPct = composeDiscountPct(baseline, tierPct);
     const lineRetail =
       Number(line.cost?.amountPerQuantity?.amount ?? 0) * qty;
-    const lineWholesale = lineRetail * (1 - composedPct / 100);
+    // Apply baseline as a multiplier, then subtract the fixed amount
+    // per unit × qty. Clamp at 0 to never go negative (Shopify would
+    // reject a discount that makes the line cost less than 0).
+    const lineWholesale = Math.max(
+      0,
+      lineRetail * (1 - composedPct / 100) - tierFixedPerUnit * qty,
+    );
 
     return {
       line,
       qty,
       winningTier,
+      tierType,
       tierPct,
+      tierFixedPerUnit,
       composedPct,
       lineRetail,
       lineWholesale,
@@ -339,17 +364,48 @@ export function run(input: RunInput): FunctionRunResult {
   }
 
   // 5. Build discount entries from the pre-computed calculations.
+  //    Emit shape depends on whether the winning tier is percentage
+  //    (multiplicative composition via `percentage` value) or
+  //    fixed_amount (flat per-line money off via `fixedAmount` value).
+  //    For fixed_amount tiers we collapse baseline + tier into ONE
+  //    `fixedAmount` entry whose value is the total money discount
+  //    on the line — guarantees Shopify computes the same wholesale
+  //    price we precomputed in lineWholesale.
   const discounts = lineCalcs.flatMap((calc) => {
-    if (calc.composedPct <= 0) return [];
+    if (calc.lineRetail <= 0) return [];
+    // Nothing to discount (no baseline, no tier).
+    if (calc.composedPct <= 0 && calc.tierFixedPerUnit <= 0) return [];
 
+    const target: Target = { cartLine: { id: calc.line.id } };
     let message = `Wholesale ${baseline}%`;
     if (calc.winningTier) {
       const mode =
         calc.winningTier.aggregation === "cart_total" ? "mixed" : "units";
-      message = `Wholesale ${baseline}% + ${calc.tierPct}% volume (${calc.winningTier.minQty}+ ${mode})`;
+      if (calc.tierType === "fixed_amount") {
+        message = `Wholesale ${baseline}% + €${calc.tierFixedPerUnit} off/unit (${calc.winningTier.minQty}+ ${mode})`;
+      } else {
+        message = `Wholesale ${baseline}% + ${calc.tierPct}% volume (${calc.winningTier.minQty}+ ${mode})`;
+      }
     }
 
-    const target: Target = { cartLine: { id: calc.line.id } };
+    if (calc.tierType === "fixed_amount") {
+      // Total money off = (retail − wholesale) for this line. Use a
+      // single fixedAmount entry so Shopify's checkout math matches
+      // our precomputed wholesale exactly. .toFixed(2) keeps things
+      // in cents, avoiding floating-point surprises at checkout.
+      const lineDiscountMoney = (calc.lineRetail - calc.lineWholesale).toFixed(
+        2,
+      );
+      return [
+        {
+          targets: [target],
+          value: { fixedAmount: { amount: lineDiscountMoney } },
+          message,
+        },
+      ];
+    }
+
+    // Percentage path (current behavior).
     return [
       {
         targets: [target],

@@ -152,6 +152,8 @@ export async function getTier(id: string, shopId: string) {
 /**
  * Create a new tier.
  */
+export type TierDiscountType = "percentage" | "fixed_amount";
+
 export async function createTier(data: {
   shopId: string;
   name: string;
@@ -159,11 +161,16 @@ export async function createTier(data: {
   scopeId?: string | null;
   minQty: number;
   discountPct: number;
+  /** "percentage" (default) or "fixed_amount" (2026-05-27). */
+  discountType?: TierDiscountType;
+  /** Flat money off per unit when discountType is "fixed_amount". */
+  discountAmount?: number | null;
   aggregation?: TierAggregation;
   position?: number;
 }) {
   // Defensive: 'all' scope must not have a scopeId.
   const scopeId = data.scope === "all" ? null : (data.scopeId ?? null);
+  const discountType: TierDiscountType = data.discountType ?? "percentage";
   return prisma.tier.create({
     data: {
       shopId: data.shopId,
@@ -172,6 +179,9 @@ export async function createTier(data: {
       scopeId,
       minQty: data.minQty,
       discountPct: data.discountPct,
+      discountType,
+      discountAmount:
+        discountType === "fixed_amount" ? (data.discountAmount ?? null) : null,
       aggregation: data.aggregation ?? "per_line",
       position: data.position ?? 0,
     },

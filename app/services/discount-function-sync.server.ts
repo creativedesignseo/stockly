@@ -291,6 +291,10 @@ async function buildConfiguration(shopId: string): Promise<string> {
       scopeId: t.scopeId, // null for 'all', GID for product/variant
       minQty: t.minQty,
       discountPct: t.discountPct,
+      // New fields (2026-05-27). Function falls back to "percentage"
+      // when missing, so older tiers in the metafield keep working.
+      discountType: t.discountType,
+      discountAmount: t.discountAmount, // null when type=percentage
       aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
     }))
     .sort((a, b) => a.minQty - b.minQty);

@@ -117,8 +117,19 @@ model Tier {
   scopeId     String?
 
   minQty      Int
-  /// Percent discount, 0-100 (10 means -10%).
+  /// Percent discount, 0-100 (10 means -10%). Used when discountType
+  /// is "percentage". Kept for legacy / current data.
   discountPct Float
+  /// Type of discount applied at checkout:
+  ///   - "percentage" (default): use discountPct, applies as a
+  ///     multiplier (1 − discountPct/100). Current behavior.
+  ///   - "fixed_amount": use discountAmount, applies as a flat
+  ///     subtraction per cart line (in shop currency). Added
+  ///     2026-05-27 to match Sami / BSS Essential parity.
+  discountType    String  @default("percentage")
+  /// Fixed monetary amount off per line, in shop currency. Only
+  /// read when discountType = "fixed_amount". null otherwise.
+  discountAmount  Float?
 
   /// How `minQty` is evaluated against the cart (ADR-007):
   ///   - 'per_line' (default): each cart line independently must
