@@ -175,6 +175,58 @@ async function actionImpl(request: Request) {
     };
   }
 
+  if (intent === "set-tax-exempt") {
+    // Flip the Shopify Customer's `taxExempt` flag to true. The
+    // application must already be approved (we need a real customer
+    // to mutate). Most B2B/wholesale customers in EU/US are tax-
+    // exempt — typical workflow is approve + immediately mark exempt.
+    if (!app.shopifyCustomerId) {
+      return {
+        ok: false,
+        error:
+          "Application has no Shopify customer linked yet. Approve it first.",
+      } as const;
+    }
+    const r = await admin.graphql(
+      `#graphql
+      mutation MarkCustomerTaxExempt($input: CustomerInput!) {
+        customerUpdate(input: $input) {
+          customer { id taxExempt }
+          userErrors { field message }
+        }
+      }`,
+      {
+        variables: {
+          input: {
+            id: `gid://shopify/Customer/${app.shopifyCustomerId}`,
+            taxExempt: true,
+          },
+        },
+      },
+    );
+    const body = (await r.json()) as {
+      data?: {
+        customerUpdate?: {
+          customer: { id: string; taxExempt: boolean } | null;
+          userErrors: { field: string[]; message: string }[];
+        };
+      };
+      errors?: { message: string; extensions?: { code: string } }[];
+    };
+    if (body.errors && body.errors.length > 0) {
+      return { ok: false, error: body.errors[0].message } as const;
+    }
+    const errs = body.data?.customerUpdate?.userErrors ?? [];
+    if (errs.length > 0) {
+      return { ok: false, error: errs[0].message } as const;
+    }
+    return {
+      ok: true as const,
+      action: "tax-exempted" as const,
+      email: app.email,
+    };
+  }
+
   if (intent !== "approve") {
     return { ok: false, error: `Unknown intent: ${intent}` } as const;
   }
@@ -406,6 +458,32 @@ export default function ApplicationsQueue() {
     }
   }, [rejectFetcher.state, rejectFetcher.data]);
 
+  // Tax-exempt toggle (BSS Advanced parity feature). Available on the
+  // modal for already-approved applications. One-shot fetcher; result
+  // surfaces in a dedicated banner at the top of the page.
+  const taxExemptFetcher = useFetcher<typeof action>();
+  const [taxExemptResult, setTaxExemptResult] = useState<{
+    ok: boolean;
+    email?: string;
+    error?: string;
+  } | null>(null);
+  useEffect(() => {
+    if (taxExemptFetcher.state !== "idle" || !taxExemptFetcher.data) return;
+    const d = taxExemptFetcher.data;
+    if (d.ok) {
+      setTaxExemptResult({
+        ok: true,
+        email: (d as { email: string }).email,
+      });
+      setModalApp(null);
+    } else {
+      setTaxExemptResult({
+        ok: false,
+        error: (d as { error: string }).error,
+      });
+    }
+  }, [taxExemptFetcher.state, taxExemptFetcher.data]);
+
   const tabs = [
     { id: "pending", content: `Pending (${counts.pending})`, status: "pending" },
     { id: "approved", content: `Approved (${counts.approved})`, status: "approved" },
@@ -432,6 +510,19 @@ export default function ApplicationsQueue() {
         {approveResult && !approveResult.ok && (
           <Banner tone="critical" title="Could not approve">
             <p>{approveResult.error}</p>
+          </Banner>
+        )}
+        {taxExemptResult?.ok && (
+          <Banner tone="success" title="Customer marked as tax-exempt">
+            <p>
+              {taxExemptResult.email} is now <code>taxExempt: true</code> in
+              Shopify. Their future orders will skip automatic tax calculation.
+            </p>
+          </Banner>
+        )}
+        {taxExemptResult && !taxExemptResult.ok && (
+          <Banner tone="critical" title="Could not set tax-exempt">
+            <p>{taxExemptResult.error}</p>
           </Banner>
         )}
 
@@ -614,6 +705,25 @@ export default function ApplicationsQueue() {
             : undefined
         }
         secondaryActions={[
+          // For approved applications, expose a "Mark as tax-exempt"
+          // action that flips taxExempt=true on the linked Shopify
+          // Customer. Most B2B/wholesale customers in EU/US are tax-
+          // exempt (B2B sales don't carry sales tax in many regions);
+          // this saves a trip to the Shopify admin per customer.
+          ...(modalApp?.status === "approved" && modalApp?.shopifyCustomerId
+            ? [
+                {
+                  content: "Mark as tax-exempt",
+                  loading: taxExemptFetcher.state !== "idle",
+                  onAction: () => {
+                    const fd = new FormData();
+                    fd.append("intent", "set-tax-exempt");
+                    fd.append("applicationId", modalApp.id);
+                    taxExemptFetcher.submit(fd, { method: "POST" });
+                  },
+                },
+              ]
+            : []),
           {
             content: "Close",
             onAction: () => setModalApp(null),

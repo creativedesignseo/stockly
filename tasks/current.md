@@ -99,8 +99,13 @@ Shopify App Store.
 
 ## P1 — pre-pilot polish
 
-- [ ] **P1-1** Resource Picker (App Bridge) for Tier scope selection —
-  replaces the manual `gid://shopify/Product/...` input.
+- [x] **P1-1 — DONE 2026-05-27.** Tier scope selection (in
+  `app.tiers.new.tsx` and `app.tiers.$id.tsx`) now has a "Browse…"
+  button via `useAppBridge().resourcePicker({ type: scope })` that
+  opens Shopify's native picker modal. Cancel = no-op. On select
+  the canonical GID is written into the form and the human-readable
+  title is shown as helpText ("Selected: …"). Manual GID paste still
+  works for power users / migration scripts.
 - [ ] **P1-2** Rate-limit on `/proxy/apply` (5/min per shop + IP).
 - [ ] **P1-3** Centralize multiplicative pricing math — Function, QOF
   and Product Panel currently round differently.
@@ -113,6 +118,21 @@ Shopify App Store.
   2026-05-26._
 - [ ] **P1-7** Register a custom domain to replace
   `stockly-lustrous-forest-4364.fly.dev`.
+- [x] **P1-10 — DONE 2026-05-27.** Order tagging in
+  `webhooks.orders.paid.tsx`: if `customer.tags` includes the shop's
+  wholesaleTag, tag the Order with `<wholesaleTag>-order` via
+  Shopify `tagsAdd`. Runs BEFORE the FPQ early-return so every
+  wholesale order gets tagged (not just qualifying ones). Errors
+  swallowed (logged) — tag failure doesn't block qualification. NOT
+  YET LIVE for merchants: the `orders/paid` subscription itself is
+  still gated by B0-5 (Privacy Policy URL needed for Protected
+  Customer Data approval of `orders/*` topics). Code ready; ships
+  automatically when the subscription is enabled.
+- [x] **P1-11 — DONE 2026-05-27.** Tax-exempt toggle exposed in the
+  Applications modal as a secondary action visible for approved
+  applications with a linked Shopify customer. New action intent
+  `set-tax-exempt` calls `customerUpdate(taxExempt: true)`. Banner
+  surfaces success/error. BSS Advanced parity feature ($50 tier).
 - [ ] **P1-9** Quick Order Form currency consistency: in dev store with
   a Spain-via-VPN visitor, the PRICE column rendered `€65,00` while
   LINE TOTAL and ORDER TOTAL rendered `$631.80`. The math is correct

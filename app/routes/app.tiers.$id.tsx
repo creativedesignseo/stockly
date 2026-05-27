@@ -27,7 +27,7 @@ import {
   Checkbox,
   InlineStack,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
+import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
@@ -150,6 +150,23 @@ export default function EditTier() {
   const [scopeId, setScopeId] = useState<string>(
     actionData?.values?.scopeId ?? tier.scopeId ?? "",
   );
+  const [scopeLabel, setScopeLabel] = useState<string>("");
+  const shopify = useAppBridge();
+  // Resource Picker (P1-1). Same UX as the new-tier form: opens
+  // Shopify's native search-and-pick modal for the current scope
+  // and writes the canonical GID into scopeId on selection.
+  const openResourcePicker = async () => {
+    if (scope === "all") return;
+    const result = await shopify.resourcePicker({
+      type: scope,
+      multiple: false,
+      filter: { archived: false, draft: false },
+    });
+    if (!result || result.length === 0) return;
+    const picked = result[0] as { id: string; title?: string };
+    setScopeId(picked.id);
+    setScopeLabel(picked.title ?? "");
+  };
   const [minQty, setMinQty] = useState<string>(
     actionData?.values?.minQtyStr ?? String(tier.minQty),
   );
@@ -222,22 +239,30 @@ export default function EditTier() {
                 <TextField
                   label={
                     scope === "product"
-                      ? "Product ID (Shopify GID)"
+                      ? "Product"
                       : scope === "variant"
-                        ? "Variant ID (Shopify GID)"
-                        : "Collection ID (Shopify GID)"
+                        ? "Variant"
+                        : "Collection"
                   }
                   name="scopeId"
                   autoComplete="off"
                   value={scopeId}
-                  onChange={setScopeId}
+                  onChange={(v) => {
+                    setScopeId(v);
+                    if (v !== scopeId) setScopeLabel("");
+                  }}
                   error={errors.scopeId}
                   helpText={
-                    scope === "product"
-                      ? "e.g. gid://shopify/Product/123456789"
-                      : scope === "variant"
-                        ? "e.g. gid://shopify/ProductVariant/987654321"
-                        : "e.g. gid://shopify/Collection/987654321"
+                    scopeLabel
+                      ? `Selected: ${scopeLabel}`
+                      : scope === "product"
+                        ? "Click Browse to pick a product, or paste a GID like gid://shopify/Product/123"
+                        : scope === "variant"
+                          ? "Click Browse to pick a variant, or paste a GID like gid://shopify/ProductVariant/987"
+                          : "Click Browse to pick a collection, or paste a GID like gid://shopify/Collection/987"
+                  }
+                  connectedRight={
+                    <Button onClick={openResourcePicker}>Browse…</Button>
                   }
                   requiredIndicator
                 />

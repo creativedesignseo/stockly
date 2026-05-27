@@ -17,7 +17,7 @@ import {
   BlockStack,
   Text,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
+import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
@@ -97,6 +97,7 @@ export default function NewTier() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
+  const shopify = useAppBridge();
 
   const [name, setName] = useState<string>(actionData?.values?.name ?? "");
   const [scope, setScope] = useState<TierScope>(
@@ -105,6 +106,27 @@ export default function NewTier() {
   const [scopeId, setScopeId] = useState<string>(
     actionData?.values?.scopeId ?? "",
   );
+  // Cached human-readable label for the picked resource, shown as
+  // helpText next to the (machine-readable) GID. Resets when scope
+  // changes — a Product GID is meaningless if the merchant switches
+  // to Collection scope.
+  const [scopeLabel, setScopeLabel] = useState<string>("");
+
+  // Resource Picker (P1-1). Replaces the awkward "paste a GID
+  // manually" UX with Shopify's native picker modal: search,
+  // browse, click. Returns the canonical GID. Cancel = no-op.
+  const openResourcePicker = async () => {
+    if (scope === "all") return;
+    const result = await shopify.resourcePicker({
+      type: scope, // 'product' | 'variant' | 'collection' all map 1:1
+      multiple: false,
+      filter: { archived: false, draft: false },
+    });
+    if (!result || result.length === 0) return;
+    const picked = result[0] as { id: string; title?: string };
+    setScopeId(picked.id);
+    setScopeLabel(picked.title ?? "");
+  };
   const [minQty, setMinQty] = useState<string>(
     actionData?.values?.minQtyStr ?? "",
   );
@@ -165,22 +187,32 @@ export default function NewTier() {
               <TextField
                 label={
                   scope === "product"
-                    ? "Product ID (Shopify GID)"
+                    ? "Product"
                     : scope === "variant"
-                      ? "Variant ID (Shopify GID)"
-                      : "Collection ID (Shopify GID)"
+                      ? "Variant"
+                      : "Collection"
                 }
                 name="scopeId"
                 autoComplete="off"
                 value={scopeId}
-                onChange={setScopeId}
+                onChange={(v) => {
+                  setScopeId(v);
+                  // If the merchant manually edits the GID, clear the
+                  // cached picker label so we don't show stale info.
+                  if (v !== scopeId) setScopeLabel("");
+                }}
                 error={errors.scopeId}
                 helpText={
-                  scope === "product"
-                    ? "e.g. gid://shopify/Product/123456789"
-                    : scope === "variant"
-                      ? "e.g. gid://shopify/ProductVariant/987654321 (visible in admin URL when editing the variant)"
-                      : "e.g. gid://shopify/Collection/987654321"
+                  scopeLabel
+                    ? `Selected: ${scopeLabel}`
+                    : scope === "product"
+                      ? "Click Browse to pick a product, or paste a GID like gid://shopify/Product/123"
+                      : scope === "variant"
+                        ? "Click Browse to pick a variant, or paste a GID like gid://shopify/ProductVariant/987"
+                        : "Click Browse to pick a collection, or paste a GID like gid://shopify/Collection/987"
+                }
+                connectedRight={
+                  <Button onClick={openResourcePicker}>Browse…</Button>
                 }
                 requiredIndicator
               />

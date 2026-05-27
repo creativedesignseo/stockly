@@ -27,6 +27,7 @@ interface OrdersPaidPayload {
   customer?: {
     id?: number;
     admin_graphql_api_id?: string;
+    /// Shopify sends customer tags as a comma-separated string.
     tags?: string;
   };
   total_price?: string;
@@ -34,6 +35,20 @@ interface OrdersPaidPayload {
   line_items?: Array<{
     quantity?: number;
   }>;
+}
+
+/**
+ * Parse Shopify's comma-separated `customer.tags` string into a
+ * normalized set (trimmed, non-empty).
+ */
+function parseCustomerTags(raw: string | undefined | null): Set<string> {
+  if (!raw) return new Set();
+  return new Set(
+    raw
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
+  );
 }
 
 interface FpqRule {
@@ -89,6 +104,59 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const shopRow = await prisma.shop.findUnique({ where: { id: shop } });
   if (!shopRow) return new Response();
+
+  // ──────────────────────────────────────────────────────────────
+  // Order tagging (BSS Essential parity feature)
+  // ──────────────────────────────────────────────────────────────
+  // If the buying customer carries the shop's wholesale tag (set by
+  // either the admin approve action or the storefront registration
+  // form), tag the ORDER with `<wholesaleTag>-order` so the merchant
+  // can filter B2B orders in Shopify Admin (e.g. `tag:wholesale-order`).
+  //
+  // Runs BEFORE the qualification early-return because we want to tag
+  // every wholesale order, not just the qualifying one. Idempotent —
+  // Shopify's tagsAdd is set-semantics, repeating it is a no-op.
+  //
+  // Errors swallowed: a failed tag write doesn't block qualification,
+  // and the merchant can still filter by customer tag instead. Logged
+  // for ops visibility.
+  const orderGid = order.admin_graphql_api_id;
+  if (orderGid) {
+    const customerTags = parseCustomerTags(order.customer?.tags);
+    if (customerTags.has(shopRow.wholesaleTag)) {
+      const orderTag = `${shopRow.wholesaleTag}-order`;
+      try {
+        const r = await admin.graphql(
+          `#graphql
+          mutation TagWholesaleOrder($id: ID!, $tags: [String!]!) {
+            tagsAdd(id: $id, tags: $tags) {
+              userErrors { field message }
+            }
+          }`,
+          { variables: { id: orderGid, tags: [orderTag] } },
+        );
+        const body = (await r.json()) as {
+          data?: {
+            tagsAdd?: { userErrors: { field: string[]; message: string }[] };
+          };
+        };
+        const errs = body.data?.tagsAdd?.userErrors ?? [];
+        if (errs.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[Stockly webhook orders/paid] tagsAdd userErrors:",
+            JSON.stringify(errs),
+          );
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(
+          "[Stockly webhook orders/paid] order tagging failed:",
+          err,
+        );
+      }
+    }
+  }
 
   const fpqRule: FpqRule = {
     mode: shopRow.fpqMode,
