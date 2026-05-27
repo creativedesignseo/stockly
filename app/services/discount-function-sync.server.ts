@@ -245,22 +245,37 @@ async function updateDiscountMetafield(
 /**
  * Build the JSON payload that the Function expects in its metafield.
  *
- * Shape (v3 — adds scope + scopeId to each tier so checkout can enforce
- * product- and variant-scoped tiers, ADR-008 P0 #3):
+ * Shape (v4 — ADR-012 multi-band Volume Pricing):
  *   {
  *     "wholesaleBaselinePct": 65,
  *     "fpq": { ... },
  *     "qualifiedCustomers": ["gid://shopify/Customer/123", ...],
  *     "tiers": [
- *       { "scope": "all",     "scopeId": null,                              "minQty": 10, "discountPct": 10 },
- *       { "scope": "product", "scopeId": "gid://shopify/Product/123",       "minQty": 5,  "discountPct": 15 },
- *       { "scope": "variant", "scopeId": "gid://shopify/ProductVariant/45", "minQty": 3,  "discountPct": 20 },
- *       ...
+ *       {
+ *         "scope": "product",
+ *         "scopeIds": ["gid://shopify/Product/123"],
+ *         "groupId": "g_abc123",
+ *         "minQty": 1,  "quantityTo": 9,
+ *         "discountType": "percentage", "discountPct": 5,
+ *         "aggregation": "per_line",
+ *         "customerEligibility": "wholesale_tagged",
+ *         "startsAt": null, "endsAt": null,
+ *         "discountFixedPrice": null
+ *       },
+ *       {
+ *         "scope": "product",
+ *         "scopeIds": ["gid://shopify/Product/123"],
+ *         "groupId": "g_abc123",
+ *         "minQty": 10, "quantityTo": null,
+ *         "discountType": "percentage", "discountPct": 10,
+ *         ...
+ *       }
  *     ]
  *   }
  *
  * Per-line filtering happens in the Function (run.ts): it picks the
- * most-specific qualifying tier for each cart line.
+ * most-specific qualifying tier for each cart line, gated by
+ * quantityTo (band upper bound) and active-date window.
  *
  * Collection-scoped tiers are EXCLUDED from this payload — the Function
  * input doesn't expose a line's collections without a costly
@@ -269,6 +284,10 @@ async function updateDiscountMetafield(
  * if the merchant needs checkout-level enforcement they should split the
  * collection into product-scoped tiers (or wait for the per-product
  * metafield follow-up).
+ *
+ * Back-compat: groupId/quantityTo/startsAt/endsAt/discountFixedPrice are
+ * optional in the Function reader (default-on-missing pattern). One
+ * release cycle of mixed legacy + new metafield shapes is supported.
  */
 async function buildConfiguration(shopId: string): Promise<string> {
   const [shop, tiers, qualifiedRows] = await Promise.all([
@@ -305,16 +324,30 @@ async function buildConfiguration(shopId: string): Promise<string> {
         // NEW: full list of target GIDs the rule matches.
         scopeIds: ids,
         minQty: t.minQty,
+        // ADR-012: per-band upper bound. null = open-ended.
+        quantityTo: t.quantityTo,
         discountPct: t.discountPct,
         // New fields (2026-05-27). Function falls back to "percentage"
         // when missing, so older tiers in the metafield keep working.
         discountType: t.discountType,
         discountAmount: t.discountAmount, // null when type=percentage
-        aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
+        // ADR-012: final per-unit price for type='fixed_price'. null
+        // for other types — Function ignores it then.
+        discountFixedPrice: t.discountFixedPrice,
+        aggregation: t.aggregation, // 'per_line' | 'cart_total' | 'mix_variants' (ADR-007 + ADR-012)
         // Per-rule customer eligibility (ADR-011). The Function falls
         // back to 'wholesale_tagged' when missing, so pre-2026-05-27
         // tiers keep gated by the shop's wholesale tag.
         customerEligibility: t.customerEligibility,
+        // ADR-012: rule grouping key. The Function uses it only for
+        // diagnostics today; reserved for future per-group winner
+        // selection.
+        groupId: t.groupId,
+        // ADR-012: active-date window. ISO strings (Function compares
+        // to its own `new Date().toISOString()` at run time). null =
+        // no gate on that side of the window.
+        startsAt: t.startsAt ? t.startsAt.toISOString() : null,
+        endsAt: t.endsAt ? t.endsAt.toISOString() : null,
       };
     })
     .sort((a, b) => a.minQty - b.minQty);
