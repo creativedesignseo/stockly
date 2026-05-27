@@ -3,12 +3,13 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-27 — Multi-product selection per pricing rule LIVE
-**Last commit:** `18a8b11` — `feat(pricing): multi-product selection per rule`
+**Last updated:** 2026-05-28 — Volume Pricing multi-band MERGED (not yet deployed)
+**Last commit (worktree):** `feat(pricing): multi-band UI in list, create, edit (ADR-012)`
+**Last deployed commit:** `18a8b11` — `feat(pricing): multi-product selection per rule`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v31` (multi-product deploy 2026-05-27)
-**Shopify app version:** `stockly-21` (Function WASM reads scopeIds[] with scopeId fallback)
+**Fly version:** `v31` (multi-product deploy 2026-05-27) — Volume Pricing deploy PENDING
+**Shopify app version:** `stockly-21` (Function WASM reads scopeIds[] with scopeId fallback) — Volume Pricing deploy PENDING
 **Public legal URLs (LIVE, DRAFT):**
   - https://stockly-lustrous-forest-4364.fly.dev/legal/privacy
   - https://stockly-lustrous-forest-4364.fly.dev/legal/terms
@@ -72,6 +73,57 @@
 ```
 
 See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for the full reasoning of WHY Fly.io specifically (and why Vercel was the wrong call).
+
+---
+
+## What ships next (Volume Pricing, ADR-012) — PRE-DEPLOY
+
+Merged into the worktree on 2026-05-28, awaiting deployment-guardian
+sign-off. The pricing engine and data layer are end-to-end ready; the
+multi-band admin UI ships in Phase 2.
+
+**End-to-end ready (Phase 1):**
+- `Tier` schema: `quantityTo`, `groupId`, `discountFixedPrice`,
+  `startsAt`, `endsAt`, `showTableOnPdp`, `tableTemplateId`.
+- Service layer: `createRule`, `updateRule`, `deleteRule`, `listRules`,
+  `getRule`, `BandInput` / `RuleSummary` types.
+- Sync layer: v4 metafield shape with the new fields per scoped tier.
+- Discount Function (`run.ts`): mix_variants aggregation, fixed_price
+  discount type, active-date filter (reads `Date.now()`), quantityTo
+  band upper bound, `discountPct = 0` legitimately accepted for
+  fixed_price tiers.
+- 7 unit fixtures pin the new Function behavior including 3
+  active-date guardrails for the `Date.now()` runtime.
+- Admin list: one row per `groupId`, inline status toggle, "Volume
+  bands" column.
+
+**Storage-only / Phase 2 (UI not yet built):**
+- Multi-band band-editor table on `/app/pricing/new` and
+  `/app/pricing/$id`. The forms still edit ONE band per save. Multi-
+  band rules are creatable today via `createRule` service calls but
+  not via the admin UI.
+- Active-date pickers in the sidebar (`startsAt` / `endsAt` form
+  inputs). Field exists in DB + Function.
+- "Show Table on PDP" toggle (`showTableOnPdp`) form input. Field
+  exists in DB.
+- Theme app block that renders the storefront volume-pricing table.
+
+**Pending production steps for deployment-guardian:**
+1. `prisma db push` against Fly Managed Postgres
+   `stockly-lustrous-forest-4364` — purely additive (every new field
+   is nullable or has a default), safe.
+2. Back-fill `groupId` on legacy rows:
+   ```
+   fly ssh console -a stockly-lustrous-forest-4364 \
+     -C 'node /app/scripts/backfill-tier-groupids.js'
+   ```
+   The script exits non-zero if any NULL remains. Re-runs are no-ops.
+3. `fly deploy` (Remix server with the new service-layer helpers).
+4. `npx shopify app deploy` (publishes the new Function WASM with
+   mix_variants + fixed_price + active-date filter).
+5. Verify Piro Jewelry's live tiers still apply at checkout (legacy
+   fixture covers this in CI; production smoke is `legacy-single-band`
+   semantics on a real cart).
 
 ---
 
