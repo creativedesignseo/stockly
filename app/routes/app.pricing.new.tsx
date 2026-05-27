@@ -42,7 +42,6 @@ import {
   Text,
   RadioButton,
   Divider,
-  PageActions,
   Box,
   InlineGrid,
 } from "@shopify/polaris";
@@ -653,16 +652,11 @@ export default function NewTier() {
                 </BlockStack>
               </Card>
 
-              <PageActions
-                primaryAction={{
-                  content: "Create wholesale pricing",
-                  submit: true,
-                  loading: submitting,
-                }}
-                secondaryActions={[
-                  { content: "Cancel", url: "/app/pricing" },
-                ]}
-              />
+              {/*
+                PageActions at the bottom removed 2026-05-27 — the
+                sticky SaveBar at the top (App Bridge) handles
+                Save + Discard. Having both was duplicate UX.
+               */}
             </BlockStack>
           </Layout.Section>
 
