@@ -40,6 +40,10 @@ function newGroupId(): string {
 }
 
 async function main() {
+  // --dry-run = count + log only, no writes. Lets the deployment-guardian
+  // pre-flight the back-fill before the real run on prod (reviewer S1).
+  const dryRun = process.argv.includes("--dry-run");
+
   const rows = await prisma.tier.findMany({
     where: { groupId: null },
     select: { id: true, shopId: true },
@@ -52,7 +56,17 @@ async function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log(`[backfill] back-filling groupId on ${rows.length} legacy tier row(s)`);
+  console.log(
+    `[backfill]${dryRun ? " (dry-run)" : ""} ${rows.length} legacy tier row(s) would be back-filled`,
+  );
+
+  if (dryRun) {
+    // eslint-disable-next-line no-console
+    console.log(
+      "[backfill] dry-run — no writes. Re-run without --dry-run to apply.",
+    );
+    return;
+  }
 
   // One transaction so a partial failure leaves the table clean.
   await prisma.$transaction(

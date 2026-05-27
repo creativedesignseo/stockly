@@ -675,14 +675,26 @@ export async function listRules(
   // Group by groupId. Legacy back-fill guarantees no NULLs in prod;
   // defensively, any row with a null groupId is its own pseudo-group.
   const groups = new Map<string, Tier[]>();
+  let orphanCount = 0;
   for (const tier of tiers) {
     const key = tier.groupId ?? `_orphan:${tier.id}`;
+    if (!tier.groupId) orphanCount++;
     const arr = groups.get(key);
     if (arr) {
       arr.push(tier);
     } else {
       groups.set(key, [tier]);
     }
+  }
+  // Reviewer S2: if back-fill was skipped or partial, surface it loudly
+  // in server logs so the deploy-order error is visible from the admin
+  // request path. Each orphan still renders correctly (1-band pseudo-
+  // group), but the merchant may see what looks like duplicate rules.
+  if (orphanCount > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[listRules] shop ${shopId}: ${orphanCount} tier(s) have NULL groupId — run scripts/backfill-tier-groupids.ts on this DB`,
+    );
   }
 
   const summaries: RuleSummary[] = [];
