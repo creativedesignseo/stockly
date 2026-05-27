@@ -46,8 +46,8 @@ import {
   Box,
   InlineGrid,
 } from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { useState } from "react";
+import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { useEffect, useRef, useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
@@ -225,6 +225,59 @@ export default function NewTier() {
 
   const errors = actionData?.errors ?? {};
 
+  /* ----- Save bar (sticky top, App Bridge style) -----
+   * Tracks "is the form dirty?" by comparing every field against
+   * its initial value. When dirty → show the SaveBar at the top
+   * of the Shopify admin (the same UX Sami / BSS have). The bar's
+   * primary button triggers formRef.current?.requestSubmit() so
+   * the standard Remix <Form> POST flow runs (action validates,
+   * creates the tier, redirects to /app/pricing).
+   * Discard resets all state back to the initial values.
+   */
+  const initial = {
+    name: actionData?.values?.name ?? "",
+    scope: (actionData?.values?.scope as TierScope) ?? ("all" as TierScope),
+    scopeId: actionData?.values?.scopeId ?? "",
+    minQty: actionData?.values?.minQtyStr ?? "10",
+    discountPct: actionData?.values?.discountPctStr ?? "10",
+    aggregation:
+      (actionData?.values?.aggregation as TierAggregation) ??
+      ("per_line" as TierAggregation),
+  };
+  const isDirty =
+    name !== initial.name ||
+    scope !== initial.scope ||
+    scopeId !== initial.scopeId ||
+    minQty !== initial.minQty ||
+    discountPct !== initial.discountPct ||
+    aggregation !== initial.aggregation;
+
+  const SAVE_BAR_ID = "pricing-new-save-bar";
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (isDirty) {
+      shopify.saveBar.show(SAVE_BAR_ID);
+    } else {
+      shopify.saveBar.hide(SAVE_BAR_ID);
+    }
+    // The cleanup hides the bar when the component unmounts — keeps
+    // the global Shopify admin state clean on navigation.
+    return () => {
+      shopify.saveBar.hide(SAVE_BAR_ID);
+    };
+  }, [isDirty, shopify]);
+
+  const handleDiscard = () => {
+    setName(initial.name);
+    setScope(initial.scope);
+    setScopeId(initial.scopeId);
+    setScopeLabel("");
+    setMinQty(initial.minQty);
+    setDiscountPct(initial.discountPct);
+    setAggregation(initial.aggregation);
+  };
+
   /* ----- Resource Picker ----- */
   const openResourcePicker = async () => {
     if (scope === "all") return;
@@ -267,7 +320,24 @@ export default function NewTier() {
   return (
     <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
       <TitleBar title="New wholesale pricing" />
-      <Form method="post">
+      {/*
+        Sticky SaveBar at the top of the Shopify admin. Driven by the
+        `isDirty` state computed above — App Bridge handles the actual
+        portal rendering. The primary button submits the existing
+        Remix <Form> via formRef.current.requestSubmit() so action
+        validation + redirect still flow normally.
+       */}
+      <SaveBar id={SAVE_BAR_ID}>
+        <button
+          variant="primary"
+          onClick={() => formRef.current?.requestSubmit()}
+          loading={submitting ? "" : undefined}
+        >
+          Save
+        </button>
+        <button onClick={handleDiscard}>Discard</button>
+      </SaveBar>
+      <Form method="post" ref={formRef}>
         {/*
           Hidden inputs mirror the state so the standard <form> POST
           carries everything — keeps the action contract unchanged
