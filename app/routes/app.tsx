@@ -54,6 +54,7 @@ export default function App() {
           only entry point now.
         */}
         <Link to="/app/pricing">Pricing</Link>
+        <Link to="/app/registration-form">Registration form</Link>
         <Link to="/app/customers/applications">Applications</Link>
         <Link to="/app/qualify-customer">Qualify customer</Link>
       </NavMenu>
