@@ -3,11 +3,11 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-27 — B0-3 C2 + B0-6 + B0-1 GDPR webhooks closed
-**Last commit:** `d9eb887` — `feat(gdpr): mandatory privacy webhooks (B0-1)`
+**Last updated:** 2026-05-27 — 3 BSS-parity quick wins shipped (P1-1 + P1-10 + P1-11)
+**Last commit:** `6d110c8` — `feat(b2b): 3 BSS-parity quick wins — order tagging, tax-exempt toggle, ResourcePicker`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v16` (manual deploy 2026-05-27 with GDPR handlers)
+**Fly version:** `v17` (manual deploy 2026-05-27)
 **Shopify app version:** `stockly-19` (GDPR compliance_topics registered + Protected Customer Data + Custom distribution)
 
 ---
