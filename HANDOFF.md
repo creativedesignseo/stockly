@@ -170,6 +170,16 @@ Code fixes:
 
 - **`stockly-lustrous-forest-4364` is the auto-assigned URL** because `stockly` was taken globally. When Stockly has revenue, register a custom domain (`app.stockly.io` or similar) and update Shopify Partners + DNS.
 - **Vercel project** still exists, dormant. Delete after 1 week of stable Fly to avoid confusion.
+- **Fly billing baseline (2026-05-27 cleanup):** After removing 2 orphan
+  Postgres deployments (the MPG cluster `d1zj5omlxp30yqkv` and the
+  legacy Postgres app `stockly-lustrous-forest-4364-db`, both leftover
+  from Sprint 0 migration attempts), monthly Fly cost is **~$2.50**:
+    - Active MPG cluster `n83v7rggv44r5gxk` — $2.16 + $0.14 storage
+    - 1-2 small Stockly app machines — ~$0.30 prorated
+    - Bandwidth — $0 (under the 100 GB/mo free tier)
+  Scaling expectation: ~$5-10/mo at 10 paying merchants, ~$30-50/mo at
+  100. Confirmed Stockly continues working post-cleanup (/healthz 200,
+  Prisma can query the DB).
 - **Migrations**: still using `prisma db push`. Move to versioned migrations when there's customer data to protect (Sprint 5 or later).
 - **Custom domain on Fly**: `fly certs create app.stockly.io` once domain registered.
 - **Multi-region**: when EU merchants matter, `fly machine clone --region cdg` (Paris). One command.
