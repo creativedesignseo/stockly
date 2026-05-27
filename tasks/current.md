@@ -84,8 +84,33 @@ Shopify App Store.
   (4 zombie vars: DATABASE_URL, POSTGRES_URL, PRISMA_DATABASE_URL,
   VERCEL_OIDC_TOKEN). Production on Fly.io confirmed unaffected
   (HTTP 200, secrets still deployed).
-- [ ] **B0-5 — Privacy Policy + Terms of Service URLs.** Required for
-  Protected Customer Data approval AND App Store listing. ~1 day.
+- [⏳] **B0-5 — Privacy + Terms SCAFFOLDED 2026-05-27, pending Jonatan
+  legal review.** Two new public routes:
+  - `app/routes/legal.privacy.tsx` → served at
+    `/legal/privacy` (no Shopify auth, public). GDPR-compliant
+    structure: responsable, datos recopilados, finalidad y base
+    legal, conservación, transferencias, derechos del interesado,
+    AEPD, cookies, menores, cambios, contacto.
+  - `app/routes/legal.terms.tsx` → served at `/legal/terms`. SaaS
+    B2B template: descripción, cuenta, planes/facturación (Shopify
+    Billing), trial, uso aceptable, IP, garantías, limitación de
+    responsabilidad (cap 12 meses), indemnización, terminación,
+    jurisdicción Barcelona.
+  - Content language: Spanish primary (ES/EU market). English
+    translation deferred to a follow-up.
+  - URLs are public, work without Shopify embed context.
+  - **NEXT STEPS (Jonatan):**
+    1. Read both files; flag anything that doesn't match Adspubli's
+       actual legal posture (address, contact emails, jurisdiction,
+       limitation amounts).
+    2. Run by an abogado especialista en RGPD/SaaS OR a service like
+       Iubenda/TermsFeed for a quick professional pass.
+    3. Once approved, set the URLs in **Partner Dashboard → Stockly →
+       App setup → Privacy / Terms** so they appear in the App Store
+       listing.
+    4. Submit Protected Customer Data request via Partner Dashboard
+       for the `orders/*` topic family — unblocks B0-3 C1 + order
+       tagging live (P1-10).
 - [x] **B0-6 — DONE 2026-05-27.** `fly.toml` now has
   `min_machines_running = 1` (primary machine never sleeps) and
   `auto_stop_machines = 'suspend'` (secondaries resume in ~100ms
