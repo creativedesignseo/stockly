@@ -26,6 +26,17 @@ import {
   submitApplication,
   validateApplication,
 } from "../services/wholesale-applications.server";
+// RF Phase 1C — dual-write path. Validates against the shop's
+// active form definition and persists a row in the new Application
+// table alongside the legacy WholesaleApplication. Both tables
+// receive writes during the soak; legacy is dropped in Phase 1G.
+import {
+  ensureDefaultRegistrationForm,
+  parseDefinition,
+  parseSettings,
+} from "../services/registrationForms.server";
+import { validateResponses } from "../lib/registrationForm/validate";
+import { submitApplication as submitGenericApplication } from "../services/applications.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
@@ -77,6 +88,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     shopifyCustomerId: loggedInCustomerId,
   };
 
+  // Authoritative validation: the legacy validator gates the response
+  // (back-compat — same error strings the storefront block already
+  // surfaces). Phase 1C-7 (proxy rewrite in 1D) will swap this for
+  // `validateResponses` once the storefront block ships the dynamic
+  // renderer. Until then we keep the legacy gate AND mirror the
+  // schema-driven validator in dev to surface drift early.
   const errors = validateApplication(input);
   if (errors.length > 0) {
     return json(
@@ -85,8 +102,56 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   }
 
+  // Schema-driven mirror: run the new validator against the shop's
+  // active form definition, log any divergence. Non-blocking — the
+  // legacy validator is still authoritative during the soak. When the
+  // logs show zero divergence we cut over.
   try {
+    const form = await ensureDefaultRegistrationForm(shopRow.id);
+    const definition = parseDefinition(form);
+    const settings = parseSettings(form);
+    const newErrors = validateResponses(
+      definition,
+      body,
+      settings.errorMessages,
+    );
+    if (newErrors.length > 0) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[Stockly RF] schema-driven validator caught extra issues (logged only)",
+        { shop: shopRow.id, newErrors },
+      );
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[Stockly RF] schema-driven mirror validation failed (non-blocking)",
+      err,
+    );
+  }
+
+  try {
+    // Legacy write — still the source of truth for the queue + approve
+    // flow until Phase 1F lands.
     const app = await submitApplication(input);
+
+    // RF Phase 1C — dual write into the new generic Application
+    // table. Non-blocking from the storefront's perspective: if this
+    // fails we still return 201 because the legacy write succeeded.
+    try {
+      await submitGenericApplication({
+        shopId: shopRow.id,
+        responses: body,
+        shopifyCustomerId: loggedInCustomerId ?? null,
+      });
+    } catch (mirrorErr) {
+      // eslint-disable-next-line no-console
+      console.error(
+        "[Stockly RF] dual-write to Application table failed",
+        mirrorErr,
+      );
+    }
+
     return json(
       { ok: true, id: app.id },
       { status: 201, headers: corsHeaders() },
