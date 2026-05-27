@@ -44,7 +44,7 @@
 import type { RunInput, FunctionRunResult, Target } from "../generated/api";
 import { DiscountApplicationStrategy } from "../generated/api";
 
-type Aggregation = "per_line" | "cart_total";
+type Aggregation = "per_line" | "cart_total" | "mix_variants";
 type Scope = "all" | "product" | "variant";
 type CustomerEligibility =
   | "wholesale_tagged"
@@ -80,21 +80,31 @@ interface ConfiguredTier {
   scopeIds?: string[];
   /** Inclusive minimum quantity that activates this tier. */
   minQty: number;
+  /**
+   * ADR-012: inclusive upper bound for this band. null/missing =
+   * open-ended ("and above"). Back-compat: legacy metafields without
+   * the field behave exactly like today.
+   */
+  quantityTo?: number | null;
   /** Percentage off the base price (0–100). Used when
    * discountType is "percentage" (or missing — back-compat). */
   discountPct: number;
-  /** "percentage" (default) or "fixed_amount". Added 2026-05-27
-   * to support Sami-style "$10 off each unit" tier semantics. */
-  discountType?: "percentage" | "fixed_amount";
+  /** "percentage" (default), "fixed_amount", or "fixed_price"
+   * (ADR-012). */
+  discountType?: "percentage" | "fixed_amount" | "fixed_price";
   /** Flat money amount off PER UNIT, in shop currency. Only
    * meaningful when discountType = "fixed_amount". */
   discountAmount?: number;
+  /** ADR-012: final per-unit price (overrides retail) when
+   * discountType = "fixed_price". Baseline composition is skipped. */
+  discountFixedPrice?: number;
   /**
-   * How minQty is evaluated against the cart (ADR-007).
+   * How minQty is evaluated against the cart (ADR-007 + ADR-012).
    * 'per_line' (default): each line's qty individually checked.
    * 'cart_total': SUM of all eligible line quantities checked once.
-   * Missing field treated as 'per_line' for back-compat with v1
-   * configurations still in the wild.
+   * 'mix_variants' (ADR-012): SUM across variants of the same
+   *   product within scope; lets buyers mix sizes to hit the minimum.
+   * Missing field treated as 'per_line' for back-compat.
    */
   aggregation?: Aggregation;
   /**
@@ -103,6 +113,15 @@ interface ConfiguredTier {
    * default — only customers with the shop's wholesale tag qualify).
    */
   customerEligibility?: CustomerEligibility;
+  /**
+   * ADR-012: active-date window. ISO-8601 strings. Function compares
+   * to its own `new Date().toISOString()` once per invocation. null /
+   * missing = no gate on that side.
+   */
+  startsAt?: string | null;
+  endsAt?: string | null;
+  /** ADR-012: rule grouping key. Diagnostics only today. */
+  groupId?: string;
 }
 
 /**
@@ -253,17 +272,43 @@ export function run(input: RunInput): FunctionRunResult {
     ? Math.min(100, Math.max(0, config.wholesaleBaselinePct ?? 0))
     : 0;
 
-  const tiers = (config.tiers ?? []).filter(
-    (t) =>
-      Number.isFinite(t.minQty) &&
+  // ADR-012: a fixed_price tier legitimately carries discountPct = 0
+  // because the discount value is in `discountFixedPrice` instead.
+  // The legacy `discountPct > 0` filter would silently drop those —
+  // accept them when the per-type value is present and > 0.
+  const tiers = (config.tiers ?? []).filter((t) => {
+    if (!Number.isFinite(t.minQty) || t.minQty <= 0) return false;
+    const type = t.discountType ?? "percentage";
+    if (type === "fixed_price") {
+      return (
+        typeof t.discountFixedPrice === "number" && t.discountFixedPrice > 0
+      );
+    }
+    if (type === "fixed_amount") {
+      return typeof t.discountAmount === "number" && t.discountAmount > 0;
+    }
+    // percentage (default)
+    return (
       Number.isFinite(t.discountPct) &&
-      t.minQty > 0 &&
       t.discountPct > 0 &&
-      t.discountPct <= 100,
-  );
+      t.discountPct <= 100
+    );
+  });
 
-  // No baseline AND no tiers → nothing to apply.
-  if (baseline === 0 && tiers.length === 0) return NO_DISCOUNT;
+  // ADR-012: active-date filter. Reads Date.now() once at the top of
+  // the Function so the comparison is stable across the per-line loop.
+  // A fixture under tests/fixtures/active-dates-* pins the behavior;
+  // if Date.now() ever degrades inside the WASM runtime, those tests
+  // are the alarm.
+  const nowIso = new Date().toISOString();
+  const activeTiers = tiers.filter((t) => {
+    if (t.startsAt && nowIso < t.startsAt) return false;
+    if (t.endsAt && nowIso > t.endsAt) return false;
+    return true;
+  });
+
+  // No baseline AND no currently-active tiers → nothing to apply.
+  if (baseline === 0 && activeTiers.length === 0) return NO_DISCOUNT;
 
   // 2. Per-tier customer eligibility (ADR-011, 2026-05-27).
   //    Replaces the previous global "customer must be wholesale-tagged"
@@ -298,7 +343,9 @@ export function run(input: RunInput): FunctionRunResult {
 
   // Pre-filter the candidate set by customer eligibility once, before
   // splitting by aggregation. Saves work in the per-line loop below.
-  const eligibleTiers = tiers.filter(tierMatchesCustomer);
+  // Note: pre-active-date filter (activeTiers) ran above — we further
+  // restrict by customer eligibility here.
+  const eligibleTiers = activeTiers.filter(tierMatchesCustomer);
   if (eligibleTiers.length === 0 && !customerHasWholesaleTag) {
     // No tier matches this customer AND baseline doesn't apply
     // (baseline is gated on the wholesale tag). Nothing to do.
@@ -306,16 +353,21 @@ export function run(input: RunInput): FunctionRunResult {
   }
   const effectiveBaseline = customerHasWholesaleTag ? baseline : 0;
 
-  // 2.5 Partition tiers by aggregation mode.
+  // 2.5 Partition tiers by aggregation mode (ADR-007 + ADR-012).
   //    - per_line tiers: each line evaluated independently against
   //      its own qty; also filtered by scope (variant/product/all).
   //    - cart_total tiers: cart-wide qty sum evaluated once; if met,
   //      applies to every line whose scope it matches.
+  //    - mix_variants tiers: sum across variants of the same product
+  //      within scope; lets buyers mix sizes/colors to clear minQty.
   const perLineTiers = eligibleTiers.filter(
     (t) => (t.aggregation ?? "per_line") === "per_line",
   );
   const cartTotalTiers = eligibleTiers.filter(
     (t) => t.aggregation === "cart_total",
+  );
+  const mixVariantTiers = eligibleTiers.filter(
+    (t) => t.aggregation === "mix_variants",
   );
 
   // Cart-wide qty for the cart_total branch + FPQ quantity check.
@@ -323,6 +375,20 @@ export function run(input: RunInput): FunctionRunResult {
     (sum, line) => sum + line.quantity,
     0,
   );
+
+  // ADR-012: per-product qty Map used by the mix_variants branch.
+  // Built once before the per-line loop to avoid O(N²). The Map keys
+  // are product GIDs; the value is the sum of cart line quantities
+  // across all variants of that product. Out-of-scope products are
+  // included — but the `tierAppliesToLine` filter inside the per-line
+  // loop drops them, so they don't affect any tier.
+  const qtyByProduct = new Map<string, number>();
+  for (const line of input.cart.lines) {
+    const m = line.merchandise;
+    if (m?.__typename !== "ProductVariant") continue;
+    const pid = m.product.id;
+    qtyByProduct.set(pid, (qtyByProduct.get(pid) ?? 0) + line.quantity);
+  }
 
   // 3. Pre-compute per-line discount calculations.
   //    We need the would-be wholesale subtotals BEFORE the FPQ
@@ -342,12 +408,17 @@ export function run(input: RunInput): FunctionRunResult {
         ? merchandise.product.id
         : "";
 
+    // ADR-012: a tier's qty signal must satisfy its quantityTo upper
+    // bound (when present). Helper below applied to all three branches.
+    const qtyInRange = (t: ConfiguredTier, signalQty: number): boolean =>
+      t.minQty <= signalQty && (t.quantityTo == null || signalQty <= t.quantityTo);
+
     // Per-line winner: best discount among tiers that (a) match this
-    // line's scope, (b) meet the per-line qty threshold. Specificity
+    // line's scope, (b) meet the per-line qty band. Specificity
     // (variant > product > all) is the tiebreaker when discountPct ties.
     const perLineWinning = perLineTiers
       .filter((t) => tierAppliesToLine(t, variantGid, productGid))
-      .filter((t) => t.minQty <= qty)
+      .filter((t) => qtyInRange(t, qty))
       .sort((a, b) => {
         const dDiff = b.discountPct - a.discountPct;
         if (dDiff !== 0) return dDiff;
@@ -358,44 +429,69 @@ export function run(input: RunInput): FunctionRunResult {
 
     // Cart-total winner for this line: of all cart_total tiers that
     // match this line's scope, pick the highest discountPct whose
-    // minQty is met by the cart-wide qty sum.
+    // band contains the cart-wide qty sum.
     const cartTotalWinning = cartTotalTiers
       .filter((t) => tierAppliesToLine(t, variantGid, productGid))
-      .filter((t) => t.minQty <= cartTotalQty)
+      .filter((t) => qtyInRange(t, cartTotalQty))
+      .sort((a, b) => b.discountPct - a.discountPct)[0];
+
+    // ADR-012: mix_variants winner — qty signal is the sum across this
+    // line's product's variants. Falls back to 0 when the line isn't
+    // a ProductVariant (in which case qtyInRange returns false).
+    const mixQty = qtyByProduct.get(productGid) ?? 0;
+    const mixVariantWinning = mixVariantTiers
+      .filter((t) => tierAppliesToLine(t, variantGid, productGid))
+      .filter((t) => qtyInRange(t, mixQty))
       .sort((a, b) => b.discountPct - a.discountPct)[0];
 
     const candidates: ConfiguredTier[] = [];
     if (perLineWinning) candidates.push(perLineWinning);
     if (cartTotalWinning) candidates.push(cartTotalWinning);
+    if (mixVariantWinning) candidates.push(mixVariantWinning);
     const winningTier = candidates.sort(
       (a, b) => b.discountPct - a.discountPct,
     )[0];
 
     // Tier type semantics:
-    //   - "percentage" (or missing for back-compat): tierPct
-    //     applies multiplicatively with baseline (current behavior).
-    //   - "fixed_amount": discountAmount is subtracted per unit
-    //     AFTER the baseline applies. tierPct = 0 for the
-    //     percentage composition step.
+    //   - "percentage" (or missing for back-compat): tierPct applies
+    //     multiplicatively with baseline (current behavior).
+    //   - "fixed_amount": discountAmount is subtracted per unit AFTER
+    //     the baseline applies. tierPct = 0 for the % composition step.
+    //   - "fixed_price" (ADR-012): discountFixedPrice is the FINAL
+    //     per-unit price; baseline is ignored entirely for this line.
     const tierType = winningTier?.discountType ?? "percentage";
     const tierPct =
       tierType === "percentage" ? (winningTier?.discountPct ?? 0) : 0;
     const tierFixedPerUnit =
       tierType === "fixed_amount" ? (winningTier?.discountAmount ?? 0) : 0;
+    const tierFinalPerUnit =
+      tierType === "fixed_price" ? (winningTier?.discountFixedPrice ?? 0) : 0;
     // effectiveBaseline (0 when customer isn't wholesale-tagged) keeps
     // baseline composition private to customers with the shop tag,
     // while still letting "all_customers" / "logged_in" tiers apply
     // their tierPct/fixedAmount to everyone they're scoped to.
     const composedPct = composeDiscountPct(effectiveBaseline, tierPct);
-    const lineRetail =
-      Number(line.cost?.amountPerQuantity?.amount ?? 0) * qty;
+    const perUnitRetail = Number(line.cost?.amountPerQuantity?.amount ?? 0);
+    const lineRetail = perUnitRetail * qty;
     // Apply baseline as a multiplier, then subtract the fixed amount
     // per unit × qty. Clamp at 0 to never go negative (Shopify would
     // reject a discount that makes the line cost less than 0).
-    const lineWholesale = Math.max(
-      0,
-      lineRetail * (1 - composedPct / 100) - tierFixedPerUnit * qty,
-    );
+    let lineWholesale: number;
+    if (tierType === "fixed_price") {
+      // ADR-012: if the final per-unit price isn't strictly less than
+      // retail, the tier is a no-op for this line — Shopify rejects
+      // negative discounts (no markups).
+      if (tierFinalPerUnit >= perUnitRetail || tierFinalPerUnit <= 0) {
+        lineWholesale = lineRetail;
+      } else {
+        lineWholesale = tierFinalPerUnit * qty;
+      }
+    } else {
+      lineWholesale = Math.max(
+        0,
+        lineRetail * (1 - composedPct / 100) - tierFixedPerUnit * qty,
+      );
+    }
 
     return {
       line,
@@ -404,6 +500,7 @@ export function run(input: RunInput): FunctionRunResult {
       tierType,
       tierPct,
       tierFixedPerUnit,
+      tierFinalPerUnit,
       composedPct,
       lineRetail,
       lineWholesale,
@@ -445,8 +542,17 @@ export function run(input: RunInput): FunctionRunResult {
   //    price we precomputed in lineWholesale.
   const discounts = lineCalcs.flatMap((calc) => {
     if (calc.lineRetail <= 0) return [];
-    // Nothing to discount (no baseline, no tier).
-    if (calc.composedPct <= 0 && calc.tierFixedPerUnit <= 0) return [];
+    // Nothing to discount (no baseline, no tier of any type).
+    if (
+      calc.composedPct <= 0 &&
+      calc.tierFixedPerUnit <= 0 &&
+      calc.tierFinalPerUnit <= 0
+    )
+      return [];
+    // ADR-012: a fixed_price tier where final >= retail is a no-op
+    // (lineWholesale == lineRetail). Skip emission to avoid a 0
+    // discount entry that confuses Shopify's checkout label.
+    if (calc.lineWholesale >= calc.lineRetail) return [];
 
     const target: Target = { cartLine: { id: calc.line.id } };
     // Display effectiveBaseline (what we actually composed) instead of
@@ -455,20 +561,27 @@ export function run(input: RunInput): FunctionRunResult {
     // checkout label even though we only applied the tier's % share.
     let message = `Wholesale ${effectiveBaseline}%`;
     if (calc.winningTier) {
+      const agg = calc.winningTier.aggregation;
       const mode =
-        calc.winningTier.aggregation === "cart_total" ? "mixed" : "units";
+        agg === "cart_total"
+          ? "mixed"
+          : agg === "mix_variants"
+            ? "mix"
+            : "units";
       if (calc.tierType === "fixed_amount") {
         message = `Wholesale ${effectiveBaseline}% + €${calc.tierFixedPerUnit} off/unit (${calc.winningTier.minQty}+ ${mode})`;
+      } else if (calc.tierType === "fixed_price") {
+        message = `Wholesale ${effectiveBaseline}% + €${calc.tierFinalPerUnit}/unit fixed (${calc.winningTier.minQty}+ ${mode})`;
       } else {
         message = `Wholesale ${effectiveBaseline}% + ${calc.tierPct}% volume (${calc.winningTier.minQty}+ ${mode})`;
       }
     }
 
-    if (calc.tierType === "fixed_amount") {
-      // Total money off = (retail − wholesale) for this line. Use a
-      // single fixedAmount entry so Shopify's checkout math matches
-      // our precomputed wholesale exactly. .toFixed(2) keeps things
-      // in cents, avoiding floating-point surprises at checkout.
+    if (calc.tierType === "fixed_amount" || calc.tierType === "fixed_price") {
+      // Both money-typed paths emit one fixedAmount entry whose value
+      // is the total off-line money so Shopify's checkout math matches
+      // our precomputed wholesale exactly. .toFixed(2) keeps things in
+      // cents, avoiding floating-point surprises at checkout.
       const lineDiscountMoney = (calc.lineRetail - calc.lineWholesale).toFixed(
         2,
       );
