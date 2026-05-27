@@ -121,7 +121,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.scope = "Invalid scope";
   if (scope !== "all" && scopeIds.length === 0)
     errors.scopeIds = "Select at least one target";
-  if (!["per_line", "cart_total"].includes(aggregation))
+  if (!["per_line", "cart_total", "mix_variants"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
   if (
     !["wholesale_tagged", "logged_in", "all_customers", "specific_customers"].includes(
@@ -141,6 +141,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (scope === "variant" && aggregation === "cart_total") {
     errors.aggregation =
       "Variant-scoped tiers must use per-line aggregation.";
+  }
+  // ADR-012 §4.8: mix_variants is meaningless on variant scope.
+  if (scope === "variant" && aggregation === "mix_variants") {
+    errors.aggregation =
+      "Mix variants aggregation cannot be combined with variant scope.";
   }
 
   const minQty = Number(minQtyStr);
@@ -311,6 +316,12 @@ const AGGREGATION_OPTIONS: Array<{
     title: "Cart total (assortment)",
     description:
       "Sum across all products in scope. Mix and match to reach the minimum.",
+  },
+  {
+    value: "mix_variants",
+    title: "Mix variants of the same product",
+    description:
+      "Sum quantities across variants of the same product. Mix sizes / colors to hit the minimum.",
   },
 ];
 
@@ -493,7 +504,7 @@ export default function NewTier() {
         : `${scopeItems.length} ${scopeNoun}`;
 
   const triggerSummary = minQty
-    ? `${minQty} units · ${aggregation === "per_line" ? "per line" : "cart total"}`
+    ? `${minQty} units · ${aggregation === "per_line" ? "per line" : aggregation === "mix_variants" ? "mix variants" : "cart total"}`
     : "—";
 
   const discountSummary =
@@ -750,10 +761,11 @@ export default function NewTier() {
                     </Text>
                   </BlockStack>
 
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
                     {AGGREGATION_OPTIONS.map((opt) => {
                       const disabled =
-                        scope === "variant" && opt.value === "cart_total";
+                        scope === "variant" &&
+                        (opt.value === "cart_total" || opt.value === "mix_variants");
                       return (
                         <ChoiceCard
                           key={opt.value}

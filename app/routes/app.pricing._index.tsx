@@ -61,7 +61,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
-import { getTier, listTiers, updateTier } from "../services/tiers.server";
+import { listRules } from "../services/tiers.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 
 /* -------------------------------------------------------------------------- */
@@ -74,8 +74,12 @@ import { syncTiersToFunction } from "../services/discount-function-sync.server";
  * re-sync the Discount Function so checkout reflects the change
  * immediately (the same call /app/pricing/$id makes on save).
  *
- * Intent = "toggle" + tierId + nextActive("on" | "off"). Triggered
+ * Intent = "toggle" + groupId + nextActive("on" | "off"). Triggered
  * by the per-row useFetcher in the Status column.
+ *
+ * ADR-012: works on groupId. Flips active on every band of the group
+ * via updateMany. Legacy single-band tiers are 1-band groups after
+ * back-fill, so this preserves today's behavior for them too.
  */
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
@@ -84,31 +88,38 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (intent !== "toggle") {
     throw new Response(`Unknown form intent: ${intent}`, { status: 400 });
   }
-  const id = (form.get("id") ?? "").toString();
+  const groupId = (form.get("groupId") ?? "").toString();
   const nextActive = form.get("nextActive") === "on";
 
   // Verify ownership before mutating. Same defensive pattern as
   // /app/pricing/$id.tsx — actions can be hit directly via fetch.
-  const existing = await getTier(id, shop.id);
+  const existing = await prisma.tier.findFirst({
+    where: { shopId: shop.id, groupId },
+    select: { id: true },
+  });
   if (!existing)
     throw new Response("Wholesale pricing not found", { status: 404 });
 
-  await updateTier(id, { active: nextActive });
+  await prisma.tier.updateMany({
+    where: { shopId: shop.id, groupId },
+    data: { active: nextActive },
+  });
   try {
     await syncTiersToFunction(admin, shop.id);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("[pricing._index] syncTiersToFunction failed:", err);
   }
-  return json({ ok: true, id, active: nextActive });
+  return json({ ok: true, groupId, active: nextActive });
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
   // Two queries in parallel: the rules to show in the table + the
   // shop-wide setup numbers shown in the banner.
-  const [tiers, shopRow] = await Promise.all([
-    listTiers(shop.id),
+  // ADR-012: list aggregates one row per groupId (multi-band rule).
+  const [rules, shopRow] = await Promise.all([
+    listRules(shop.id),
     prisma.shop.findUnique({
       where: { id: shop.id },
       select: {
@@ -123,7 +134,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }),
   ]);
   return {
-    tiers,
+    rules,
     shop: shopRow,
   };
 };
@@ -137,7 +148,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 type TabId = "all" | "active" | "draft";
 
 export default function PricingList() {
-  const { tiers, shop } = useLoaderData<typeof loader>();
+  const { rules, shop } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -158,11 +169,11 @@ export default function PricingList() {
       : rawStatus === "draft" || rawStatus === "inactive"
         ? "draft"
         : "all";
-  const activeCount = tiers.filter((t) => t.active).length;
-  const draftCount = tiers.length - activeCount;
+  const activeCount = rules.filter((r) => r.active).length;
+  const draftCount = rules.length - activeCount;
 
   const tabs = [
-    { id: "all", content: `All (${tiers.length})`, panelID: "all" },
+    { id: "all", content: `All (${rules.length})`, panelID: "all" },
     { id: "active", content: `Active (${activeCount})`, panelID: "active" },
     {
       id: "draft",
@@ -186,20 +197,20 @@ export default function PricingList() {
     );
   };
 
-  const filteredTiers = useMemo(() => {
-    if (filterParam === "active") return tiers.filter((t) => t.active);
-    if (filterParam === "draft") return tiers.filter((t) => !t.active);
-    return tiers;
-  }, [tiers, filterParam]);
+  const filteredRules = useMemo(() => {
+    if (filterParam === "active") return rules.filter((r) => r.active);
+    if (filterParam === "draft") return rules.filter((r) => !r.active);
+    return rules;
+  }, [rules, filterParam]);
 
   const resourceName = { singular: "rule", plural: "rules" };
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(
-      filteredTiers.map((t) => ({ id: t.id })) as { id: string }[],
+      filteredRules.map((r) => ({ id: r.groupId })) as { id: string }[],
     );
 
   /* ----- Empty state — no rules at all yet ----- */
-  if (tiers.length === 0) {
+  if (rules.length === 0) {
     return (
       <Page
         primaryAction={{
@@ -287,7 +298,7 @@ export default function PricingList() {
           <Tabs tabs={tabs} selected={tabIndex} onSelect={onTabSelect} />
           <IndexTable
             resourceName={resourceName}
-            itemCount={filteredTiers.length}
+            itemCount={filteredRules.length}
             selectedItemsCount={
               allResourcesSelected ? "All" : selectedResources.length
             }
@@ -297,8 +308,8 @@ export default function PricingList() {
                 heading={
                   filterParam === "active"
                     ? "No active rules"
-                    : filterParam === "inactive"
-                      ? "No inactive rules"
+                    : filterParam === "draft"
+                      ? "No draft rules"
                       : "Nothing here"
                 }
                 image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
@@ -313,49 +324,52 @@ export default function PricingList() {
               { title: "Name" },
               { title: "Status" },
               { title: "Apply Customers" },
+              { title: "Volume bands" },
               { title: "Apply Products" },
               { title: "Apply Markets" },
               { title: "Created" },
             ]}
           >
-            {filteredTiers.map((tier, index) => (
+            {filteredRules.map((rule, index) => (
               <IndexTable.Row
-                id={tier.id}
-                key={tier.id}
+                id={rule.groupId}
+                key={rule.groupId}
                 position={index}
-                selected={selectedResources.includes(tier.id)}
-                onClick={() => navigate(`/app/pricing/${tier.id}`)}
+                selected={selectedResources.includes(rule.groupId)}
+                onClick={() => navigate(`/app/pricing/${rule.groupId}`)}
               >
                 <IndexTable.Cell>
                   <Text as="span" variant="bodySm" tone="subdued">
-                    #{tier.id.slice(0, 6)}
+                    #{rule.groupId.slice(0, 6)}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text variant="bodyMd" fontWeight="semibold" as="span">
-                    {tier.name}
+                    {rule.name}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   {/*
-                    Inline status toggle. Per Jonatan 2026-05-27 — the
-                    toggle that lives inside /app/pricing/$id should be
-                    reachable from the list too, so a merchant can
-                    pause/resume a rule without entering the edit form.
-                    The Sami list shows the same pattern.
+                    Inline status toggle. ADR-012: now operates on
+                    groupId, flipping every band of the rule at once.
                    */}
                   <StatusToggleCell
-                    tierId={tier.id}
-                    active={tier.active}
+                    groupId={rule.groupId}
+                    active={rule.active}
                   />
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodyMd">
-                    {formatCustomerEligibility(tier.customerEligibility)}
+                    {formatCustomerEligibility(rule.customerEligibility)}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                  <ScopeCell scope={tier.scope} />
+                  <Text as="span" variant="bodyMd">
+                    {formatBandSummary(rule.bandCount, rule.minQty, rule.maxQty)}
+                  </Text>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                  <ScopeCell scope={rule.scope} />
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodyMd">
@@ -364,7 +378,7 @@ export default function PricingList() {
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodySm" tone="subdued">
-                    {new Date(tier.createdAt).toLocaleDateString()}
+                    {new Date(rule.createdAt).toLocaleDateString()}
                   </Text>
                 </IndexTable.Cell>
               </IndexTable.Row>
@@ -389,10 +403,10 @@ export default function PricingList() {
  * would also open the edit form — confusing.
  */
 function StatusToggleCell({
-  tierId,
+  groupId,
   active,
 }: {
-  tierId: string;
+  groupId: string;
   active: boolean;
 }) {
   const fetcher = useFetcher<typeof action>();
@@ -407,7 +421,7 @@ function StatusToggleCell({
     e.stopPropagation();
     const fd = new FormData();
     fd.append("intent", "toggle");
-    fd.append("id", tierId);
+    fd.append("groupId", groupId);
     fd.append("nextActive", displayActive ? "off" : "on");
     fetcher.submit(fd, { method: "POST", action: "/app/pricing" });
   };
@@ -504,6 +518,25 @@ function formatCustomerEligibility(value: string | null | undefined): string {
       // Pre-migration rows have null; render the default mode label.
       return "Wholesale customers";
   }
+}
+
+/**
+ * ADR-012: render the "Volume bands" column. One band keeps the
+ * single-band copy ("10+ units") so legacy rules look unchanged.
+ * Multi-band rules show "N bands · X-Y units" (∞ when open-ended).
+ */
+function formatBandSummary(
+  bandCount: number,
+  minQty: number,
+  maxQty: number | null,
+): string {
+  if (bandCount <= 1) {
+    return maxQty != null
+      ? `${minQty}–${maxQty} units`
+      : `${minQty}+ units`;
+  }
+  const upper = maxQty != null ? `${maxQty}` : "∞";
+  return `${bandCount} bands · ${minQty}–${upper} units`;
 }
 
 function ScopeCell({ scope }: { scope: string }) {

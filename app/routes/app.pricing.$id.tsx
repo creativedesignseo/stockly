@@ -59,7 +59,7 @@ import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
-  deleteTier,
+  deleteRule,
   getTier,
   updateTier,
   type TierAggregation,
@@ -73,13 +73,29 @@ import {
 /*                                  LOADER                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * ADR-012: the list view links use a rule's `groupId`. Legacy
+ * bookmarks still use `Tier.id`. Resolve either by trying id first,
+ * then falling back to groupId. Returns the FIRST band of the group
+ * (sorted ascending by minQty) — for legacy 1-band rules that's the
+ * only band; for multi-band rules the rule-level fields all match.
+ */
+async function resolveTierOrGroup(rawId: string, shopId: string) {
+  const direct = await getTier(rawId, shopId);
+  if (direct) return direct;
+  return prisma.tier.findFirst({
+    where: { shopId, groupId: rawId },
+    orderBy: { minQty: "asc" },
+  });
+}
+
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
   const [tier, shopRow] = await Promise.all([
-    getTier(id, shop.id),
+    resolveTierOrGroup(id, shop.id),
     prisma.shop.findUnique({
       where: { id: shop.id },
       select: { wholesaleBaselinePct: true },
@@ -193,17 +209,22 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
-  // Re-verify ownership: action runs independently of the loader and
-  // can be hit directly via fetch.
-  const existing = await getTier(id, shop.id);
+  // ADR-012: id may be a Tier.id (legacy bookmark) or a groupId (new
+  // list links). Resolve to the underlying band; if the URL was a
+  // groupId, `existing.groupId === id` so we always know the group
+  // for downstream multi-band operations.
+  const existing = await resolveTierOrGroup(id, shop.id);
   if (!existing)
     throw new Response("Wholesale pricing not found", { status: 404 });
+  const groupId = existing.groupId ?? existing.id;
 
   const form = await request.formData();
   const intent = (form.get("intent") ?? "").toString();
 
   if (intent === "delete") {
-    await deleteTier(id);
+    // ADR-012: delete EVERY band of the rule, not just the resolved
+    // one. Legacy 1-band rules remove a single row (unchanged behavior).
+    await deleteRule(groupId, shop.id);
     try {
       await syncTiersToFunction(admin, shop.id);
     } catch (err) {
@@ -251,11 +272,16 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.scope = "Invalid scope";
   if (scope !== "all" && scopeIds.length === 0)
     errors.scopeIds = "Select at least one target";
-  if (!["per_line", "cart_total"].includes(aggregation))
+  if (!["per_line", "cart_total", "mix_variants"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
   if (scope === "variant" && aggregation === "cart_total") {
     errors.aggregation =
       "Variant-scoped pricing rules must use per-line aggregation.";
+  }
+  // ADR-012 §4.8: mix_variants is meaningless on variant scope.
+  if (scope === "variant" && aggregation === "mix_variants") {
+    errors.aggregation =
+      "Mix variants aggregation cannot be combined with variant scope.";
   }
   if (
     !["wholesale_tagged", "logged_in", "all_customers", "specific_customers"].includes(
@@ -311,7 +337,8 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     });
   }
 
-  await updateTier(id, {
+  // Per-band fields (qty + discount) go on the resolved tier row only.
+  await updateTier(existing.id, {
     name,
     scope,
     scopeIds: scope === "all" ? [] : scopeIds,
@@ -323,6 +350,24 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     customerEligibility,
     marketEligibility,
     active,
+  });
+
+  // ADR-012: rule-level fields propagate to EVERY band of the group so
+  // multi-band rules stay internally consistent. updateMany ignores the
+  // resolved band (already updated above with the same values). Cheap
+  // and safe; legacy 1-band rules are a no-op here.
+  await prisma.tier.updateMany({
+    where: { shopId: shop.id, groupId, NOT: { id: existing.id } },
+    data: {
+      name,
+      scope,
+      scopeIds: scope === "all" ? [] : scopeIds,
+      scopeId: scope === "all" ? null : (scopeIds[0] ?? null),
+      aggregation,
+      customerEligibility,
+      marketEligibility,
+      active,
+    },
   });
 
   try {
@@ -435,6 +480,12 @@ const AGGREGATION_OPTIONS: Array<{
     title: "Cart total (assortment)",
     description:
       "Sum across all products in scope. Mix and match to reach the minimum.",
+  },
+  {
+    value: "mix_variants",
+    title: "Mix variants of the same product",
+    description:
+      "Sum quantities across variants of the same product. Mix sizes / colors to hit the minimum.",
   },
 ];
 
@@ -876,10 +927,11 @@ export default function EditPricing() {
                     </Text>
                   </BlockStack>
 
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                  <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
                     {AGGREGATION_OPTIONS.map((opt) => {
                       const disabled =
-                        scope === "variant" && opt.value === "cart_total";
+                        scope === "variant" &&
+                        (opt.value === "cart_total" || opt.value === "mix_variants");
                       return (
                         <ChoiceCard
                           key={opt.value}
