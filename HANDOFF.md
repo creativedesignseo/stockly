@@ -3,12 +3,15 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-27 — 3 BSS-parity quick wins shipped (P1-1 + P1-10 + P1-11)
-**Last commit:** `6d110c8` — `feat(b2b): 3 BSS-parity quick wins — order tagging, tax-exempt toggle, ResourcePicker`
+**Last updated:** 2026-05-27 — Privacy + Terms scaffolded (B0-5 awaiting legal review)
+**Last commit:** `27c0d5b` — `feat(legal): scaffold Privacy Policy + Terms of Service (B0-5 partial)`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v17` (manual deploy 2026-05-27)
-**Shopify app version:** `stockly-19` (GDPR compliance_topics registered + Protected Customer Data + Custom distribution)
+**Fly version:** `v18` (manual deploy 2026-05-27)
+**Shopify app version:** `stockly-19` (GDPR compliance_topics + Protected Customer Data + Custom distribution)
+**Public legal URLs (LIVE, DRAFT):**
+  - https://stockly-lustrous-forest-4364.fly.dev/legal/privacy
+  - https://stockly-lustrous-forest-4364.fly.dev/legal/terms
 
 ---
 
