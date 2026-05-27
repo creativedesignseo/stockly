@@ -185,11 +185,36 @@ model Tier {
   /// Display order in the admin UI.
   position    Int      @default(0)
 
+  // ----- Volume Pricing multi-band (ADR-012, 2026-05-27) -----
+  /// Upper-bound quantity for this band (inclusive). null = open-ended
+  /// "and above". Only the band with the highest minQty in a group may
+  /// be null; the service layer enforces this invariant.
+  quantityTo  Int?
+  /// Groups bands of the same logical Volume Pricing rule. All bands
+  /// of one rule share this id. Nullable for one release cycle while
+  /// legacy single-band tiers are back-filled (see
+  /// scripts/backfill-tier-groupids.ts).
+  groupId     String?
+  /// Per-unit final price in shop currency. Used when
+  /// discountType = 'fixed_price' — overrides the retail price
+  /// entirely (no baseline composition). Null otherwise.
+  discountFixedPrice Float?
+  /// Optional window during which the band is active. Read by the WASM
+  /// Discount Function at run time (no cron). null = no gate.
+  startsAt    DateTime?
+  endsAt      DateTime?
+  /// Phase-1 storage for the storefront "Show table on PDP" toggle.
+  /// The theme app block that renders the table ships in Phase 2.
+  showTableOnPdp   Boolean  @default(false)
+  /// Reserved (Phase 2): template id for the storefront table widget.
+  tableTemplateId  String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([shopId, active])
   @@index([shopId, scope, scopeId])
+  @@index([shopId, groupId])
 }
 
 /// Cache of customers approved for wholesale on this shop.
