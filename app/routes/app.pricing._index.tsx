@@ -258,11 +258,11 @@ export default function PricingHub() {
     tiers.active > 0
       ? {
           tone: "success" as const,
-          label: `${tiers.active} active ${tiers.active === 1 ? "tier" : "tiers"}`,
+          label: `${tiers.active} active ${tiers.active === 1 ? "rule" : "rules"}`,
         }
       : tiers.total > 0
         ? { tone: "attention" as const, label: `${tiers.total} inactive` }
-        : { tone: undefined, label: "No tiers yet" };
+        : { tone: undefined, label: "None yet" };
 
   const fpqBadge = (() => {
     if (shop.fpqMode === "none")
@@ -325,12 +325,20 @@ export default function PricingHub() {
               />
 
               <PricingCard
-                title="Volume tiers"
-                description="Quantity-based discounts that stack on top of the baseline. Scoped per-product, per-variant, per-collection, or shop-wide."
+                title="Wholesale pricing"
+                description="Quantity-based pricing rules that stack on top of the baseline. Scoped per-product, per-variant, per-collection, or shop-wide."
                 badge={tiersBadge}
                 primaryAction={{
-                  content: tiers.total === 0 ? "Create your first tier" : "Manage tiers",
-                  url: "/app/tiers",
+                  content:
+                    tiers.total === 0
+                      ? "Create your first wholesale pricing"
+                      : "Manage wholesale pricing",
+                  // When no rules exist yet, drop the merchant straight
+                  // into /app/pricing/new (no point seeing an empty
+                  // list). Once at least one exists, take them to the
+                  // list view at /app/tiers (still the legacy URL —
+                  // list view migration is a separate task).
+                  url: tiers.total === 0 ? "/app/pricing/new" : "/app/tiers",
                 }}
               />
 

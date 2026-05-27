@@ -1,7 +1,12 @@
 /**
- * Admin route: create a new tier.
+ * Admin route: create a new wholesale pricing rule.
  *
- * URL: /app/tiers/new
+ * URL: /app/pricing/new
+ *
+ * Renamed 2026-05-27 per Jonatan: "tier" was Stockly-internal jargon,
+ * "Wholesale Pricing" matches the merchant's mental model (also
+ * what Sami / BSS call this concept). The DB table is still `Tier`
+ * — only the UI nomenclature changed.
  *
  * UX pattern: Sami Wholesale's "New Wholesale Pricing" form
  * (validated with Jonatan 2026-05-27).
@@ -39,6 +44,7 @@ import {
   Divider,
   PageActions,
   Box,
+  InlineGrid,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useState } from "react";
@@ -133,7 +139,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.error("[tiers.new] syncTiersToFunction failed:", err);
   }
 
-  return redirect("/app/tiers");
+  // After creating, go back to the Pricing hub (not the legacy
+  // /app/tiers list) so the merchant sees the new badge count on
+  // the "Wholesale pricing" card immediately.
+  return redirect("/app/pricing");
 };
 
 /* -------------------------------------------------------------------------- */
@@ -256,8 +265,8 @@ export default function NewTier() {
   const discountSummary = discountPct ? `${discountPct}% off` : "—";
 
   return (
-    <Page backAction={{ content: "Tiers", url: "/app/tiers" }}>
-      <TitleBar title="New tier" />
+    <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
+      <TitleBar title="New wholesale pricing" />
       <Form method="post">
         {/*
           Hidden inputs mirror the state so the standard <form> POST
@@ -276,27 +285,28 @@ export default function NewTier() {
                 <Banner tone="critical" title="Please fix the errors below" />
               )}
 
-              {/* ----- Tier information ----- */}
+              {/* ----- Pricing rule information ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      Tier information
+                      Pricing rule information
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      Give this tier an internal label so you can spot it in
-                      the list later. This isn&apos;t shown to customers.
+                      Give this wholesale pricing an internal label so you
+                      can spot it in the list later. This isn&apos;t shown
+                      to customers.
                     </Text>
                   </BlockStack>
 
                   <TextField
-                    label="Tier name"
+                    label="Name"
                     name="name"
                     autoComplete="off"
                     value={name}
                     onChange={setName}
                     error={errors.name}
-                    placeholder="e.g. Wholesale tier 1 (10+ units)"
+                    placeholder="e.g. Volume pricing — 10+ units"
                     requiredIndicator
                   />
                 </BlockStack>
@@ -316,7 +326,13 @@ export default function NewTier() {
                     </Text>
                   </BlockStack>
 
-                  <BlockStack gap="300">
+                  {/*
+                    Grid 2×2 instead of vertical stack — feedback from
+                    Jonatan 2026-05-27 ("4 opciones en línea de 2 hace
+                    que sea UX más amigable", referring to Sami's
+                    Customer eligibility layout).
+                   */}
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                     {SCOPE_OPTIONS.map((opt) => (
                       <ChoiceCard
                         key={opt.value}
@@ -326,7 +342,7 @@ export default function NewTier() {
                         description={opt.description}
                       />
                     ))}
-                  </BlockStack>
+                  </InlineGrid>
 
                   {scope !== "all" && (
                     <TextField
@@ -383,7 +399,7 @@ export default function NewTier() {
                     </Text>
                   </BlockStack>
 
-                  <BlockStack gap="300">
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
                     {AGGREGATION_OPTIONS.map((opt) => {
                       const disabled =
                         scope === "variant" && opt.value === "cart_total";
@@ -397,14 +413,14 @@ export default function NewTier() {
                           title={opt.title}
                           description={
                             disabled
-                              ? `${opt.description} — not available for variant-scoped tiers.`
+                              ? `${opt.description} — not available for variant-scoped pricing.`
                               : opt.description
                           }
                           disabled={disabled}
                         />
                       );
                     })}
-                  </BlockStack>
+                  </InlineGrid>
 
                   {errors.aggregation && (
                     <Banner tone="critical">
@@ -466,12 +482,12 @@ export default function NewTier() {
 
               <PageActions
                 primaryAction={{
-                  content: "Create tier",
+                  content: "Create wholesale pricing",
                   submit: true,
                   loading: submitting,
                 }}
                 secondaryActions={[
-                  { content: "Cancel", url: "/app/tiers" },
+                  { content: "Cancel", url: "/app/pricing" },
                 ]}
               />
             </BlockStack>
@@ -484,7 +500,7 @@ export default function NewTier() {
                 <BlockStack gap="300">
                   <BlockStack gap="050">
                     <Text variant="headingMd" as="h3">
-                      Tier summary
+                      Pricing summary
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
                       Current setup
