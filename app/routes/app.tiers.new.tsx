@@ -2,25 +2,49 @@
  * Admin route: create a new tier.
  *
  * URL: /app/tiers/new
+ *
+ * UX pattern: Sami Wholesale's "New Wholesale Pricing" form
+ * (validated with Jonatan 2026-05-27).
+ *
+ *   - Two-column layout: form sections on left (2/3), live "Tier
+ *     summary" + Preview panel on right (1/3).
+ *   - Each form section is its own Polaris Card with title +
+ *     subtitle, never a flat vertical stack of fields.
+ *   - Scope selection uses radio CARDS (click anywhere on the card)
+ *     not a Select dropdown — much more discoverable.
+ *   - Right sidebar updates LIVE as the merchant types: they can
+ *     verify "OK, this tier applies to All products, kicks in at
+ *     10 units, gives 15% off" without scrolling.
+ *   - Preview card shows the math for an example €100 retail
+ *     product so the merchant sees exactly what the customer would
+ *     pay before saving.
+ *
+ * Action validation logic preserved 1:1 from the previous version —
+ * only the UI changed.
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import { json, redirect } from "@remix-run/node";
+import { Form, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import {
   Page,
+  Layout,
   Card,
-  FormLayout,
   TextField,
-  Select,
   Button,
   Banner,
   BlockStack,
+  InlineStack,
   Text,
+  RadioButton,
+  Divider,
+  PageActions,
+  Box,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
   createTier,
@@ -28,10 +52,28 @@ import {
   type TierScope,
 } from "../services/tiers.server";
 
+/* -------------------------------------------------------------------------- */
+/*                                  LOADER                                    */
+/* -------------------------------------------------------------------------- */
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticateAdmin(request);
-  return null;
+  const { shop } = await authenticateAdmin(request);
+  // We need wholesaleBaselinePct to render the Preview card live
+  // ("On a €100 retail product, with 55% baseline + this tier 10%,
+  // wholesale price is …"). Falling back to 0 keeps the math correct
+  // when no baseline has been set yet.
+  const shopRow = await prisma.shop.findUnique({
+    where: { id: shop.id },
+    select: { wholesaleBaselinePct: true },
+  });
+  return json({
+    baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
+  });
 };
+
+/* -------------------------------------------------------------------------- */
+/*                                  ACTION                                    */
+/* -------------------------------------------------------------------------- */
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
@@ -49,16 +91,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!["product", "variant", "collection", "all"].includes(scope))
     errors.scope = "Invalid scope";
   if (scope !== "all" && !scopeId)
-    errors.scopeId = "Scope ID is required for product/variant/collection tiers";
+    errors.scopeId = "Pick a target with the Browse button (or paste a GID)";
   if (!["per_line", "cart_total"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
 
-  // Variant tiers require cart_total to be 'per_line' — cart-total
-  // aggregation on a single-variant scope makes no business sense
-  // (it'd mean "match this exact variant 10+ times in cart" which
-  // is identical to per_line anyway).
   if (scope === "variant" && aggregation === "cart_total") {
-    errors.aggregation = "Variant tiers must use per-line aggregation.";
+    errors.aggregation =
+      "Variant-scoped tiers must use per-line aggregation.";
   }
 
   const minQty = Number(minQtyStr);
@@ -70,10 +109,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.discountPct = "Discount must be between 0 and 100";
 
   if (Object.keys(errors).length > 0) {
-    return {
+    return json({
       errors,
       values: { name, scope, scopeId, minQtyStr, discountPctStr, aggregation },
-    };
+    });
   }
 
   await createTier({
@@ -87,18 +126,76 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   // Sync to the Shopify Discount Function so checkout enforces it.
-  // Best-effort: errors are logged, not thrown — DB save is canonical.
-  await syncTiersToFunction(admin, shop.id);
+  try {
+    await syncTiersToFunction(admin, shop.id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[tiers.new] syncTiersToFunction failed:", err);
+  }
 
   return redirect("/app/tiers");
 };
 
+/* -------------------------------------------------------------------------- */
+/*                                    UI                                      */
+/* -------------------------------------------------------------------------- */
+
+const SCOPE_OPTIONS: Array<{
+  value: TierScope;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "all",
+    title: "All products",
+    description: "Tier applies shop-wide. Simplest setup.",
+  },
+  {
+    value: "product",
+    title: "A specific product",
+    description: "Pick one product. All variants of it qualify.",
+  },
+  {
+    value: "variant",
+    title: "A specific variant",
+    description:
+      "Pick one variant (e.g. size XL). Most granular control.",
+  },
+  {
+    value: "collection",
+    title: "All products in a collection",
+    description:
+      "Storefront-only. Checkout falls back to baseline for collections.",
+  },
+];
+
+const AGGREGATION_OPTIONS: Array<{
+  value: TierAggregation;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "per_line",
+    title: "Per line",
+    description:
+      "Each product must hit the minimum on its own. 10 of THIS product.",
+  },
+  {
+    value: "cart_total",
+    title: "Cart total (assortment)",
+    description:
+      "Sum across all products in scope. Mix and match to reach the minimum.",
+  },
+];
+
 export default function NewTier() {
+  const { baselinePct } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
   const shopify = useAppBridge();
 
+  /* ----- form state ----- */
   const [name, setName] = useState<string>(actionData?.values?.name ?? "");
   const [scope, setScope] = useState<TierScope>(
     (actionData?.values?.scope as TierScope) ?? "all",
@@ -106,19 +203,24 @@ export default function NewTier() {
   const [scopeId, setScopeId] = useState<string>(
     actionData?.values?.scopeId ?? "",
   );
-  // Cached human-readable label for the picked resource, shown as
-  // helpText next to the (machine-readable) GID. Resets when scope
-  // changes — a Product GID is meaningless if the merchant switches
-  // to Collection scope.
   const [scopeLabel, setScopeLabel] = useState<string>("");
+  const [minQty, setMinQty] = useState<string>(
+    actionData?.values?.minQtyStr ?? "10",
+  );
+  const [discountPct, setDiscountPct] = useState<string>(
+    actionData?.values?.discountPctStr ?? "10",
+  );
+  const [aggregation, setAggregation] = useState<TierAggregation>(
+    (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
+  );
 
-  // Resource Picker (P1-1). Replaces the awkward "paste a GID
-  // manually" UX with Shopify's native picker modal: search,
-  // browse, click. Returns the canonical GID. Cancel = no-op.
+  const errors = actionData?.errors ?? {};
+
+  /* ----- Resource Picker ----- */
   const openResourcePicker = async () => {
     if (scope === "all") return;
     const result = await shopify.resourcePicker({
-      type: scope, // 'product' | 'variant' | 'collection' all map 1:1
+      type: scope,
       multiple: false,
       filter: { archived: false, draft: false },
     });
@@ -127,157 +229,424 @@ export default function NewTier() {
     setScopeId(picked.id);
     setScopeLabel(picked.title ?? "");
   };
-  const [minQty, setMinQty] = useState<string>(
-    actionData?.values?.minQtyStr ?? "",
-  );
-  const [discountPct, setDiscountPct] = useState<string>(
-    actionData?.values?.discountPctStr ?? "",
-  );
-  const [aggregation, setAggregation] = useState<TierAggregation>(
-    (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
-  );
 
-  const errors = actionData?.errors ?? {};
+  /* ----- preview math ----- */
+  const tierPct = Number(discountPct) || 0;
+  const baselineFactor = 1 - baselinePct / 100;
+  const tierFactor = 1 - tierPct / 100;
+  const previewRetail = 100;
+  const previewWholesale = previewRetail * baselineFactor * tierFactor;
+  const previewSavings = previewRetail - previewWholesale;
+
+  /* ----- summary derived strings ----- */
+  const scopeOption = SCOPE_OPTIONS.find((s) => s.value === scope)!;
+  const scopeSummary =
+    scope === "all"
+      ? "All products in the shop"
+      : scopeLabel
+        ? `${scopeOption.title} — ${scopeLabel}`
+        : scopeId
+          ? `${scopeOption.title} (GID set)`
+          : `${scopeOption.title} (not selected)`;
+
+  const triggerSummary = minQty
+    ? `${minQty} units · ${aggregation === "per_line" ? "per line" : "cart total"}`
+    : "—";
+
+  const discountSummary = discountPct ? `${discountPct}% off` : "—";
 
   return (
     <Page backAction={{ content: "Tiers", url: "/app/tiers" }}>
       <TitleBar title="New tier" />
-      <Card>
-        <Form method="post">
-          <FormLayout>
-            {Object.keys(errors).length > 0 && (
-              <Banner tone="critical" title="Please fix the errors below" />
-            )}
+      <Form method="post">
+        {/*
+          Hidden inputs mirror the state so the standard <form> POST
+          carries everything — keeps the action contract unchanged
+          while the visible UI uses Polaris components that don't
+          submit by name on their own (radio cards, etc.).
+         */}
+        <input type="hidden" name="scope" value={scope} />
+        <input type="hidden" name="aggregation" value={aggregation} />
 
-            <TextField
-              label="Name (internal label for this tier)"
-              name="name"
-              autoComplete="off"
-              value={name}
-              onChange={setName}
-              error={errors.name}
-              helpText="Internal label for this tier (e.g. 'Wholesale tier 1')."
-              requiredIndicator
-            />
+        <Layout>
+          {/* ===================== Main column ===================== */}
+          <Layout.Section>
+            <BlockStack gap="400">
+              {Object.keys(errors).length > 0 && (
+                <Banner tone="critical" title="Please fix the errors below" />
+              )}
 
-            <Select
-              label="Applies to (which products this tier discounts)"
-              name="scope"
-              value={scope}
-              onChange={(v) => setScope(v as TierScope)}
-              options={[
-                { label: "All products in the shop", value: "all" },
-                { label: "A specific product", value: "product" },
-                {
-                  label: "A specific variant (e.g. size XL, color blue)",
-                  value: "variant",
-                },
-                { label: "All products in a collection", value: "collection" },
-              ]}
-              helpText={
-                scope === "variant"
-                  ? "Use this for statement pieces or oversized items that have their own wholesale pricing distinct from the parent product."
-                  : scope === "collection"
-                    ? "Note: collection-scoped tiers display in the storefront and apply at the storefront calculator, but at checkout the Discount Function falls back to baseline only. Use product or variant scope for checkout-enforced tiers."
-                    : undefined
-              }
-            />
+              {/* ----- Tier information ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Tier information
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Give this tier an internal label so you can spot it in
+                      the list later. This isn&apos;t shown to customers.
+                    </Text>
+                  </BlockStack>
 
-            {scope !== "all" && (
-              <TextField
-                label={
-                  scope === "product"
-                    ? "Product"
-                    : scope === "variant"
-                      ? "Variant"
-                      : "Collection"
-                }
-                name="scopeId"
-                autoComplete="off"
-                value={scopeId}
-                onChange={(v) => {
-                  setScopeId(v);
-                  // If the merchant manually edits the GID, clear the
-                  // cached picker label so we don't show stale info.
-                  if (v !== scopeId) setScopeLabel("");
+                  <TextField
+                    label="Tier name"
+                    name="name"
+                    autoComplete="off"
+                    value={name}
+                    onChange={setName}
+                    error={errors.name}
+                    placeholder="e.g. Wholesale tier 1 (10+ units)"
+                    requiredIndicator
+                  />
+                </BlockStack>
+              </Card>
+
+              {/* ----- Scope ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Scope
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Which products does this tier apply to? You can have
+                      multiple tiers with different scopes — the most specific
+                      tier wins at checkout (variant &gt; product &gt; all).
+                    </Text>
+                  </BlockStack>
+
+                  <BlockStack gap="300">
+                    {SCOPE_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={scope === opt.value}
+                        onSelect={() => setScope(opt.value)}
+                        title={opt.title}
+                        description={opt.description}
+                      />
+                    ))}
+                  </BlockStack>
+
+                  {scope !== "all" && (
+                    <TextField
+                      label={
+                        scope === "product"
+                          ? "Product"
+                          : scope === "variant"
+                            ? "Variant"
+                            : "Collection"
+                      }
+                      name="scopeId"
+                      autoComplete="off"
+                      value={scopeId}
+                      onChange={(v) => {
+                        setScopeId(v);
+                        if (v !== scopeId) setScopeLabel("");
+                      }}
+                      error={errors.scopeId}
+                      helpText={
+                        scopeLabel
+                          ? `Selected: ${scopeLabel}`
+                          : "Click Browse to pick from Shopify, or paste a GID."
+                      }
+                      connectedRight={
+                        <Button onClick={openResourcePicker}>Browse…</Button>
+                      }
+                      requiredIndicator
+                    />
+                  )}
+
+                  {scope === "collection" && (
+                    <Banner tone="warning">
+                      <p>
+                        Collection-scoped tiers display on the storefront but
+                        the checkout Discount Function falls back to baseline
+                        for them. Use product or variant scope if you need
+                        the discount enforced at checkout.
+                      </p>
+                    </Banner>
+                  )}
+                </BlockStack>
+              </Card>
+
+              {/* ----- Trigger ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Trigger
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      When does this tier kick in? Choose how the minimum
+                      quantity is counted.
+                    </Text>
+                  </BlockStack>
+
+                  <BlockStack gap="300">
+                    {AGGREGATION_OPTIONS.map((opt) => {
+                      const disabled =
+                        scope === "variant" && opt.value === "cart_total";
+                      return (
+                        <ChoiceCard
+                          key={opt.value}
+                          selected={aggregation === opt.value}
+                          onSelect={() => {
+                            if (!disabled) setAggregation(opt.value);
+                          }}
+                          title={opt.title}
+                          description={
+                            disabled
+                              ? `${opt.description} — not available for variant-scoped tiers.`
+                              : opt.description
+                          }
+                          disabled={disabled}
+                        />
+                      );
+                    })}
+                  </BlockStack>
+
+                  {errors.aggregation && (
+                    <Banner tone="critical">
+                      <p>{errors.aggregation}</p>
+                    </Banner>
+                  )}
+
+                  <TextField
+                    label="Minimum quantity to activate the tier"
+                    name="minQty"
+                    type="number"
+                    min={1}
+                    autoComplete="off"
+                    value={minQty}
+                    onChange={setMinQty}
+                    error={errors.minQty}
+                    suffix="units"
+                    helpText={
+                      aggregation === "per_line"
+                        ? "Each cart line must reach this quantity on its own."
+                        : "Sum of all in-scope cart lines must reach this quantity."
+                    }
+                    requiredIndicator
+                  />
+                </BlockStack>
+              </Card>
+
+              {/* ----- Discount ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Discount
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Percent off the base price, on top of the wholesale
+                      baseline. Stacks multiplicatively — see the preview on
+                      the right.
+                    </Text>
+                  </BlockStack>
+
+                  <TextField
+                    label="Discount percent"
+                    name="discountPct"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    autoComplete="off"
+                    value={discountPct}
+                    onChange={setDiscountPct}
+                    error={errors.discountPct}
+                    suffix="%"
+                    helpText="Between 0 and 100."
+                    requiredIndicator
+                  />
+                </BlockStack>
+              </Card>
+
+              <PageActions
+                primaryAction={{
+                  content: "Create tier",
+                  submit: true,
+                  loading: submitting,
                 }}
-                error={errors.scopeId}
-                helpText={
-                  scopeLabel
-                    ? `Selected: ${scopeLabel}`
-                    : scope === "product"
-                      ? "Click Browse to pick a product, or paste a GID like gid://shopify/Product/123"
-                      : scope === "variant"
-                        ? "Click Browse to pick a variant, or paste a GID like gid://shopify/ProductVariant/987"
-                        : "Click Browse to pick a collection, or paste a GID like gid://shopify/Collection/987"
-                }
-                connectedRight={
-                  <Button onClick={openResourcePicker}>Browse…</Button>
-                }
-                requiredIndicator
+                secondaryActions={[
+                  { content: "Cancel", url: "/app/tiers" },
+                ]}
               />
-            )}
-
-            <Select
-              label="Aggregation (how minimum is counted)"
-              name="aggregation"
-              value={aggregation}
-              onChange={(v) => setAggregation(v as TierAggregation)}
-              options={[
-                {
-                  label: "Per line — each product must meet the minimum on its own",
-                  value: "per_line",
-                },
-                {
-                  label: "Cart total — sum across all cart products (assortment OK)",
-                  value: "cart_total",
-                },
-              ]}
-              helpText="Per line: customer must buy 10 of THIS product to trigger the tier. Cart total: customer can mix 1 of each product, as long as the order totals 10 pieces."
-            />
-
-            <FormLayout.Group>
-              <TextField
-                label="Minimum quantity (threshold to activate tier)"
-                name="minQty"
-                type="number"
-                min={1}
-                autoComplete="off"
-                value={minQty}
-                onChange={setMinQty}
-                error={errors.minQty}
-                helpText="Buyer must order at least this many units."
-                requiredIndicator
-              />
-              <TextField
-                label="Discount % (off the base price, in addition to baseline)"
-                name="discountPct"
-                type="number"
-                min={0}
-                max={100}
-                step={0.1}
-                autoComplete="off"
-                value={discountPct}
-                onChange={setDiscountPct}
-                error={errors.discountPct}
-                helpText="0–100. Applied to the base price."
-                requiredIndicator
-              />
-            </FormLayout.Group>
-
-            <BlockStack inlineAlign="end">
-              <Button submit variant="primary" loading={submitting}>
-                Create tier
-              </Button>
             </BlockStack>
+          </Layout.Section>
 
-            <Text as="p" variant="bodySm" tone="subdued">
-              Sprint 1 note: scope IDs are entered manually. A product/collection
-              picker will land in Sprint 2.
-            </Text>
-          </FormLayout>
-        </Form>
-      </Card>
+          {/* ===================== Sidebar ===================== */}
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="400">
+              <Card>
+                <BlockStack gap="300">
+                  <BlockStack gap="050">
+                    <Text variant="headingMd" as="h3">
+                      Tier summary
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Current setup
+                    </Text>
+                  </BlockStack>
+                  <Divider />
+                  <SummaryRow
+                    label="Name"
+                    value={name || "—"}
+                  />
+                  <SummaryRow label="Scope" value={scopeSummary} />
+                  <SummaryRow label="Trigger" value={triggerSummary} />
+                  <SummaryRow label="Discount" value={discountSummary} />
+                </BlockStack>
+              </Card>
+
+              <Card>
+                <BlockStack gap="300">
+                  <BlockStack gap="050">
+                    <Text variant="headingMd" as="h3">
+                      Preview
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      On a €100 retail product, what a qualifying customer
+                      pays at checkout:
+                    </Text>
+                  </BlockStack>
+                  <Divider />
+                  <SummaryRow
+                    label="Retail price"
+                    value={`€${previewRetail.toFixed(2)}`}
+                  />
+                  <SummaryRow
+                    label={`Baseline (${baselinePct}%)`}
+                    value={`× ${baselineFactor.toFixed(2)}`}
+                  />
+                  <SummaryRow
+                    label={`This tier (${tierPct}%)`}
+                    value={`× ${tierFactor.toFixed(2)}`}
+                  />
+                  <Divider />
+                  <SummaryRow
+                    label="Wholesale price"
+                    value={`€${previewWholesale.toFixed(2)}`}
+                    emphasis
+                  />
+                  <SummaryRow
+                    label="Customer saves"
+                    value={`€${previewSavings.toFixed(2)}`}
+                  />
+                </BlockStack>
+              </Card>
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
+      </Form>
     </Page>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Small helpers                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Visual "radio card": full-width clickable card that toggles a
+ * RadioButton inside. Used for Scope and Aggregation selection so
+ * the merchant sees the available options as cards (Sami-style)
+ * instead of a hidden Select dropdown.
+ */
+function ChoiceCard({
+  selected,
+  onSelect,
+  title,
+  description,
+  disabled,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  description: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      role="radio"
+      aria-checked={selected}
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => {
+        if (!disabled) onSelect();
+      }}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !disabled) {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      style={{
+        cursor: disabled ? "not-allowed" : "pointer",
+        border: selected
+          ? "2px solid var(--p-color-border-success)"
+          : "1px solid var(--p-color-border)",
+        borderRadius: "var(--p-border-radius-200)",
+        padding: "var(--p-space-400)",
+        background: selected
+          ? "var(--p-color-bg-surface-success)"
+          : "var(--p-color-bg-surface)",
+        opacity: disabled ? 0.5 : 1,
+        transition: "all 0.15s ease",
+      }}
+    >
+      <InlineStack gap="300" align="start" blockAlign="start" wrap={false}>
+        <RadioButton
+          checked={selected}
+          label=""
+          labelHidden
+          onChange={() => {
+            if (!disabled) onSelect();
+          }}
+          disabled={disabled}
+        />
+        <BlockStack gap="050">
+          <Text as="span" variant="bodyMd" fontWeight="semibold">
+            {title}
+          </Text>
+          <Text as="span" variant="bodySm" tone="subdued">
+            {description}
+          </Text>
+        </BlockStack>
+      </InlineStack>
+    </div>
+  );
+}
+
+/**
+ * One row of the "Tier summary" / "Preview" sidebar cards: label on
+ * the left, value on the right. `emphasis` bolds the value (used for
+ * the final wholesale price).
+ */
+function SummaryRow({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <InlineStack align="space-between" blockAlign="start" wrap={false}>
+      <Text variant="bodySm" as="span" tone="subdued">
+        {label}
+      </Text>
+      <Box maxWidth="60%">
+        <Text
+          variant={emphasis ? "headingSm" : "bodySm"}
+          as="span"
+          fontWeight={emphasis ? "semibold" : undefined}
+        >
+          {value}
+        </Text>
+      </Box>
+    </InlineStack>
   );
 }
