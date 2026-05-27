@@ -45,8 +45,15 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/onboarding?force=1">Setup</Link>
-        <Link to="/app/tiers">Tiers</Link>
-        <Link to="/app/settings/pricing">Pricing</Link>
+        {/*
+          /app/pricing is the hub introduced 2026-05-27 — it absorbs
+          the entry points for tiers and baseline/FPQ/MOQ settings
+          (each card on the hub links to /app/tiers and
+          /app/settings/pricing). Both old routes still work for
+          direct links and bookmarks; we just stopped surfacing them
+          twice in the nav.
+        */}
+        <Link to="/app/pricing">Pricing</Link>
         <Link to="/app/customers/applications">Applications</Link>
         <Link to="/app/qualify-customer">Qualify customer</Link>
       </NavMenu>
