@@ -3,13 +3,14 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-28 — Volume Pricing multi-band MERGED (not yet deployed)
-**Last commit (worktree):** `feat(pricing): multi-band UI in list, create, edit (ADR-012)`
-**Last deployed commit:** `18a8b11` — `feat(pricing): multi-product selection per rule`
+**Last updated:** 2026-05-28 — Volume Pricing ADR-012 data layer LIVE (admin UI is Phase 2)
+**Last commit:** `75ac172` — `docs(competitive): Sami reverse-engineering + RF Phase 1 plan`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v31` (multi-product deploy 2026-05-27) — Volume Pricing deploy PENDING
-**Shopify app version:** `stockly-21` (Function WASM reads scopeIds[] with scopeId fallback) — Volume Pricing deploy PENDING
+**Fly version:** `v44` (Volume Pricing deploy 2026-05-28)
+**Shopify app version:** `stockly-23` (Function WASM: fixed_price + mix_variants + active dates + quantityTo + multi-band)
+**Tier back-fill:** 3 legacy rows back-filled to groupId on prod (Bulk 24+, Whosale, Mercados 1) — 0 NULLs remaining
+**Reviewer-nit fixes shipped (commit `2f5d809`):** backfill `--dry-run` flag + `listRules` orphan warning
 **Public legal URLs (LIVE, DRAFT):**
   - https://stockly-lustrous-forest-4364.fly.dev/legal/privacy
   - https://stockly-lustrous-forest-4364.fly.dev/legal/terms
