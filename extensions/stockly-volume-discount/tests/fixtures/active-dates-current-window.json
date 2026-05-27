@@ -1,0 +1,60 @@
+{
+  "_comment": "ADR-012 guardrail: a tier with startsAt=2020 and endsAt=2099 must apply. Positive case ensuring the active-date filter doesn't reject valid windows.",
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 50,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/1",
+            "hasAnyTag": true
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_now_1\",\"minQty\":1,\"quantityTo\":null,\"discountPct\":20,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\",\"startsAt\":\"2020-01-01T00:00:00.000Z\",\"endsAt\":\"2099-12-31T00:00:00.000Z\"}]}"
+        }
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "targets": [
+            {
+              "cartLine": {
+                "id": "gid://shopify/CartLine/0"
+              }
+            }
+          ],
+          "value": {
+            "percentage": {
+              "value": "20"
+            }
+          },
+          "message": "Wholesale 0% + 20% volume (1+ units)"
+        }
+      ]
+    }
+  }
+}

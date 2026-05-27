@@ -1,0 +1,60 @@
+{
+  "_comment": "ADR-012: 3-band rule sharing groupId=g_test_1. Cart with one line at qty 25 must hit the middle band (10-49 → 10% off). Baseline=0 keeps arithmetic clean.",
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 25,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/1",
+            "hasAnyTag": true
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_test_1\",\"minQty\":1,\"quantityTo\":9,\"discountPct\":5,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\"},{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_test_1\",\"minQty\":10,\"quantityTo\":49,\"discountPct\":10,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\"},{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_test_1\",\"minQty\":50,\"quantityTo\":null,\"discountPct\":20,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\"}]}"
+        }
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "targets": [
+            {
+              "cartLine": {
+                "id": "gid://shopify/CartLine/0"
+              }
+            }
+          ],
+          "value": {
+            "percentage": {
+              "value": "10"
+            }
+          },
+          "message": "Wholesale 0% + 10% volume (10+ units)"
+        }
+      ]
+    }
+  }
+}

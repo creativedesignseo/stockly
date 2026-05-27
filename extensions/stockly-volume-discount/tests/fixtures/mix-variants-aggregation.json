@@ -1,0 +1,91 @@
+{
+  "_comment": "ADR-012: mix_variants aggregation — two cart lines of the same product (different variants) with qty 6 + 5 = 11 sum, tier minQty=10 with discountPct=15. Both lines must receive the 15% discount.",
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 6,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/10",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          },
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 5,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/11",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/1",
+            "hasAnyTag": true
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"product\",\"scopeIds\":[\"gid://shopify/Product/1\"],\"groupId\":\"g_mix_1\",\"minQty\":10,\"quantityTo\":null,\"discountPct\":15,\"discountType\":\"percentage\",\"aggregation\":\"mix_variants\",\"customerEligibility\":\"wholesale_tagged\"}]}"
+        }
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "targets": [
+            {
+              "cartLine": {
+                "id": "gid://shopify/CartLine/0"
+              }
+            }
+          ],
+          "value": {
+            "percentage": {
+              "value": "15"
+            }
+          },
+          "message": "Wholesale 0% + 15% volume (10+ mix)"
+        },
+        {
+          "targets": [
+            {
+              "cartLine": {
+                "id": "gid://shopify/CartLine/1"
+              }
+            }
+          ],
+          "value": {
+            "percentage": {
+              "value": "15"
+            }
+          },
+          "message": "Wholesale 0% + 15% volume (10+ mix)"
+        }
+      ]
+    }
+  }
+}

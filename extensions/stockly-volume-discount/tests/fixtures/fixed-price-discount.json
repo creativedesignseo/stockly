@@ -1,0 +1,60 @@
+{
+  "_comment": "ADR-012: discountType='fixed_price' — final per-unit price is 70 EUR; retail is 100 EUR; qty 5 → discount = (100-70)*5 = 150.00 emitted as fixedAmount.",
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 5,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/1",
+            "hasAnyTag": true
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_fixed_1\",\"minQty\":1,\"quantityTo\":null,\"discountPct\":0,\"discountType\":\"fixed_price\",\"discountFixedPrice\":70,\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\"}]}"
+        }
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "targets": [
+            {
+              "cartLine": {
+                "id": "gid://shopify/CartLine/0"
+              }
+            }
+          ],
+          "value": {
+            "fixedAmount": {
+              "amount": "150.00"
+            }
+          },
+          "message": "Wholesale 0% + €70/unit fixed (1+ units)"
+        }
+      ]
+    }
+  }
+}

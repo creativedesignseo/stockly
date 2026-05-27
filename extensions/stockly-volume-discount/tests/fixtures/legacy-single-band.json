@@ -1,0 +1,60 @@
+{
+  "_comment": "Back-compat guardrail: a metafield in the v3 shape (no groupId, no quantityTo, no startsAt/endsAt) must still apply its discount exactly as before. Mirrors Piro Jewelry's live production tier shape.",
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 12,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/1",
+            "hasAnyTag": true
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeId\":null,\"minQty\":10,\"discountPct\":10}]}"
+        }
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "targets": [
+            {
+              "cartLine": {
+                "id": "gid://shopify/CartLine/0"
+              }
+            }
+          ],
+          "value": {
+            "percentage": {
+              "value": "10"
+            }
+          },
+          "message": "Wholesale 0% + 10% volume (10+ units)"
+        }
+      ]
+    }
+  }
+}

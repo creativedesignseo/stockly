@@ -1,0 +1,44 @@
+{
+  "_comment": "ADR-012 guardrail: a tier with endsAt = 2020-01-01 must NOT apply. Symmetric to the future-window fixture, covering the past edge of the active-date filter.",
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 50,
+            "cost": {
+              "amountPerQuantity": {
+                "amount": "100.00"
+              }
+            },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": {
+                "id": "gid://shopify/Product/1"
+              }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/1",
+            "hasAnyTag": true
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_past_1\",\"minQty\":1,\"quantityTo\":null,\"discountPct\":20,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\",\"startsAt\":null,\"endsAt\":\"2020-01-01T00:00:00.000Z\"}]}"
+        }
+      }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": []
+    }
+  }
+}
