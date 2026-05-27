@@ -34,6 +34,15 @@
     "tax_id": "Tax / VAT ID",
     "website": "Website",
     "country": "Country",
-    "notes": "Tell us about your business"
+    "notes": "Tell us about your business",
+    "select_placeholder": "Select…",
+    "select_country_placeholder": "Select country…",
+    "confirm_password": "Confirm password",
+    "error_required": "Please fill in this field",
+    "error_invalid_email": "Please enter a valid email address",
+    "error_invalid_phone": "Please enter a valid phone number",
+    "error_password_mismatch": "Passwords do not match",
+    "error_submit_failed": "Could not submit. Please check your connection and try again.",
+    "error_server": "Server returned an invalid response."
   }
 }

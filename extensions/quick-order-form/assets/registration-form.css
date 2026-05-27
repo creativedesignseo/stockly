@@ -1,38 +1,94 @@
 /*
- * Stockly — Wholesale Registration Form styles.
+ * Stockly — Wholesale Registration Form styles (Sami-style, schema-driven).
  *
- * Theme-native: inherits font + colors. Branded via App Proxy if the
- * merchant set primary/accent in admin.
- */
+ * The form is rendered at runtime by registration-form.js from a JSON
+ * definition fetched via App Proxy. Appearance (colors, layout, width)
+ * comes from the same JSON and is applied as inline CSS custom
+ * properties on the <stockly-registration> host element.
+ *
+ * ── Runtime CSS custom properties ──────────────────────────────────
+ *
+ *   --rf-color-main                 Submit button bg + focus outline.
+ *   --rf-color-heading              Form heading color.
+ *   --rf-color-label                Field label color.
+ *   --rf-color-description          Hint / description text color.
+ *   --rf-color-option               Select / option text color.
+ *   --rf-color-paragraph            Body paragraph color (intro, success).
+ *   --rf-color-paragraph-bg         Inline background for paragraph blocks.
+ *   --rf-color-background           Form/card background color.
+ *   --rf-color-border               Field border color (derived if absent).
+ *   --rf-color-button-text          Submit button text color.
+ *   --rf-color-error                Error message color.
+ *   --rf-color-success              Success message color.
+ *   --rf-form-max-width             Form max-width in pixels (e.g. 600px).
+ *
+ * Layout variants:
+ *   .stockly-reg--layout-default    Plain form, no border/card.
+ *   .stockly-reg--layout-boxed      Card-wrapped form with padding + border.
+ *
+ * All properties are optional. Defaults keep parity with the previous
+ * hard-coded form so theme blocks without a fetched definition still
+ * look right.
+ * ─────────────────────────────────────────────────────────────────── */
 
 stockly-registration {
   display: block;
-  --stockly-primary: #111;
-  --stockly-accent: #555;
-  --stockly-border: rgba(0, 0, 0, 0.12);
-  --stockly-bg-soft: rgba(0, 0, 0, 0.025);
+  /* Default palette — overridden at runtime when appearance is fetched. */
+  --rf-color-main: #111;
+  --rf-color-heading: #111;
+  --rf-color-label: #555;
+  --rf-color-description: #666;
+  --rf-color-option: #111;
+  --rf-color-paragraph: #333;
+  --rf-color-paragraph-bg: transparent;
+  --rf-color-background: #ffffff;
+  --rf-color-border: rgba(0, 0, 0, 0.12);
+  --rf-color-button-text: #ffffff;
+  --rf-color-error: rgb(170, 50, 50);
+  --rf-color-success: rgb(28, 110, 70);
+  --rf-form-max-width: 100%;
   font-family: var(--stockly-font, inherit);
   color: inherit;
   margin: 1.5rem 0;
 }
 
 /* Restore [hidden] semantics — block-level display rules below
- * out-specificity the user-agent default and would otherwise show
- * the form when JS swapped to the success or already-wholesale state. */
+ * out-specificity the user-agent default and would otherwise show the
+ * form when JS swapped to the success or already-wholesale state. */
 stockly-registration [hidden],
 stockly-registration [hidden] * {
   display: none !important;
+}
+
+/* Mount root — sets max-width per appearance.width. */
+stockly-registration .stockly-reg__root {
+  max-width: var(--rf-form-max-width);
+  margin: 0 auto;
+}
+
+/* Boxed layout — wraps the rendered form in a bordered card. */
+stockly-registration.stockly-reg--layout-boxed .stockly-reg__inner {
+  padding: 1.5rem;
+  border: 1px solid var(--rf-color-border);
+  border-radius: 8px;
+  background: var(--rf-color-background);
+}
+
+stockly-registration.stockly-reg--layout-default .stockly-reg__inner {
+  background: var(--rf-color-background);
 }
 
 stockly-registration .stockly-reg__heading {
   margin: 0 0 0.5rem;
   font-size: 1.5rem;
   font-weight: 600;
+  color: var(--rf-color-heading);
 }
 
 stockly-registration .stockly-reg__intro {
   margin: 0 0 1.5rem;
-  color: var(--stockly-accent);
+  color: var(--rf-color-paragraph);
+  background: var(--rf-color-paragraph-bg);
   font-size: 0.95rem;
   line-height: 1.5;
 }
@@ -53,46 +109,61 @@ stockly-registration .stockly-reg__field--full {
   grid-column: 1 / -1;
 }
 
+stockly-registration .stockly-reg__field--half {
+  grid-column: span 1;
+}
+
 stockly-registration .stockly-reg__label {
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--stockly-accent);
+  color: var(--rf-color-label);
 }
 
 stockly-registration .stockly-reg__field--required .stockly-reg__label::after {
   content: " *";
-  color: rgb(170, 50, 50);
+  color: var(--rf-color-error);
 }
 
 stockly-registration .stockly-reg__field input,
-stockly-registration .stockly-reg__field textarea {
+stockly-registration .stockly-reg__field textarea,
+stockly-registration .stockly-reg__field select {
   width: 100%;
   padding: 0.6rem 0.7rem;
   font: inherit;
-  border: 1px solid var(--stockly-border);
+  border: 1px solid var(--rf-color-border);
   border-radius: 4px;
   background: #fff;
-  color: inherit;
+  color: var(--rf-color-option);
+  box-sizing: border-box;
 }
 
 stockly-registration .stockly-reg__field input:focus,
-stockly-registration .stockly-reg__field textarea:focus {
-  outline: 2px solid var(--stockly-primary);
+stockly-registration .stockly-reg__field textarea:focus,
+stockly-registration .stockly-reg__field select:focus {
+  outline: 2px solid var(--rf-color-main);
   outline-offset: 1px;
-  border-color: var(--stockly-primary);
+  border-color: var(--rf-color-main);
 }
 
-stockly-registration .stockly-reg__field input:invalid:not(:placeholder-shown) {
-  border-color: rgb(170, 50, 50);
+stockly-registration .stockly-reg__field input.is-invalid,
+stockly-registration .stockly-reg__field textarea.is-invalid,
+stockly-registration .stockly-reg__field select.is-invalid {
+  border-color: var(--rf-color-error);
 }
 
 stockly-registration .stockly-reg__hint {
   display: block;
   margin-top: 0.25rem;
   font-size: 0.75rem;
-  color: var(--stockly-accent);
+  color: var(--rf-color-description);
+}
+
+stockly-registration .stockly-reg__field-error {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--rf-color-error);
 }
 
 stockly-registration .stockly-reg__field textarea {
@@ -106,7 +177,7 @@ stockly-registration .stockly-reg__errors {
   background: rgba(200, 60, 60, 0.08);
   border: 1px solid rgba(200, 60, 60, 0.3);
   border-radius: 4px;
-  color: rgb(170, 50, 50);
+  color: var(--rf-color-error);
 }
 
 stockly-registration .stockly-reg__error {
@@ -125,8 +196,8 @@ stockly-registration .stockly-reg__actions {
 
 stockly-registration .stockly-reg__submit {
   appearance: none;
-  background: var(--stockly-primary);
-  color: #fff;
+  background: var(--rf-color-main);
+  color: var(--rf-color-button-text);
   border: 0;
   padding: 0.85rem 1.5rem;
   font: inherit;
@@ -154,7 +225,7 @@ stockly-registration .stockly-reg__already {
   background: rgba(34, 139, 87, 0.08);
   border: 1px solid rgba(34, 139, 87, 0.35);
   border-radius: 6px;
-  color: rgb(28, 110, 70);
+  color: var(--rf-color-success);
 }
 
 stockly-registration .stockly-reg__success-heading {
@@ -169,8 +240,70 @@ stockly-registration .stockly-reg__already p {
   line-height: 1.5;
 }
 
+/* Loading skeleton — visible until JS renders the real form. */
+stockly-registration .stockly-reg__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+stockly-registration .stockly-reg__skeleton-line {
+  height: 0.875rem;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.12), rgba(0,0,0,0.06));
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: stockly-reg-shimmer 1.4s infinite linear;
+}
+
+stockly-registration .stockly-reg__skeleton-line--lg {
+  height: 1.5rem;
+  width: 60%;
+}
+
+stockly-registration .stockly-reg__skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1rem;
+}
+
+stockly-registration .stockly-reg__skeleton-field {
+  height: 3rem;
+  background: linear-gradient(90deg, rgba(0,0,0,0.04), rgba(0,0,0,0.08), rgba(0,0,0,0.04));
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: stockly-reg-shimmer 1.4s infinite linear;
+}
+
+stockly-registration .stockly-reg__skeleton-button {
+  height: 2.75rem;
+  width: 12rem;
+  background: linear-gradient(90deg, rgba(0,0,0,0.06), rgba(0,0,0,0.12), rgba(0,0,0,0.06));
+  background-size: 200% 100%;
+  border-radius: 4px;
+  animation: stockly-reg-shimmer 1.4s infinite linear;
+}
+
+@keyframes stockly-reg-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Noscript fallback — same baseline shape as the rendered form. */
+stockly-registration .stockly-reg__form--noscript {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
 @media (max-width: 600px) {
   stockly-registration .stockly-reg__grid {
+    grid-template-columns: 1fr;
+  }
+  stockly-registration .stockly-reg__field--half {
+    grid-column: 1 / -1;
+  }
+  stockly-registration .stockly-reg__skeleton-grid {
     grid-template-columns: 1fr;
   }
 }
