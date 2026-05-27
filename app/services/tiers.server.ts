@@ -25,6 +25,11 @@ export type TierCustomerEligibility =
   | "logged_in"
   | "all_customers"
   | "specific_customers";
+/**
+ * Per-rule market eligibility (Sami-parity, Sprint 5 will activate
+ * 'specific_markets' once the Function input + picker land).
+ */
+export type TierMarketEligibility = "all_markets" | "specific_markets";
 
 export interface ResolveTierInput {
   shopId: string;
@@ -196,6 +201,10 @@ export async function createTier(data: {
   aggregation?: TierAggregation;
   /** Per-rule customer eligibility (default 'wholesale_tagged'). */
   customerEligibility?: TierCustomerEligibility;
+  /** Per-rule market eligibility (default 'all_markets'). */
+  marketEligibility?: TierMarketEligibility;
+  /** GIDs of Markets restricting this rule when marketEligibility = 'specific_markets'. */
+  marketIds?: string[];
   position?: number;
 }) {
   // Normalize targets. 'all' scope must not carry any target ids.
@@ -226,6 +235,11 @@ export async function createTier(data: {
         discountType === "fixed_amount" ? (data.discountAmount ?? null) : null,
       aggregation: data.aggregation ?? "per_line",
       customerEligibility: data.customerEligibility ?? "wholesale_tagged",
+      marketEligibility: data.marketEligibility ?? "all_markets",
+      marketIds:
+        data.marketEligibility === "specific_markets"
+          ? (data.marketIds ?? [])
+          : [],
       position: data.position ?? 0,
     },
   });
@@ -247,6 +261,8 @@ export async function updateTier(
     discountAmount: number | null;
     aggregation: TierAggregation;
     customerEligibility: TierCustomerEligibility;
+    marketEligibility: TierMarketEligibility;
+    marketIds: string[];
     active: boolean;
     position: number;
   }>,
@@ -269,6 +285,12 @@ export async function updateTier(
     cleaned.scopeId = cleaned.scopeIds[0] ?? null;
   } else if (cleaned.scopeId !== undefined) {
     cleaned.scopeIds = cleaned.scopeId ? [cleaned.scopeId] : [];
+  }
+  // Market eligibility invariants. If switching back to 'all_markets'
+  // (or any non-specific mode), null out the marketIds so the DB never
+  // carries a stale list that future Function code could misread.
+  if (cleaned.marketEligibility && cleaned.marketEligibility !== "specific_markets") {
+    cleaned.marketIds = [];
   }
   return prisma.tier.update({ where: { id }, data: cleaned });
 }

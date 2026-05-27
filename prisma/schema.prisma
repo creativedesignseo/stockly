@@ -167,6 +167,20 @@ model Tier {
   ///     ships, so it's safe to land the enum value now.
   customerEligibility String @default("wholesale_tagged")
 
+  /// Per-rule market eligibility (2026-05-27, Sami-parity).
+  ///   'all_markets' (default): rule applies across every Market the
+  ///     shop has configured. Preserves pre-2026-05-27 behavior — no
+  ///     existing rows are filtered out at checkout.
+  ///   'specific_markets': RESERVED (Sprint 5) — the rule only applies
+  ///     when the cart's `localization.market.id` is in `marketIds`.
+  ///     UI surfaces this option as disabled until the Markets picker
+  ///     and Function input.graphql change ship.
+  marketEligibility String   @default("all_markets")
+  /// GIDs of Shopify Markets this rule is restricted to when
+  /// marketEligibility = 'specific_markets'. Empty array otherwise.
+  /// Stored as String[] (Postgres native) mirroring scopeIds.
+  marketIds         String[] @default([])
+
   active      Boolean  @default(true)
   /// Display order in the admin UI.
   position    Int      @default(0)

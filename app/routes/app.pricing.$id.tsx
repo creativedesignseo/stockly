@@ -65,6 +65,7 @@ import {
   type TierAggregation,
   type TierCustomerEligibility,
   type TierDiscountType,
+  type TierMarketEligibility,
   type TierScope,
 } from "../services/tiers.server";
 
@@ -239,6 +240,9 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   const customerEligibility = (
     form.get("customerEligibility") ?? "wholesale_tagged"
   ).toString() as TierCustomerEligibility;
+  const marketEligibility = (
+    form.get("marketEligibility") ?? "all_markets"
+  ).toString() as TierMarketEligibility;
   const active = form.get("active") === "on";
 
   const errors: Record<string, string> = {};
@@ -262,6 +266,11 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   if (customerEligibility === "specific_customers")
     errors.customerEligibility =
       "Specific customers mode is not available yet (Sprint 5). Pick another option.";
+  if (!["all_markets", "specific_markets"].includes(marketEligibility))
+    errors.marketEligibility = "Invalid market eligibility";
+  if (marketEligibility === "specific_markets")
+    errors.marketEligibility =
+      "Specific markets mode is not available yet (Sprint 5). Pick another option.";
 
   const minQty = Number(minQtyStr);
   if (!Number.isInteger(minQty) || minQty < 1)
@@ -296,6 +305,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
         discountAmountStr,
         aggregation,
         customerEligibility,
+        marketEligibility,
         active,
       },
     });
@@ -311,6 +321,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     discountAmount,
     aggregation,
     customerEligibility,
+    marketEligibility,
     active,
   });
 
@@ -388,6 +399,26 @@ const CUSTOMER_ELIGIBILITY_OPTIONS: Array<{
   },
 ];
 
+const MARKET_ELIGIBILITY_OPTIONS: Array<{
+  value: TierMarketEligibility;
+  title: string;
+  description: string;
+  disabled?: boolean;
+}> = [
+  {
+    value: "all_markets",
+    title: "All markets",
+    description: "All markets can access this price (default).",
+  },
+  {
+    value: "specific_markets",
+    title: "Specific markets",
+    description:
+      "Coming soon — restrict this price to selected Shopify Markets.",
+    disabled: true,
+  },
+];
+
 const AGGREGATION_OPTIONS: Array<{
   value: TierAggregation;
   title: string;
@@ -456,6 +487,12 @@ export default function EditPricing() {
         ((tier.customerEligibility as TierCustomerEligibility | null) ??
           "wholesale_tagged"),
     );
+  const [marketEligibility, setMarketEligibility] =
+    useState<TierMarketEligibility>(
+      (actionData?.values?.marketEligibility as TierMarketEligibility) ??
+        ((tier.marketEligibility as TierMarketEligibility | null) ??
+          "all_markets"),
+    );
   const [active, setActive] = useState<boolean>(
     actionData?.values?.active ?? tier.active,
   );
@@ -487,6 +524,9 @@ export default function EditPricing() {
     customerEligibility:
       ((tier.customerEligibility as TierCustomerEligibility | null) ??
         "wholesale_tagged") as TierCustomerEligibility,
+    marketEligibility:
+      ((tier.marketEligibility as TierMarketEligibility | null) ??
+        "all_markets") as TierMarketEligibility,
     active: tier.active,
   };
   const currentScopeIds = scopeItems.map((s) => s.id);
@@ -500,6 +540,7 @@ export default function EditPricing() {
     discountAmount !== initial.discountAmount ||
     aggregation !== initial.aggregation ||
     customerEligibility !== initial.customerEligibility ||
+    marketEligibility !== initial.marketEligibility ||
     active !== initial.active;
 
   const SAVE_BAR_ID = "pricing-edit-save-bar";
@@ -526,6 +567,7 @@ export default function EditPricing() {
     setDiscountAmount(initial.discountAmount);
     setAggregation(initial.aggregation);
     setCustomerEligibility(initial.customerEligibility);
+    setMarketEligibility(initial.marketEligibility);
     setActive(initial.active);
   };
 
@@ -623,6 +665,11 @@ export default function EditPricing() {
           type="hidden"
           name="customerEligibility"
           value={customerEligibility}
+        />
+        <input
+          type="hidden"
+          name="marketEligibility"
+          value={marketEligibility}
         />
         {active && <input type="hidden" name="active" value="on" />}
         {/* One hidden input per selected resource (see new.tsx). */}
@@ -778,6 +825,41 @@ export default function EditPricing() {
                       Uses the shop&apos;s configured wholesale tag (default
                       &quot;wholesale&quot;). Change it in Settings if needed.
                     </Text>
+                  )}
+                </BlockStack>
+              </Card>
+
+              {/* ----- Market eligibility ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Market eligibility
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Choose which markets can see this wholesale price.
+                    </Text>
+                  </BlockStack>
+
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    {MARKET_ELIGIBILITY_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={marketEligibility === opt.value}
+                        onSelect={() => {
+                          if (!opt.disabled) setMarketEligibility(opt.value);
+                        }}
+                        title={opt.title}
+                        description={opt.description}
+                        disabled={opt.disabled}
+                      />
+                    ))}
+                  </InlineGrid>
+
+                  {errors.marketEligibility && (
+                    <Banner tone="critical">
+                      <p>{errors.marketEligibility}</p>
+                    </Banner>
                   )}
                 </BlockStack>
               </Card>
