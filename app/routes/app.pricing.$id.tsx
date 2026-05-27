@@ -594,7 +594,7 @@ export default function EditPricing() {
                       </Text>
                       <Text variant="bodySm" as="p" tone="subdued">
                         Internal label for this rule + active/inactive toggle.
-                        Inactive rules are kept for history but don&apos;t
+                        Draft rules are kept for history but don&apos;t
                         apply at checkout.
                       </Text>
                     </BlockStack>
@@ -834,7 +834,7 @@ export default function EditPricing() {
                   <Divider />
                   <SummaryRow
                     label="Status"
-                    value={active ? "Active" : "Inactive"}
+                    value={active ? "Active" : "Draft"}
                   />
                   <SummaryRow label="Name" value={name || "—"} />
                   <SummaryRow label="Scope" value={scopeSummary} />

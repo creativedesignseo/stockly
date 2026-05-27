@@ -36,15 +36,20 @@
  * Legacy /app/tiers and /app/tiers/$id routes deleted 2026-05-27 —
  * /app/pricing is the only entry point.
  */
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useNavigate, useSearchParams } from "@remix-run/react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import {
+  useFetcher,
+  useLoaderData,
+  useNavigate,
+  useSearchParams,
+} from "@remix-run/react";
 import { useMemo } from "react";
 import {
   Page,
   Card,
   EmptyState,
   IndexTable,
-  Badge,
   Text,
   Tabs,
   BlockStack,
@@ -56,7 +61,47 @@ import { TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
-import { listTiers } from "../services/tiers.server";
+import { getTier, listTiers, updateTier } from "../services/tiers.server";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
+
+/* -------------------------------------------------------------------------- */
+/*                                  ACTION                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Inline toggle from the list — flips a rule's `active` flag without
+ * forcing the merchant to open the edit form. After the DB write we
+ * re-sync the Discount Function so checkout reflects the change
+ * immediately (the same call /app/pricing/$id makes on save).
+ *
+ * Intent = "toggle" + tierId + nextActive("on" | "off"). Triggered
+ * by the per-row useFetcher in the Status column.
+ */
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { admin, shop } = await authenticateAdmin(request);
+  const form = await request.formData();
+  const intent = (form.get("intent") ?? "").toString();
+  if (intent !== "toggle") {
+    throw new Response(`Unknown form intent: ${intent}`, { status: 400 });
+  }
+  const id = (form.get("id") ?? "").toString();
+  const nextActive = form.get("nextActive") === "on";
+
+  // Verify ownership before mutating. Same defensive pattern as
+  // /app/pricing/$id.tsx — actions can be hit directly via fetch.
+  const existing = await getTier(id, shop.id);
+  if (!existing)
+    throw new Response("Wholesale pricing not found", { status: 404 });
+
+  await updateTier(id, { active: nextActive });
+  try {
+    await syncTiersToFunction(admin, shop.id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[pricing._index] syncTiersToFunction failed:", err);
+  }
+  return json({ ok: true, id, active: nextActive });
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
@@ -83,7 +128,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
-type TabId = "all" | "active" | "inactive";
+/**
+ * Tab ids. "draft" is the user-facing label for `active=false` rules
+ * (per Jonatan 2026-05-27 — "Inactive" felt wrong, "Draft" matches
+ * what Sami and the rest of the Shopify admin use for rules that
+ * exist but aren't live). Internally still backed by `active: boolean`.
+ */
+type TabId = "all" | "active" | "draft";
 
 export default function PricingList() {
   const { tiers, shop } = useLoaderData<typeof loader>();
@@ -97,21 +148,30 @@ export default function PricingList() {
    * ERR_TOO_MANY_REDIRECTS. (See commit 4a115c8 and lesson 7 in
    * progress/2026-05-26-approve-flow-fix.md.)
    */
-  const filterParam = (searchParams.get("status") as TabId | null) ?? "all";
+  // Back-compat: ?status=inactive used to be the query param for the
+  // "non-active" tab. Map it to the new "draft" id so old bookmarks
+  // still land on the right tab.
+  const rawStatus = searchParams.get("status");
+  const filterParam: TabId =
+    rawStatus === "active"
+      ? "active"
+      : rawStatus === "draft" || rawStatus === "inactive"
+        ? "draft"
+        : "all";
   const activeCount = tiers.filter((t) => t.active).length;
-  const inactiveCount = tiers.length - activeCount;
+  const draftCount = tiers.length - activeCount;
 
   const tabs = [
     { id: "all", content: `All (${tiers.length})`, panelID: "all" },
     { id: "active", content: `Active (${activeCount})`, panelID: "active" },
     {
-      id: "inactive",
-      content: `Inactive (${inactiveCount})`,
-      panelID: "inactive",
+      id: "draft",
+      content: `Draft (${draftCount})`,
+      panelID: "draft",
     },
   ];
   const tabIndex =
-    filterParam === "active" ? 1 : filterParam === "inactive" ? 2 : 0;
+    filterParam === "active" ? 1 : filterParam === "draft" ? 2 : 0;
 
   const onTabSelect = (idx: number) => {
     setSearchParams(
@@ -119,7 +179,7 @@ export default function PricingList() {
         const next = new URLSearchParams(prev);
         if (idx === 0) next.delete("status");
         else if (idx === 1) next.set("status", "active");
-        else next.set("status", "inactive");
+        else next.set("status", "draft");
         return next;
       },
       { replace: true },
@@ -128,7 +188,7 @@ export default function PricingList() {
 
   const filteredTiers = useMemo(() => {
     if (filterParam === "active") return tiers.filter((t) => t.active);
-    if (filterParam === "inactive") return tiers.filter((t) => !t.active);
+    if (filterParam === "draft") return tiers.filter((t) => !t.active);
     return tiers;
   }, [tiers, filterParam]);
 
@@ -277,9 +337,17 @@ export default function PricingList() {
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
-                  <Badge tone={tier.active ? "success" : undefined}>
-                    {tier.active ? "Active" : "Inactive"}
-                  </Badge>
+                  {/*
+                    Inline status toggle. Per Jonatan 2026-05-27 — the
+                    toggle that lives inside /app/pricing/$id should be
+                    reachable from the list too, so a merchant can
+                    pause/resume a rule without entering the edit form.
+                    The Sami list shows the same pattern.
+                   */}
+                  <StatusToggleCell
+                    tierId={tier.id}
+                    active={tier.active}
+                  />
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodyMd">
@@ -305,6 +373,84 @@ export default function PricingList() {
         </Card>
       </BlockStack>
     </Page>
+  );
+}
+
+/**
+ * Inline Active/Draft toggle for the Status column. Uses a useFetcher
+ * scoped to /app/pricing — so each row submits independently and the
+ * page doesn't have to re-render the whole list. Optimistic UI:
+ * while the request is in flight we render the pending state from
+ * fetcher.formData so the switch feels instant.
+ *
+ * The wrapping <span> with stopPropagation prevents the row's onClick
+ * (which navigates to /app/pricing/$id) from firing when the merchant
+ * just wanted to flip the switch. Without it, clicking the toggle
+ * would also open the edit form — confusing.
+ */
+function StatusToggleCell({
+  tierId,
+  active,
+}: {
+  tierId: string;
+  active: boolean;
+}) {
+  const fetcher = useFetcher<typeof action>();
+  // Optimistic: while the toggle request is in flight, render what
+  // the merchant just picked instead of what's still in the loader data.
+  const pendingNext = fetcher.formData?.get("nextActive");
+  const displayActive =
+    pendingNext === "on" ? true : pendingNext === "off" ? false : active;
+  const submitting = fetcher.state !== "idle";
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const fd = new FormData();
+    fd.append("intent", "toggle");
+    fd.append("id", tierId);
+    fd.append("nextActive", displayActive ? "off" : "on");
+    fetcher.submit(fd, { method: "POST", action: "/app/pricing" });
+  };
+
+  return (
+    <span onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={displayActive}
+        aria-label={displayActive ? "Set to draft" : "Set to active"}
+        onClick={handleToggle}
+        disabled={submitting}
+        style={{
+          width: "44px",
+          height: "24px",
+          borderRadius: "12px",
+          border: "none",
+          background: displayActive
+            ? "var(--p-color-bg-fill-success)"
+            : "var(--p-color-bg-fill-tertiary)",
+          position: "relative",
+          cursor: submitting ? "wait" : "pointer",
+          transition: "background 0.15s ease",
+          padding: 0,
+          opacity: submitting ? 0.7 : 1,
+        }}
+      >
+        <span
+          style={{
+            position: "absolute",
+            top: "2px",
+            left: displayActive ? "22px" : "2px",
+            width: "20px",
+            height: "20px",
+            background: "white",
+            borderRadius: "50%",
+            transition: "left 0.15s ease",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+          }}
+        />
+      </button>
+    </span>
   );
 }
 
