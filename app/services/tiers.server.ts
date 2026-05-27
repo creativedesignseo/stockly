@@ -141,7 +141,17 @@ export async function listTiers(
       shopId,
       ...(options.activeOnly ? { active: true } : {}),
     },
-    orderBy: [{ position: "asc" }, { minQty: "asc" }],
+    // `position` and `minQty` collide on most freshly-created tiers
+    // (default position=0, similar minQty). Without a stable tiebreaker
+    // Postgres returns rows in arbitrary order on every query, which
+    // makes the admin list reshuffle after each inline toggle (the
+    // loader revalidates after a fetcher POST). `createdAt: desc` keeps
+    // newer rules at the top and is stable across refetches.
+    orderBy: [
+      { position: "asc" },
+      { minQty: "asc" },
+      { createdAt: "desc" },
+    ],
   });
 }
 
