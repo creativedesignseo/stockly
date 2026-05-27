@@ -113,8 +113,18 @@ model Tier {
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   name        String
-  scope       String   // 'product' | 'collection' | 'all'
+  scope       String   // 'product' | 'variant' | 'collection' | 'all'
+  /// DEPRECATED 2026-05-27: legacy single-target GID. Kept for one
+  /// release cycle for back-compat reads; new code reads scopeIds[]
+  /// which can hold many. On every write we mirror scopeIds[0] here
+  /// so any old code path that still reads scopeId keeps working.
   scopeId     String?
+  /// NEW 2026-05-27: multiple target GIDs for one rule. Per Jonatan's
+  /// UX request — Sami/BSS let you pick N products for a single rule
+  /// instead of duplicating the rule N times. Empty array when
+  /// scope='all'. For scope=product/variant/collection, holds the
+  /// list of GIDs the rule applies to.
+  scopeIds    String[] @default([])
 
   minQty      Int
   /// Percent discount, 0-100 (10 means -10%). Used when discountType

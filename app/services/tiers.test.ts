@@ -25,8 +25,11 @@ function tier(overrides: Partial<Tier> = {}): Tier {
     name: "Default",
     scope: "all",
     scopeId: null,
+    scopeIds: [],
     minQty: 10,
     discountPct: 5,
+    discountType: "percentage",
+    discountAmount: null,
     aggregation: "per_line",
     active: true,
     position: 0,
@@ -224,16 +227,26 @@ describe("resolveTier", () => {
     const arg = findManyMock.mock.calls[0][0];
     expect(arg.where.shopId).toBe("shop-42");
     expect(arg.where.active).toBe(true);
-    // The OR branch must include both collection GIDs the caller passed.
+    // After the 2026-05-27 multi-target migration the OR includes BOTH
+    // the new scopeIds[] form and the legacy scopeId form for each
+    // scope — so tiers written before the migration still match.
+    expect(arg.where.OR).toContainEqual({
+      scope: "collection",
+      scopeIds: { hasSome: [COLLECTION_GID, "gid://shopify/Collection/777"] },
+    });
     expect(arg.where.OR).toContainEqual({
       scope: "collection",
       scopeId: { in: [COLLECTION_GID, "gid://shopify/Collection/777"] },
     });
     expect(arg.where.OR).toContainEqual({
       scope: "product",
+      scopeIds: { has: PRODUCT_GID },
+    });
+    expect(arg.where.OR).toContainEqual({
+      scope: "product",
       scopeId: PRODUCT_GID,
     });
-    expect(arg.where.OR).toContainEqual({ scope: "all", scopeId: null });
+    expect(arg.where.OR).toContainEqual({ scope: "all" });
     // Variant-scoped tiers must also be candidates — variantId filter
     // is applied by the caller against line.merchandise.id, not at the
     // DB level (we want all variant tiers to enter the ranker so we

@@ -54,15 +54,21 @@ export async function resolveTier(
   // Variant scope is resolved by the caller against line.merchandise.id;
   // here we leave the OR open to any scope and let the precedence ranker
   // pick the most-specific qualifying tier.
+  //
+  // 2026-05-27: scopeIds[] is the new multi-target storage. We match
+  // both `scopeIds has X` (new) and `scopeId == X` (legacy) so tiers
+  // written before the migration keep working until the back-fill runs.
   const candidates = await prisma.tier.findMany({
     where: {
       shopId,
       active: true,
       OR: [
         { scope: "variant" },
+        { scope: "product", scopeIds: { has: productGid } },
         { scope: "product", scopeId: productGid },
+        { scope: "collection", scopeIds: { hasSome: collectionGids } },
         { scope: "collection", scopeId: { in: collectionGids } },
-        { scope: "all", scopeId: null },
+        { scope: "all" },
       ],
     },
     orderBy: [{ minQty: "desc" }],
@@ -158,7 +164,10 @@ export async function createTier(data: {
   shopId: string;
   name: string;
   scope: TierScope;
+  /** DEPRECATED: legacy single-target GID. Prefer scopeIds. */
   scopeId?: string | null;
+  /** NEW 2026-05-27: multiple target GIDs for one rule. */
+  scopeIds?: string[];
   minQty: number;
   discountPct: number;
   /** "percentage" (default) or "fixed_amount" (2026-05-27). */
@@ -168,8 +177,19 @@ export async function createTier(data: {
   aggregation?: TierAggregation;
   position?: number;
 }) {
-  // Defensive: 'all' scope must not have a scopeId.
-  const scopeId = data.scope === "all" ? null : (data.scopeId ?? null);
+  // Normalize targets. 'all' scope must not carry any target ids.
+  // Otherwise accept either scopeIds[] (preferred) or legacy scopeId
+  // and mirror them: scopeIds is the source of truth, scopeId mirrors
+  // scopeIds[0] for back-compat reads.
+  const isAll = data.scope === "all";
+  const scopeIds = isAll
+    ? []
+    : ((data.scopeIds && data.scopeIds.length > 0
+        ? data.scopeIds
+        : data.scopeId
+          ? [data.scopeId]
+          : []) as string[]);
+  const scopeId = isAll ? null : (scopeIds[0] ?? null);
   const discountType: TierDiscountType = data.discountType ?? "percentage";
   return prisma.tier.create({
     data: {
@@ -177,6 +197,7 @@ export async function createTier(data: {
       name: data.name,
       scope: data.scope,
       scopeId,
+      scopeIds,
       minQty: data.minQty,
       discountPct: data.discountPct,
       discountType,
@@ -197,6 +218,7 @@ export async function updateTier(
     name: string;
     scope: TierScope;
     scopeId: string | null;
+    scopeIds: string[];
     minQty: number;
     discountPct: number;
     discountType: TierDiscountType;
@@ -212,6 +234,18 @@ export async function updateTier(
   const cleaned: typeof data = { ...data };
   if (cleaned.discountType === "percentage") {
     cleaned.discountAmount = null;
+  }
+  // Keep scopeId and scopeIds in sync. If the caller passed scopeIds
+  // (or set scope='all'), authoritatively re-derive scopeId from it.
+  // If they only passed scopeId (legacy callers), mirror it into
+  // scopeIds so new reads find the rule too.
+  if (cleaned.scope === "all") {
+    cleaned.scopeIds = [];
+    cleaned.scopeId = null;
+  } else if (Array.isArray(cleaned.scopeIds)) {
+    cleaned.scopeId = cleaned.scopeIds[0] ?? null;
+  } else if (cleaned.scopeId !== undefined) {
+    cleaned.scopeIds = cleaned.scopeId ? [cleaned.scopeId] : [];
   }
   return prisma.tier.update({ where: { id }, data: cleaned });
 }

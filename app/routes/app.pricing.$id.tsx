@@ -49,7 +49,10 @@ import {
   Divider,
   Box,
   InlineGrid,
+  Thumbnail,
+  Icon,
 } from "@shopify/polaris";
+import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
@@ -69,7 +72,7 @@ import {
 /* -------------------------------------------------------------------------- */
 
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
+  const { admin, shop } = await authenticateAdmin(request);
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
@@ -83,9 +86,99 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   if (!tier)
     throw new Response("Wholesale pricing not found", { status: 404 });
 
+  // Resolve the rule's targets to (id, title, image) so the form can
+  // render a real thumbnail + label instead of the raw GID URL. We use
+  // the generic `nodes(ids:)` query because the rule's scope determines
+  // whether the targets are Products, ProductVariants, or Collections.
+  // Read scopeIds[] first (the new field), fall back to legacy scopeId.
+  const targetIds =
+    tier.scopeIds && tier.scopeIds.length > 0
+      ? tier.scopeIds
+      : tier.scopeId
+        ? [tier.scopeId]
+        : [];
+  let scopeItems: Array<{ id: string; title: string; image: string | null }> =
+    [];
+  if (targetIds.length > 0) {
+    try {
+      const res = await admin.graphql(
+        `#graphql
+        query ScopeTargets($ids: [ID!]!) {
+          nodes(ids: $ids) {
+            __typename
+            ... on Product {
+              id
+              title
+              featuredImage { url }
+            }
+            ... on ProductVariant {
+              id
+              displayName
+              image { url }
+              product { featuredImage { url } }
+            }
+            ... on Collection {
+              id
+              title
+              image { url }
+            }
+          }
+        }`,
+        { variables: { ids: targetIds } },
+      );
+      // Loosely typed for normalization below — Shopify returns a
+      // mixed array of Product/ProductVariant/Collection so we type
+      // each field as optional and pick what's actually present.
+      const json = (await res.json()) as {
+        data?: {
+          nodes?: Array<
+            | ({
+                __typename: string;
+                id?: string;
+                title?: string;
+                displayName?: string;
+                image?: { url?: string } | null;
+                featuredImage?: { url?: string } | null;
+                product?: { featuredImage?: { url?: string } | null } | null;
+              } | null)
+          >;
+        };
+      };
+      scopeItems = (json.data?.nodes ?? [])
+        .filter((n): n is NonNullable<typeof n> => n != null && !!n.id)
+        .map((n) => {
+          const isVariant = n.__typename === "ProductVariant";
+          return {
+            id: n.id as string,
+            title: (isVariant ? n.displayName : n.title) ?? "(no title)",
+            image:
+              n.featuredImage?.url ??
+              n.image?.url ??
+              n.product?.featuredImage?.url ??
+              null,
+          };
+        });
+      // If Shopify dropped any ids (deleted resources), keep the gid so
+      // the merchant can see them and decide to remove.
+      const returnedIds = new Set(scopeItems.map((s) => s.id));
+      for (const id of targetIds) {
+        if (!returnedIds.has(id)) {
+          scopeItems.push({ id, title: "(deleted or unavailable)", image: null });
+        }
+      }
+    } catch (err) {
+      // Don't block the form on a metadata-fetch failure. Show raw
+      // ids — the merchant can still edit + save the rule.
+      // eslint-disable-next-line no-console
+      console.error("[pricing.$id] scope-target fetch failed:", err);
+      scopeItems = targetIds.map((id) => ({ id, title: "", image: null }));
+    }
+  }
+
   return json({
     tier,
     baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
+    scopeItems,
   });
 };
 
@@ -124,7 +217,17 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
 
   const name = (form.get("name") ?? "").toString().trim();
   const scope = (form.get("scope") ?? "all").toString() as TierScope;
-  const scopeId = (form.get("scopeId") ?? "").toString().trim() || null;
+  // Multi-target (2026-05-27). Same parsing strategy as
+  // /app/pricing/new: scopeIds arrives as multiple hidden inputs and
+  // we de-dupe before validating.
+  const scopeIds = Array.from(
+    new Set(
+      form
+        .getAll("scopeIds")
+        .map((v) => v.toString().trim())
+        .filter(Boolean),
+    ),
+  );
   const minQtyStr = (form.get("minQty") ?? "").toString();
   const discountType = (form.get("discountType") ?? "percentage")
     .toString() as TierDiscountType;
@@ -138,8 +241,8 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   if (!name) errors.name = "Name is required";
   if (!["product", "variant", "collection", "all"].includes(scope))
     errors.scope = "Invalid scope";
-  if (scope !== "all" && !scopeId)
-    errors.scopeId = "Pick a target with the Browse button (or paste a GID)";
+  if (scope !== "all" && scopeIds.length === 0)
+    errors.scopeIds = "Select at least one target";
   if (!["per_line", "cart_total"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
   if (scope === "variant" && aggregation === "cart_total") {
@@ -173,7 +276,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
       values: {
         name,
         scope,
-        scopeId,
+        scopeIds,
         minQtyStr,
         discountType,
         discountPctStr,
@@ -187,7 +290,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   await updateTier(id, {
     name,
     scope,
-    scopeId: scope === "all" ? null : scopeId,
+    scopeIds: scope === "all" ? [] : scopeIds,
     minQty,
     discountPct,
     discountType,
@@ -258,7 +361,8 @@ const AGGREGATION_OPTIONS: Array<{
 ];
 
 export default function EditPricing() {
-  const { tier, baselinePct } = useLoaderData<typeof loader>();
+  const { tier, baselinePct, scopeItems: initialScopeItems } =
+    useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting =
@@ -273,10 +377,14 @@ export default function EditPricing() {
   const [scope, setScope] = useState<TierScope>(
     (actionData?.values?.scope as TierScope) ?? (tier.scope as TierScope),
   );
-  const [scopeId, setScopeId] = useState<string>(
-    actionData?.values?.scopeId ?? tier.scopeId ?? "",
+  // Selected targets list. After a validation error round-trip we only
+  // have ids, so titles re-blank until the picker is re-opened; on
+  // first render we use the loader-fetched titles + images.
+  const [scopeItems, setScopeItems] = useState<ScopeItem[]>(
+    actionData?.values?.scopeIds
+      ? actionData.values.scopeIds.map((id) => ({ id, title: "" }))
+      : initialScopeItems,
   );
-  const [scopeLabel, setScopeLabel] = useState<string>("");
   const [minQty, setMinQty] = useState<string>(
     actionData?.values?.minQtyStr ?? String(tier.minQty),
   );
@@ -302,10 +410,20 @@ export default function EditPricing() {
   const errors = actionData?.errors ?? {};
 
   /* ----- SaveBar (App Bridge, sticky top) ----- */
+  // Initial scopeIds = those on the persisted tier. Used both for
+  // Discard (restore to the original selection) and for isDirty
+  // comparison (so re-opening the picker without changes doesn't
+  // flag the form as dirty).
+  const initialScopeIds =
+    tier.scopeIds && tier.scopeIds.length > 0
+      ? tier.scopeIds
+      : tier.scopeId
+        ? [tier.scopeId]
+        : [];
   const initial = {
     name: tier.name,
     scope: tier.scope as TierScope,
-    scopeId: tier.scopeId ?? "",
+    scopeIds: initialScopeIds,
     minQty: String(tier.minQty),
     discountType: ((tier.discountType as TierDiscountType | null) ??
       "percentage") as TierDiscountType,
@@ -315,10 +433,11 @@ export default function EditPricing() {
     aggregation: tier.aggregation as TierAggregation,
     active: tier.active,
   };
+  const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
     name !== initial.name ||
     scope !== initial.scope ||
-    scopeId !== initial.scopeId ||
+    !sameIdSet(currentScopeIds, initial.scopeIds) ||
     minQty !== initial.minQty ||
     discountType !== initial.discountType ||
     discountPct !== initial.discountPct ||
@@ -343,8 +462,7 @@ export default function EditPricing() {
   const handleDiscard = () => {
     setName(initial.name);
     setScope(initial.scope);
-    setScopeId(initial.scopeId);
-    setScopeLabel("");
+    setScopeItems(initialScopeItems);
     setMinQty(initial.minQty);
     setDiscountType(initial.discountType);
     setDiscountPct(initial.discountPct);
@@ -353,18 +471,21 @@ export default function EditPricing() {
     setActive(initial.active);
   };
 
-  /* ----- Resource Picker ----- */
+  /* ----- Resource Picker (multi-select) ----- */
   const openResourcePicker = async () => {
     if (scope === "all") return;
     const result = await shopify.resourcePicker({
       type: scope,
-      multiple: false,
+      multiple: true,
       filter: { archived: false, draft: false },
+      selectionIds: scopeItems.map((s) => ({ id: s.id })),
     });
-    if (!result || result.length === 0) return;
-    const picked = result[0] as { id: string; title?: string };
-    setScopeId(picked.id);
-    setScopeLabel(picked.title ?? "");
+    if (!result) return;
+    setScopeItems(result.map(pickerNodeToItem));
+  };
+
+  const removeScopeItem = (id: string) => {
+    setScopeItems((prev) => prev.filter((s) => s.id !== id));
   };
 
   /* ----- Delete fetcher (intent=delete, separate from SaveBar) ----- */
@@ -396,14 +517,18 @@ export default function EditPricing() {
   const previewSavings = previewRetail - previewWholesale;
 
   const scopeOption = SCOPE_OPTIONS.find((s) => s.value === scope)!;
+  const scopeNoun =
+    scope === "product"
+      ? "products"
+      : scope === "variant"
+        ? "variants"
+        : "collections";
   const scopeSummary =
     scope === "all"
       ? "All products in the shop"
-      : scopeLabel
-        ? `${scopeOption.title} — ${scopeLabel}`
-        : scopeId
-          ? `${scopeOption.title} (GID set)`
-          : `${scopeOption.title} (not selected)`;
+      : scopeItems.length === 0
+        ? `${scopeOption.title} (none selected)`
+        : `${scopeItems.length} ${scopeNoun}`;
 
   const triggerSummary = minQty
     ? `${minQty} units · ${aggregation === "per_line" ? "per line" : "cart total"}`
@@ -437,6 +562,16 @@ export default function EditPricing() {
         <input type="hidden" name="aggregation" value={aggregation} />
         <input type="hidden" name="discountType" value={discountType} />
         {active && <input type="hidden" name="active" value="on" />}
+        {/* One hidden input per selected resource (see new.tsx). */}
+        {scope !== "all" &&
+          scopeItems.map((item) => (
+            <input
+              key={item.id}
+              type="hidden"
+              name="scopeIds"
+              value={item.id}
+            />
+          ))}
 
         <Layout>
           <Layout.Section>
@@ -509,31 +644,12 @@ export default function EditPricing() {
                   </InlineGrid>
 
                   {scope !== "all" && (
-                    <TextField
-                      label={
-                        scope === "product"
-                          ? "Product"
-                          : scope === "variant"
-                            ? "Variant"
-                            : "Collection"
-                      }
-                      name="scopeId"
-                      autoComplete="off"
-                      value={scopeId}
-                      onChange={(v) => {
-                        setScopeId(v);
-                        if (v !== scopeId) setScopeLabel("");
-                      }}
-                      error={errors.scopeId}
-                      helpText={
-                        scopeLabel
-                          ? `Selected: ${scopeLabel}`
-                          : "Click Browse to pick from Shopify, or paste a GID."
-                      }
-                      connectedRight={
-                        <Button onClick={openResourcePicker}>Browse…</Button>
-                      }
-                      requiredIndicator
+                    <ScopePicker
+                      scope={scope}
+                      items={scopeItems}
+                      onBrowse={openResourcePicker}
+                      onRemove={removeScopeItem}
+                      error={errors.scopeIds}
                     />
                   )}
 
@@ -727,6 +843,31 @@ export default function EditPricing() {
                 </BlockStack>
               </Card>
 
+              {scope !== "all" && scopeItems.length > 0 && (
+                <Card>
+                  <BlockStack gap="300">
+                    <BlockStack gap="050">
+                      <Text variant="headingMd" as="h3">
+                        Selected {scopeNoun}
+                      </Text>
+                      <Text variant="bodySm" as="p" tone="subdued">
+                        {scopeItems.length} item{scopeItems.length === 1 ? "" : "s"} this rule applies to
+                      </Text>
+                    </BlockStack>
+                    <Divider />
+                    <BlockStack gap="200">
+                      {scopeItems.map((item) => (
+                        <ScopeItemRow
+                          key={item.id}
+                          item={item}
+                          onRemove={() => removeScopeItem(item.id)}
+                        />
+                      ))}
+                    </BlockStack>
+                  </BlockStack>
+                </Card>
+              )}
+
               <Card>
                 <BlockStack gap="300">
                   <BlockStack gap="050">
@@ -781,6 +922,141 @@ export default function EditPricing() {
 /* -------------------------------------------------------------------------- */
 /*                              Small helpers                                 */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * One target picked from the Resource Picker. Mirrors the type in
+ * app.pricing.new.tsx — kept duplicated (not in a shared module) so
+ * each route remains self-contained for the audit.
+ */
+type ScopeItem = {
+  id: string;
+  title: string;
+  image?: string | null;
+};
+
+function pickerNodeToItem(node: unknown): ScopeItem {
+  const n = node as {
+    id: string;
+    title?: string;
+    displayName?: string;
+    image?: { originalSrc?: string; url?: string } | null;
+    images?: Array<{ originalSrc?: string; url?: string }>;
+  };
+  const img =
+    n.image?.originalSrc ??
+    n.image?.url ??
+    n.images?.[0]?.originalSrc ??
+    n.images?.[0]?.url ??
+    null;
+  return {
+    id: n.id,
+    title: n.title ?? n.displayName ?? "(no title)",
+    image: img,
+  };
+}
+
+function sameIdSet(a: string[], b: string[]) {
+  if (a.length !== b.length) return false;
+  const sb = new Set(b);
+  return a.every((id) => sb.has(id));
+}
+
+function ScopePicker({
+  scope,
+  items,
+  onBrowse,
+  onRemove,
+  error,
+}: {
+  scope: TierScope;
+  items: ScopeItem[];
+  onBrowse: () => void;
+  onRemove: (id: string) => void;
+  error?: string;
+}) {
+  const noun =
+    scope === "product"
+      ? "products"
+      : scope === "variant"
+        ? "variants"
+        : "collections";
+  const verb = scope === "collection" ? "Browse collections" : `Browse ${noun}`;
+  if (items.length === 0) {
+    return (
+      <BlockStack gap="200">
+        <InlineStack>
+          <Button onClick={onBrowse}>{verb}</Button>
+        </InlineStack>
+        {error && (
+          <Banner tone="critical">
+            <p>{error}</p>
+          </Banner>
+        )}
+      </BlockStack>
+    );
+  }
+  return (
+    <BlockStack gap="300">
+      <InlineStack align="space-between" blockAlign="center" wrap={false}>
+        <Text variant="bodyMd" as="span">
+          {items.length} {items.length === 1 ? noun.replace(/s$/, "") : noun} selected
+        </Text>
+        <Button onClick={onBrowse}>Edit selection</Button>
+      </InlineStack>
+      <BlockStack gap="200">
+        {items.map((item) => (
+          <ScopeItemRow
+            key={item.id}
+            item={item}
+            onRemove={() => onRemove(item.id)}
+          />
+        ))}
+      </BlockStack>
+      {error && (
+        <Banner tone="critical">
+          <p>{error}</p>
+        </Banner>
+      )}
+    </BlockStack>
+  );
+}
+
+function ScopeItemRow({
+  item,
+  onRemove,
+}: {
+  item: ScopeItem;
+  onRemove: () => void;
+}) {
+  return (
+    <InlineStack gap="300" align="space-between" blockAlign="center" wrap={false}>
+      <InlineStack gap="300" blockAlign="center" wrap={false}>
+        {item.image ? (
+          <Thumbnail source={item.image} alt={item.title} size="small" />
+        ) : (
+          <Box
+            background="bg-surface-secondary"
+            padding="200"
+            borderRadius="200"
+          >
+            <Icon source={ImageIcon} tone="subdued" />
+          </Box>
+        )}
+        <Box maxWidth="220px">
+          <Text variant="bodyMd" as="span" truncate>
+            {item.title || item.id}
+          </Text>
+        </Box>
+      </InlineStack>
+      <Button
+        accessibilityLabel={`Remove ${item.title || item.id}`}
+        icon={XSmallIcon}
+        variant="tertiary"
+        onClick={onRemove}
+      />
+    </InlineStack>
+  );
+}
 
 function ChoiceCard({
   selected,

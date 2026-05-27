@@ -61,7 +61,18 @@ interface ConfiguredTier {
    * in discount-function-sync.server.ts/buildConfiguration.
    */
   scope?: Scope;
+  /**
+   * DEPRECATED 2026-05-27: legacy single-target GID. Kept so older
+   * metafields written before the multi-target migration still match.
+   * New writes also populate scopeIds.
+   */
   scopeId?: string | null;
+  /**
+   * NEW 2026-05-27: list of target GIDs the rule applies to. When
+   * present, the Function matches a line if its variant/product GID
+   * is ANY of these. Empty/missing falls back to scopeId.
+   */
+  scopeIds?: string[];
   /** Inclusive minimum quantity that activates this tier. */
   minQty: number;
   /** Percentage off the base price (0–100). Used when
@@ -105,8 +116,18 @@ function tierAppliesToLine(
 ): boolean {
   const scope = tier.scope ?? "all";
   if (scope === "all") return true;
-  if (scope === "variant") return tier.scopeId === variantGid;
-  if (scope === "product") return tier.scopeId === productGid;
+  // Build the target id list: scopeIds (new, multi-target) takes
+  // priority. Fallback to single scopeId for back-compat with
+  // metafields written before 2026-05-27.
+  const ids =
+    tier.scopeIds && tier.scopeIds.length > 0
+      ? tier.scopeIds
+      : tier.scopeId
+        ? [tier.scopeId]
+        : [];
+  if (ids.length === 0) return false;
+  if (scope === "variant") return ids.includes(variantGid);
+  if (scope === "product") return ids.includes(productGid);
   return false;
 }
 

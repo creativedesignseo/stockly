@@ -286,17 +286,33 @@ async function buildConfiguration(shopId: string): Promise<string> {
   // ones get skipped — see fn-doc comment above.
   const scopedTiers = tiers
     .filter((t) => t.scope === "all" || t.scope === "product" || t.scope === "variant")
-    .map((t) => ({
-      scope: t.scope,
-      scopeId: t.scopeId, // null for 'all', GID for product/variant
-      minQty: t.minQty,
-      discountPct: t.discountPct,
-      // New fields (2026-05-27). Function falls back to "percentage"
-      // when missing, so older tiers in the metafield keep working.
-      discountType: t.discountType,
-      discountAmount: t.discountAmount, // null when type=percentage
-      aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
-    }))
+    .map((t) => {
+      // 2026-05-27: scopeIds is the new multi-target storage. We mirror
+      // scopeId into scopeIds[0] on write, so reading scopeIds first
+      // and falling back to legacy scopeId keeps both paths correct.
+      const ids =
+        t.scopeIds && t.scopeIds.length > 0
+          ? t.scopeIds
+          : t.scopeId
+            ? [t.scopeId]
+            : [];
+      return {
+        scope: t.scope,
+        // Legacy single-target field. Kept for one release cycle so
+        // the Function can fall back if it sees an old metafield. New
+        // Function code should read scopeIds.
+        scopeId: t.scopeId,
+        // NEW: full list of target GIDs the rule matches.
+        scopeIds: ids,
+        minQty: t.minQty,
+        discountPct: t.discountPct,
+        // New fields (2026-05-27). Function falls back to "percentage"
+        // when missing, so older tiers in the metafield keep working.
+        discountType: t.discountType,
+        discountAmount: t.discountAmount, // null when type=percentage
+        aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
+      };
+    })
     .sort((a, b) => a.minQty - b.minQty);
 
   const qualifiedCustomers = qualifiedRows.map(
