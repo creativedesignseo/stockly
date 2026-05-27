@@ -20,9 +20,10 @@
  * dedicated route (`/app/tiers`, `/app/settings/pricing`, etc.).
  * The hub is glue, not duplication.
  */
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import {
   Page,
   Layout,
@@ -35,11 +36,14 @@ import {
   Banner,
   InlineGrid,
   Box,
+  Modal,
+  TextField,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
+import { syncTiersToFunction } from "../services/discount-function-sync.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
@@ -72,11 +76,176 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 /* -------------------------------------------------------------------------- */
+/*                                  ACTION                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Inline-edit handler for the 3 single-field cards: baseline, MOQ,
+ * order minimum. Keeps the merchant on /app/pricing — modal opens,
+ * one input, save, modal closes, badge updates via loader
+ * revalidation. No navigation.
+ *
+ * FPQ and Volume tiers stay on their dedicated pages — they're
+ * multi-field / list views that don't fit a 1-field modal.
+ */
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { admin, shop } = await authenticateAdmin(request);
+  const form = await request.formData();
+  const intent = (form.get("intent") ?? "").toString();
+  const valueRaw = (form.get("value") ?? "").toString();
+
+  if (intent === "set-baseline") {
+    const pct = Number(valueRaw);
+    if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
+      return json({
+        ok: false,
+        error: "Baseline must be an integer between 0 and 100.",
+      } as const);
+    }
+    await prisma.shop.update({
+      where: { id: shop.id },
+      data: { wholesaleBaselinePct: pct },
+    });
+    // Resync the Discount Function so checkout reflects the new
+    // baseline immediately. Without this, the merchant sees the
+    // new value in the hub but customers keep paying the old price.
+    try {
+      await syncTiersToFunction(admin, shop.id);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[pricing-hub] syncTiersToFunction failed:", err);
+    }
+    return json({ ok: true, intent } as const);
+  }
+
+  if (intent === "set-moq") {
+    const moq = Number(valueRaw);
+    if (!Number.isInteger(moq) || moq < 1) {
+      return json({
+        ok: false,
+        error: "MOQ must be a positive integer (1 = no minimum).",
+      } as const);
+    }
+    await prisma.shop.update({
+      where: { id: shop.id },
+      data: { postQualificationMOQ: moq },
+    });
+    try {
+      await syncTiersToFunction(admin, shop.id);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("[pricing-hub] syncTiersToFunction failed:", err);
+    }
+    return json({ ok: true, intent } as const);
+  }
+
+  if (intent === "set-order-min") {
+    // Empty string → clear the minimum (null).
+    const value =
+      valueRaw.trim() === "" ? null : Number(valueRaw);
+    if (value !== null && (Number.isNaN(value) || value < 0)) {
+      return json({
+        ok: false,
+        error: "Order minimum must be a non-negative number, or empty to clear.",
+      } as const);
+    }
+    await prisma.shop.update({
+      where: { id: shop.id },
+      data: { minOrderValue: value },
+    });
+    return json({ ok: true, intent } as const);
+  }
+
+  return json({ ok: false, error: `Unknown intent: ${intent}` } as const);
+};
+
+/* -------------------------------------------------------------------------- */
 /*                                    UI                                      */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The 3 fields that support inline edit via modal (single TextField).
+ * FPQ and Volume tiers don't — they have their own dedicated pages
+ * because they're multi-field / list views.
+ */
+type EditField = "baseline" | "moq" | "order-min";
+
+interface EditConfig {
+  title: string;
+  label: string;
+  helpText: string;
+  intent: "set-baseline" | "set-moq" | "set-order-min";
+  type?: "number";
+  suffix?: string;
+}
+
+const EDIT_CONFIG: Record<EditField, EditConfig> = {
+  baseline: {
+    title: "Edit wholesale baseline",
+    label: "Discount percent off retail (0–100)",
+    helpText:
+      "0 = no baseline. 55 = wholesale customers see 55% off retail. Volume tiers stack on top multiplicatively.",
+    intent: "set-baseline",
+    type: "number",
+    suffix: "%",
+  },
+  moq: {
+    title: "Edit post-qualification MOQ",
+    label: "Minimum units per order after qualifying",
+    helpText:
+      "Applied AFTER the FPQ gate is cleared. Use 1 to let qualified customers buy any quantity.",
+    intent: "set-moq",
+    type: "number",
+  },
+  "order-min": {
+    title: "Set cart order minimum",
+    label: "Minimum cart subtotal (in shop currency)",
+    helpText:
+      "Optional. Leave empty to disable. Applied at cart-level, independent from FPQ.",
+    intent: "set-order-min",
+    type: "number",
+    suffix: "€",
+  },
+};
+
 export default function PricingHub() {
   const { shop, tiers } = useLoaderData<typeof loader>();
+
+  // ----- Inline edit modal state -----
+  const [editing, setEditing] = useState<EditField | null>(null);
+  const [draftValue, setDraftValue] = useState<string>("");
+  const fetcher = useFetcher<typeof action>();
+  const isSubmitting = fetcher.state !== "idle";
+
+  // Close modal + clear draft when save succeeds. Loader revalidation
+  // (automatic on fetcher submit) refreshes the badges with new values.
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    if (fetcher.data.ok) {
+      setEditing(null);
+      setDraftValue("");
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  const openEdit = (field: EditField, currentValue: string) => {
+    setEditing(field);
+    setDraftValue(currentValue);
+    // Discard any previous error from the fetcher so the modal opens clean.
+  };
+
+  const submitEdit = () => {
+    if (!editing) return;
+    const cfg = EDIT_CONFIG[editing];
+    const fd = new FormData();
+    fd.append("intent", cfg.intent);
+    fd.append("value", draftValue);
+    fetcher.submit(fd, { method: "POST" });
+  };
+
+  const fetcherError =
+    fetcher.data && !fetcher.data.ok
+      ? (fetcher.data as { error: string }).error
+      : null;
 
   // ----- Derive each card's "current value" Badge string -----
 
@@ -150,7 +319,8 @@ export default function PricingHub() {
                 badge={baselineBadge}
                 primaryAction={{
                   content: "Edit baseline",
-                  url: "/app/settings/pricing",
+                  onAction: () =>
+                    openEdit("baseline", String(shop.wholesaleBaselinePct)),
                 }}
               />
 
@@ -180,7 +350,8 @@ export default function PricingHub() {
                 badge={moqBadge}
                 primaryAction={{
                   content: "Edit minimum",
-                  url: "/app/settings/pricing",
+                  onAction: () =>
+                    openEdit("moq", String(shop.postQualificationMOQ)),
                 }}
               />
 
@@ -190,7 +361,8 @@ export default function PricingHub() {
                 badge={orderMinBadge}
                 primaryAction={{
                   content: "Set minimum",
-                  url: "/app/settings/pricing",
+                  onAction: () =>
+                    openEdit("order-min", shop.minOrderValue ? String(shop.minOrderValue) : ""),
                 }}
               />
 
@@ -210,6 +382,56 @@ export default function PricingHub() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+
+      {/*
+        Inline-edit modal. Always mounted (open={editing !== null})
+        to avoid the React-batch / portal mount race we hit on the
+        applications modal (see commit 029aa5d). The single TextField
+        is populated with the current value when the modal opens and
+        submits via fetcher — loader revalidates on success and the
+        badges update without a navigation.
+       */}
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing ? EDIT_CONFIG[editing].title : "Edit"}
+        primaryAction={{
+          content: "Save",
+          loading: isSubmitting,
+          onAction: submitEdit,
+          disabled: editing === null,
+        }}
+        secondaryActions={[
+          {
+            content: "Cancel",
+            onAction: () => setEditing(null),
+            disabled: isSubmitting,
+          },
+        ]}
+      >
+        {editing && (
+          <Modal.Section>
+            <BlockStack gap="300">
+              {fetcherError && (
+                <Banner tone="critical">
+                  <p>{fetcherError}</p>
+                </Banner>
+              )}
+              <TextField
+                label={EDIT_CONFIG[editing].label}
+                value={draftValue}
+                onChange={setDraftValue}
+                autoComplete="off"
+                type={EDIT_CONFIG[editing].type}
+                suffix={EDIT_CONFIG[editing].suffix}
+                helpText={EDIT_CONFIG[editing].helpText}
+                autoFocus
+                disabled={isSubmitting}
+              />
+            </BlockStack>
+          </Modal.Section>
+        )}
+      </Modal>
     </Page>
   );
 }
@@ -222,12 +444,24 @@ interface PricingCardProps {
   title: string;
   description: string;
   badge: { tone: "success" | "info" | "attention" | undefined; label: string };
-  primaryAction: {
-    content: string;
-    url: string;
-    external?: boolean;
-    disabled?: boolean;
-  };
+  /**
+   * primaryAction accepts EITHER `url` (navigation) OR `onAction`
+   * (in-place modal). The 3 simple-field cards use onAction to keep
+   * the merchant on /app/pricing. Tiers + FPQ use url because they
+   * need their own rich page.
+   */
+  primaryAction:
+    | {
+        content: string;
+        url: string;
+        external?: boolean;
+        disabled?: boolean;
+      }
+    | {
+        content: string;
+        onAction: () => void;
+        disabled?: boolean;
+      };
   tone?: "muted";
 }
 
@@ -238,6 +472,7 @@ function PricingCard({
   primaryAction,
   tone,
 }: PricingCardProps) {
+  const isNavigation = "url" in primaryAction;
   return (
     <Card padding="400" tone={tone === "muted" ? "subdued" : undefined}>
       <BlockStack gap="300">
@@ -253,14 +488,24 @@ function PricingCard({
         </Text>
 
         <Box paddingBlockStart="100">
-          <Button
-            url={primaryAction.url}
-            external={primaryAction.external}
-            disabled={primaryAction.disabled}
-            variant="primary"
-          >
-            {primaryAction.content}
-          </Button>
+          {isNavigation ? (
+            <Button
+              url={primaryAction.url}
+              external={primaryAction.external}
+              disabled={primaryAction.disabled}
+              variant="primary"
+            >
+              {primaryAction.content}
+            </Button>
+          ) : (
+            <Button
+              onClick={primaryAction.onAction}
+              disabled={primaryAction.disabled}
+              variant="primary"
+            >
+              {primaryAction.content}
+            </Button>
+          )}
         </Box>
       </BlockStack>
     </Card>
