@@ -150,6 +150,23 @@ model Tier {
   ///     every line in scope. Faire-style assortment minimums.
   aggregation String   @default("per_line")
 
+  /// Per-rule customer eligibility (ADR-011 — Sami-parity 2026-05-27).
+  ///   'wholesale_tagged' (default): only customers with the shop's
+  ///     configured wholesale tag. Preserves pre-2026-05-27 behavior
+  ///     (every existing rule maps to this value via the column
+  ///     default).
+  ///   'logged_in': any authenticated customer (no tag required).
+  ///     Useful for invite-only stores where account-creation itself
+  ///     is the wholesale gate.
+  ///   'all_customers': everyone — including anonymous shoppers.
+  ///     Breaks the B2B premise (anyone visiting the storefront sees
+  ///     the discount). Surfaced in UI with a warning banner.
+  ///   'specific_customers': RESERVED (Sprint 5) — manual list of
+  ///     customer GIDs the rule applies to. Function returns
+  ///     NO_DISCOUNT for this mode until the list-of-GIDs field
+  ///     ships, so it's safe to land the enum value now.
+  customerEligibility String @default("wholesale_tagged")
+
   active      Boolean  @default(true)
   /// Display order in the admin UI.
   position    Int      @default(0)

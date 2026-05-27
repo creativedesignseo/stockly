@@ -351,7 +351,7 @@ export default function PricingList() {
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodyMd">
-                    All wholesale
+                    {formatCustomerEligibility(tier.customerEligibility)}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
@@ -484,6 +484,26 @@ function formatFpq(shop: {
   if (shop.fpqMode === "quantity")
     return `First order ≥ ${shop.fpqQuantity ?? "?"} units`;
   return `€${shop.fpqAmount ?? "?"} ${shop.fpqCombinedLogic.toUpperCase()} ${shop.fpqQuantity ?? "?"} units`;
+}
+
+/**
+ * Map a Tier.customerEligibility value to the merchant-facing label
+ * used in the `Apply Customers` column. Mirrors the option titles in
+ * /app/pricing/new + /app/pricing/:id so the list and forms agree.
+ */
+function formatCustomerEligibility(value: string | null | undefined): string {
+  switch (value) {
+    case "all_customers":
+      return "All customers";
+    case "logged_in":
+      return "Logged-in customers";
+    case "specific_customers":
+      return "Specific customers";
+    case "wholesale_tagged":
+    default:
+      // Pre-migration rows have null; render the default mode label.
+      return "Wholesale customers";
+  }
 }
 
 function ScopeCell({ scope }: { scope: string }) {

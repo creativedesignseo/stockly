@@ -16,6 +16,15 @@ import type { Tier } from "@prisma/client";
 
 export type TierScope = "product" | "variant" | "collection" | "all";
 export type TierAggregation = "per_line" | "cart_total";
+/**
+ * Per-rule customer eligibility (ADR-011, Sami-parity).
+ * Values must match the column default in prisma/schema.prisma.
+ */
+export type TierCustomerEligibility =
+  | "wholesale_tagged"
+  | "logged_in"
+  | "all_customers"
+  | "specific_customers";
 
 export interface ResolveTierInput {
   shopId: string;
@@ -185,6 +194,8 @@ export async function createTier(data: {
   /** Flat money off per unit when discountType is "fixed_amount". */
   discountAmount?: number | null;
   aggregation?: TierAggregation;
+  /** Per-rule customer eligibility (default 'wholesale_tagged'). */
+  customerEligibility?: TierCustomerEligibility;
   position?: number;
 }) {
   // Normalize targets. 'all' scope must not carry any target ids.
@@ -214,6 +225,7 @@ export async function createTier(data: {
       discountAmount:
         discountType === "fixed_amount" ? (data.discountAmount ?? null) : null,
       aggregation: data.aggregation ?? "per_line",
+      customerEligibility: data.customerEligibility ?? "wholesale_tagged",
       position: data.position ?? 0,
     },
   });
@@ -234,6 +246,7 @@ export async function updateTier(
     discountType: TierDiscountType;
     discountAmount: number | null;
     aggregation: TierAggregation;
+    customerEligibility: TierCustomerEligibility;
     active: boolean;
     position: number;
   }>,

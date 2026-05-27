@@ -311,6 +311,10 @@ async function buildConfiguration(shopId: string): Promise<string> {
         discountType: t.discountType,
         discountAmount: t.discountAmount, // null when type=percentage
         aggregation: t.aggregation, // 'per_line' | 'cart_total' (ADR-007)
+        // Per-rule customer eligibility (ADR-011). The Function falls
+        // back to 'wholesale_tagged' when missing, so pre-2026-05-27
+        // tiers keep gated by the shop's wholesale tag.
+        customerEligibility: t.customerEligibility,
       };
     })
     .sort((a, b) => a.minQty - b.minQty);

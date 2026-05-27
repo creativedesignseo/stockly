@@ -57,6 +57,7 @@ import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
   createTier,
   type TierAggregation,
+  type TierCustomerEligibility,
   type TierDiscountType,
   type TierScope,
 } from "../services/tiers.server";
@@ -108,6 +109,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const discountPctStr = (form.get("discountPct") ?? "").toString();
   const discountAmountStr = (form.get("discountAmount") ?? "").toString();
   const aggregation = (form.get("aggregation") ?? "per_line").toString() as TierAggregation;
+  const customerEligibility = (form.get("customerEligibility") ?? "wholesale_tagged")
+    .toString() as TierCustomerEligibility;
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
@@ -117,6 +120,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.scopeIds = "Select at least one target";
   if (!["per_line", "cart_total"].includes(aggregation))
     errors.aggregation = "Invalid aggregation mode";
+  if (
+    !["wholesale_tagged", "logged_in", "all_customers", "specific_customers"].includes(
+      customerEligibility,
+    )
+  )
+    errors.customerEligibility = "Invalid customer eligibility";
+  if (customerEligibility === "specific_customers")
+    errors.customerEligibility =
+      "Specific customers mode is not available yet (Sprint 5). Pick another option.";
 
   if (scope === "variant" && aggregation === "cart_total") {
     errors.aggregation =
@@ -157,6 +169,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         discountPctStr,
         discountAmountStr,
         aggregation,
+        customerEligibility,
       },
     });
   }
@@ -171,6 +184,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     discountType,
     discountAmount,
     aggregation,
+    customerEligibility,
   });
 
   // Sync to the Shopify Discount Function so checkout enforces it.
@@ -216,6 +230,38 @@ const SCOPE_OPTIONS: Array<{
     title: "All products in a collection",
     description:
       "Storefront-only. Checkout falls back to baseline for collections.",
+  },
+];
+
+const CUSTOMER_ELIGIBILITY_OPTIONS: Array<{
+  value: TierCustomerEligibility;
+  title: string;
+  description: string;
+  disabled?: boolean;
+}> = [
+  {
+    value: "wholesale_tagged",
+    title: "Wholesale customers",
+    description:
+      "Only customers tagged with the shop's wholesale tag (default).",
+  },
+  {
+    value: "logged_in",
+    title: "Logged-in customers",
+    description:
+      "Any customer with an account — no wholesale tag required.",
+  },
+  {
+    value: "all_customers",
+    title: "All customers",
+    description:
+      "Everyone, including anonymous shoppers. Use with care.",
+  },
+  {
+    value: "specific_customers",
+    title: "Specific customers",
+    description: "Coming soon — manually pick individual customers.",
+    disabled: true,
   },
 ];
 
@@ -273,6 +319,11 @@ export default function NewTier() {
   const [aggregation, setAggregation] = useState<TierAggregation>(
     (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
   );
+  const [customerEligibility, setCustomerEligibility] =
+    useState<TierCustomerEligibility>(
+      (actionData?.values?.customerEligibility as TierCustomerEligibility) ??
+        "wholesale_tagged",
+    );
 
   const errors = actionData?.errors ?? {};
 
@@ -298,6 +349,9 @@ export default function NewTier() {
     aggregation:
       (actionData?.values?.aggregation as TierAggregation) ??
       ("per_line" as TierAggregation),
+    customerEligibility:
+      (actionData?.values?.customerEligibility as TierCustomerEligibility) ??
+      ("wholesale_tagged" as TierCustomerEligibility),
   };
   const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
@@ -308,7 +362,8 @@ export default function NewTier() {
     discountType !== initial.discountType ||
     discountPct !== initial.discountPct ||
     discountAmount !== initial.discountAmount ||
-    aggregation !== initial.aggregation;
+    aggregation !== initial.aggregation ||
+    customerEligibility !== initial.customerEligibility;
 
   const SAVE_BAR_ID = "pricing-new-save-bar";
   const formRef = useRef<HTMLFormElement>(null);
@@ -335,6 +390,7 @@ export default function NewTier() {
     setDiscountPct(initial.discountPct);
     setDiscountAmount(initial.discountAmount);
     setAggregation(initial.aggregation);
+    setCustomerEligibility(initial.customerEligibility);
   };
 
   /* ----- Resource Picker (multi-select) -----
@@ -439,6 +495,11 @@ export default function NewTier() {
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="aggregation" value={aggregation} />
         <input type="hidden" name="discountType" value={discountType} />
+        <input
+          type="hidden"
+          name="customerEligibility"
+          value={customerEligibility}
+        />
         {/*
           One hidden input per selected resource. action() uses
           form.getAll("scopeIds") to collect them into an array.
@@ -539,6 +600,59 @@ export default function NewTier() {
                         the discount enforced at checkout.
                       </p>
                     </Banner>
+                  )}
+                </BlockStack>
+              </Card>
+
+              {/* ----- Customer eligibility ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Customer eligibility
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Choose which customers can see this wholesale price.
+                    </Text>
+                  </BlockStack>
+
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    {CUSTOMER_ELIGIBILITY_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={customerEligibility === opt.value}
+                        onSelect={() => {
+                          if (!opt.disabled) setCustomerEligibility(opt.value);
+                        }}
+                        title={opt.title}
+                        description={opt.description}
+                        disabled={opt.disabled}
+                      />
+                    ))}
+                  </InlineGrid>
+
+                  {errors.customerEligibility && (
+                    <Banner tone="critical">
+                      <p>{errors.customerEligibility}</p>
+                    </Banner>
+                  )}
+
+                  {customerEligibility === "all_customers" && (
+                    <Banner tone="warning">
+                      <p>
+                        Anyone visiting the storefront — including anonymous
+                        shoppers and retail customers — will see this price.
+                        This breaks the B2B-only premise; use only for
+                        public-facing promos on these products.
+                      </p>
+                    </Banner>
+                  )}
+
+                  {customerEligibility === "wholesale_tagged" && (
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Uses the shop&apos;s configured wholesale tag (default
+                      &quot;wholesale&quot;). Change it in Settings if needed.
+                    </Text>
                   )}
                 </BlockStack>
               </Card>

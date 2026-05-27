@@ -31,6 +31,7 @@ function tier(overrides: Partial<Tier> = {}): Tier {
     discountType: "percentage",
     discountAmount: null,
     aggregation: "per_line",
+    customerEligibility: "wholesale_tagged",
     active: true,
     position: 0,
     createdAt: new Date("2026-01-01"),

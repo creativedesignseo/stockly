@@ -46,6 +46,11 @@ import { DiscountApplicationStrategy } from "../generated/api";
 
 type Aggregation = "per_line" | "cart_total";
 type Scope = "all" | "product" | "variant";
+type CustomerEligibility =
+  | "wholesale_tagged"
+  | "logged_in"
+  | "all_customers"
+  | "specific_customers";
 
 interface ConfiguredTier {
   /**
@@ -92,6 +97,12 @@ interface ConfiguredTier {
    * configurations still in the wild.
    */
   aggregation?: Aggregation;
+  /**
+   * Per-tier customer eligibility (ADR-011, 2026-05-27).
+   * Missing field treated as 'wholesale_tagged' (the pre-migration
+   * default — only customers with the shop's wholesale tag qualify).
+   */
+  customerEligibility?: CustomerEligibility;
 }
 
 /**
@@ -254,22 +265,58 @@ export function run(input: RunInput): FunctionRunResult {
   // No baseline AND no tiers → nothing to apply.
   if (baseline === 0 && tiers.length === 0) return NO_DISCOUNT;
 
-  // 2. Eligibility gate. The Function's input.graphql hardcodes the
-  //    default wholesale tag; per-shop custom tags will require either
-  //    a metafield-driven tag check or a per-shop Function variant.
+  // 2. Per-tier customer eligibility (ADR-011, 2026-05-27).
+  //    Replaces the previous global "customer must be wholesale-tagged"
+  //    gate. Each tier now declares its own eligibility mode; tiers
+  //    that don't match the current customer are dropped from the
+  //    candidate set before the per-line winner selection runs.
+  //
+  //    Back-compat: tiers written before this migration are missing
+  //    the field; we treat them as 'wholesale_tagged', so a customer
+  //    without the wholesale tag still gets no discount on legacy
+  //    metafields. New tiers can opt into 'logged_in' or
+  //    'all_customers' to broaden eligibility.
+  //
+  //    Baseline gate: baseline is shop-wide and was historically tied
+  //    to the wholesale tag. We preserve that — `effectiveBaseline`
+  //    becomes 0 for customers without the tag, so they only get the
+  //    tier's discountPct/discountAmount (no baseline composition).
   const customer = input.cart.buyerIdentity?.customer;
-  const customerEligible = customer?.hasAnyTag === true;
-  if (!customerEligible) return NO_DISCOUNT;
+  const customerHasWholesaleTag = customer?.hasAnyTag === true;
+  const customerLoggedIn = !!customer?.id;
+
+  function tierMatchesCustomer(tier: ConfiguredTier): boolean {
+    const elig = tier.customerEligibility ?? "wholesale_tagged";
+    if (elig === "all_customers") return true;
+    if (elig === "logged_in") return customerLoggedIn;
+    if (elig === "wholesale_tagged") return customerHasWholesaleTag;
+    // 'specific_customers' is reserved (Sprint 5) — the GID-list
+    // field doesn't ship yet, so this mode currently disables the
+    // tier. Safer than matching everyone.
+    return false;
+  }
+
+  // Pre-filter the candidate set by customer eligibility once, before
+  // splitting by aggregation. Saves work in the per-line loop below.
+  const eligibleTiers = tiers.filter(tierMatchesCustomer);
+  if (eligibleTiers.length === 0 && !customerHasWholesaleTag) {
+    // No tier matches this customer AND baseline doesn't apply
+    // (baseline is gated on the wholesale tag). Nothing to do.
+    return NO_DISCOUNT;
+  }
+  const effectiveBaseline = customerHasWholesaleTag ? baseline : 0;
 
   // 2.5 Partition tiers by aggregation mode.
   //    - per_line tiers: each line evaluated independently against
   //      its own qty; also filtered by scope (variant/product/all).
   //    - cart_total tiers: cart-wide qty sum evaluated once; if met,
   //      applies to every line whose scope it matches.
-  const perLineTiers = tiers.filter(
+  const perLineTiers = eligibleTiers.filter(
     (t) => (t.aggregation ?? "per_line") === "per_line",
   );
-  const cartTotalTiers = tiers.filter((t) => t.aggregation === "cart_total");
+  const cartTotalTiers = eligibleTiers.filter(
+    (t) => t.aggregation === "cart_total",
+  );
 
   // Cart-wide qty for the cart_total branch + FPQ quantity check.
   const cartTotalQty = input.cart.lines.reduce(
@@ -335,7 +382,11 @@ export function run(input: RunInput): FunctionRunResult {
       tierType === "percentage" ? (winningTier?.discountPct ?? 0) : 0;
     const tierFixedPerUnit =
       tierType === "fixed_amount" ? (winningTier?.discountAmount ?? 0) : 0;
-    const composedPct = composeDiscountPct(baseline, tierPct);
+    // effectiveBaseline (0 when customer isn't wholesale-tagged) keeps
+    // baseline composition private to customers with the shop tag,
+    // while still letting "all_customers" / "logged_in" tiers apply
+    // their tierPct/fixedAmount to everyone they're scoped to.
+    const composedPct = composeDiscountPct(effectiveBaseline, tierPct);
     const lineRetail =
       Number(line.cost?.amountPerQuantity?.amount ?? 0) * qty;
     // Apply baseline as a multiplier, then subtract the fixed amount
@@ -398,14 +449,18 @@ export function run(input: RunInput): FunctionRunResult {
     if (calc.composedPct <= 0 && calc.tierFixedPerUnit <= 0) return [];
 
     const target: Target = { cartLine: { id: calc.line.id } };
-    let message = `Wholesale ${baseline}%`;
+    // Display effectiveBaseline (what we actually composed) instead of
+    // the raw shop baseline — a non-wholesale-tagged customer with an
+    // "all_customers" tier would otherwise see "Wholesale 60%" in the
+    // checkout label even though we only applied the tier's % share.
+    let message = `Wholesale ${effectiveBaseline}%`;
     if (calc.winningTier) {
       const mode =
         calc.winningTier.aggregation === "cart_total" ? "mixed" : "units";
       if (calc.tierType === "fixed_amount") {
-        message = `Wholesale ${baseline}% + €${calc.tierFixedPerUnit} off/unit (${calc.winningTier.minQty}+ ${mode})`;
+        message = `Wholesale ${effectiveBaseline}% + €${calc.tierFixedPerUnit} off/unit (${calc.winningTier.minQty}+ ${mode})`;
       } else {
-        message = `Wholesale ${baseline}% + ${calc.tierPct}% volume (${calc.winningTier.minQty}+ ${mode})`;
+        message = `Wholesale ${effectiveBaseline}% + ${calc.tierPct}% volume (${calc.winningTier.minQty}+ ${mode})`;
       }
     }
 
