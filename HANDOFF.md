@@ -3,12 +3,12 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-27 — Privacy + Terms scaffolded (B0-5 awaiting legal review)
-**Last commit:** `27c0d5b` — `feat(legal): scaffold Privacy Policy + Terms of Service (B0-5 partial)`
+**Last updated:** 2026-05-27 — Multi-product selection per pricing rule LIVE
+**Last commit:** `18a8b11` — `feat(pricing): multi-product selection per rule`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v18` (manual deploy 2026-05-27)
-**Shopify app version:** `stockly-19` (GDPR compliance_topics + Protected Customer Data + Custom distribution)
+**Fly version:** `v31` (multi-product deploy 2026-05-27)
+**Shopify app version:** `stockly-21` (Function WASM reads scopeIds[] with scopeId fallback)
 **Public legal URLs (LIVE, DRAFT):**
   - https://stockly-lustrous-forest-4364.fly.dev/legal/privacy
   - https://stockly-lustrous-forest-4364.fly.dev/legal/terms
