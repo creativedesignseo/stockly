@@ -82,7 +82,7 @@ See [ADR-009](./docs/decisions/ADR-009-backend-fly-io.md) for the full reasoning
 - `/auth/login?shop=...` returns 302 (OAuth start)
 - `/apps/stockly/apply` (App Proxy POST from storefront) returns 201 with JSON
 - Admin iframe in Shopify loads the wizard
-- Sprint 4 admin pages live: `/app`, `/app/onboarding`, `/app/tiers`, `/app/customers/applications`, `/app/settings/pricing`, `/app/qualify-customer`
+- Sprint 4 admin pages live: `/app`, `/app/onboarding`, `/app/pricing` (list + new + edit, Sami-style; was `/app/tiers` until 2026-05-27), `/app/customers/applications`, `/app/settings/pricing` (Sami-style 2026-05-27), `/app/qualify-customer`
 - Storefront blocks active: Quick Order Form, Wholesale FPQ Banner, Wholesale Product Panel, Wholesale Registration
 - **Admin Approve action** (`POST /app/customers/applications` with
   `intent=approve`): resolves Shopify Customer (by id → by email → create),

@@ -1,6 +1,5 @@
 import { vitePlugin as remix } from "@remix-run/dev";
 import { installGlobals } from "@remix-run/node";
-import { vercelPreset } from "@vercel/remix/vite";
 import { defineConfig, type UserConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -54,11 +53,6 @@ export default defineConfig({
   plugins: [
     remix({
       ignoredRouteFiles: ["**/.*"],
-      // Vercel preset: emits the correct serverless-function manifest
-      // so each Remix loader/action is mapped to a Vercel function.
-      // Without this, all routes return 500 in production (Vercel can't
-      // find the handler).
-      presets: [vercelPreset()],
       future: {
         v3_fetcherPersist: true,
         v3_relativeSplatPath: true,

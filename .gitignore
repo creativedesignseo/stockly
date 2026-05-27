@@ -87,3 +87,5 @@ temp/
 *.tmp
 
 .playwright-mcp/
+.vercel
+.env*.local

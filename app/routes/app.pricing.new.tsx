@@ -167,9 +167,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.error("[tiers.new] syncTiersToFunction failed:", err);
   }
 
-  // After creating, go back to the Pricing hub (not the legacy
-  // /app/tiers list) so the merchant sees the new badge count on
-  // the "Wholesale pricing" card immediately.
+  // After creating, go back to /app/pricing (the list) so the
+  // merchant sees the new row appear immediately.
   return redirect("/app/pricing");
 };
 

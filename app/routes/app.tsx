@@ -48,10 +48,10 @@ export default function App() {
         {/*
           /app/pricing is the hub introduced 2026-05-27 — it absorbs
           the entry points for tiers and baseline/FPQ/MOQ settings
-          (each card on the hub links to /app/tiers and
-          /app/settings/pricing). Both old routes still work for
-          direct links and bookmarks; we just stopped surfacing them
-          twice in the nav.
+          (Settings button on the list links to /app/settings/pricing
+          for the shop-wide knobs). Legacy /app/tiers and
+          /app/tiers/$id removed 2026-05-27 — /app/pricing is the
+          only entry point now.
         */}
         <Link to="/app/pricing">Pricing</Link>
         <Link to="/app/customers/applications">Applications</Link>

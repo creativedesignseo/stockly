@@ -1,33 +1,51 @@
 /**
- * Admin route: configure wholesale pricing + FPQ.
+ * Admin route: shop-wide pricing settings — baseline + FPQ + MOQ.
  *
  * URL: /app/settings/pricing
  *
- * Two configuration blocks:
+ * Reached from /app/pricing → top-right "Settings" secondary action.
+ * Edits the shop-wide knobs that affect every wholesale rule:
  *   1. Wholesale baseline % (ADR-006) — universal off-retail layer
- *   2. First-Purchase Qualifier (ADR-004) — the gate a wholesale
- *      customer must meet on their first paid order before they buy
- *      freely from then on
+ *      composed multiplicatively with every Tier's discount.
+ *   2. First-Purchase Qualifier (ADR-004) — gate a wholesale-tagged
+ *      customer must meet on their first paid order before the
+ *      Discount Function applies on subsequent visits.
+ *   3. Post-qualification MOQ — minimum units per order after the
+ *      customer is qualified.
  *
- * On save we trigger the Discount Function sync so the new config
- * propagates to the metafield the Function reads at checkout.
+ * UI rewrite 2026-05-27 (Sami pattern, matching the rest of /app/pricing
+ * forms): sections in Cards, sticky App-Bridge SaveBar at the top
+ * (replaces the bottom Save button), live Settings summary sidebar
+ * with the current setup mirrored on the right.
+ *
+ * On save: persist to Shop + trigger syncTiersToFunction so the
+ * checkout metafield reflects the new values immediately.
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { Form, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
+import { json } from "@remix-run/node";
+import {
+  Form,
+  useActionData,
+  useLoaderData,
+  useNavigation,
+} from "@remix-run/react";
+import { useEffect, useRef, useState } from "react";
 import {
   Page,
+  Layout,
   Card,
-  FormLayout,
   TextField,
-  Select,
-  Button,
   Banner,
   BlockStack,
-  Text,
   InlineStack,
+  Text,
+  RadioButton,
+  Divider,
+  Box,
+  InlineGrid,
+  Select,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
-import { useState } from "react";
+import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
@@ -36,10 +54,18 @@ import { syncTiersToFunction } from "../services/discount-function-sync.server";
 type FpqMode = "none" | "amount" | "quantity" | "combined";
 type FpqCombinedLogic = "and" | "or";
 
+/* -------------------------------------------------------------------------- */
+/*                                  LOADER                                    */
+/* -------------------------------------------------------------------------- */
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
-  return { shop };
+  return json({ shop });
 };
+
+/* -------------------------------------------------------------------------- */
+/*                                  ACTION                                    */
+/* -------------------------------------------------------------------------- */
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
@@ -67,8 +93,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.fpqCombinedLogic = "Invalid combined logic";
   }
 
-  const fpqAmount =
-    fpqAmountRaw === "" ? null : Number(fpqAmountRaw);
+  const fpqAmount = fpqAmountRaw === "" ? null : Number(fpqAmountRaw);
   if (
     (fpqMode === "amount" || fpqMode === "combined") &&
     (fpqAmount === null || Number.isNaN(fpqAmount) || fpqAmount <= 0)
@@ -99,7 +124,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   if (Object.keys(errors).length > 0) {
-    return {
+    return json({
       errors,
       values: {
         wholesaleBaselinePct: baselineRaw,
@@ -109,7 +134,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         fpqCombinedLogic,
         postQualificationMOQ: postQualificationMOQRaw,
       },
-    };
+    });
   }
 
   await prisma.shop.update({
@@ -117,240 +142,537 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     data: {
       wholesaleBaselinePct: baseline,
       fpqMode,
-      fpqAmount: fpqMode === "none" || fpqMode === "quantity" ? null : fpqAmount,
-      fpqQuantity: fpqMode === "none" || fpqMode === "amount" ? null : fpqQuantity,
+      fpqAmount:
+        fpqMode === "none" || fpqMode === "quantity" ? null : fpqAmount,
+      fpqQuantity:
+        fpqMode === "none" || fpqMode === "amount" ? null : fpqQuantity,
       fpqCombinedLogic,
       postQualificationMOQ,
     },
   });
 
-  await syncTiersToFunction(admin, shop.id);
+  try {
+    await syncTiersToFunction(admin, shop.id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[settings.pricing] syncTiersToFunction failed:", err);
+  }
 
-  return { ok: true };
+  return json({ ok: true } as const);
 };
+
+/* -------------------------------------------------------------------------- */
+/*                                    UI                                      */
+/* -------------------------------------------------------------------------- */
+
+const FPQ_MODES: Array<{
+  value: FpqMode;
+  title: string;
+  description: string;
+}> = [
+  {
+    value: "none",
+    title: "Disabled",
+    description:
+      "Wholesale customers pay wholesale from order #1. No gate.",
+  },
+  {
+    value: "amount",
+    title: "Amount threshold",
+    description:
+      "First order subtotal must reach a € threshold to qualify.",
+  },
+  {
+    value: "quantity",
+    title: "Quantity threshold",
+    description:
+      "First order must include at least N units to qualify.",
+  },
+  {
+    value: "combined",
+    title: "Both (AND / OR)",
+    description:
+      "Combine amount + quantity with AND or OR. Most strict.",
+  },
+];
 
 export default function PricingSettings() {
   const { shop } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
+  const shopify = useAppBridge();
 
   const errors =
     actionData && "errors" in actionData ? actionData.errors : {};
-  const saved = actionData && "ok" in actionData ? actionData.ok : false;
-  const previousValues =
-    actionData && "values" in actionData ? actionData.values : null;
 
+  /* ----- form state ----- */
   const [baseline, setBaseline] = useState<string>(
-    previousValues?.wholesaleBaselinePct ??
-      String(shop.wholesaleBaselinePct ?? 0),
+    (actionData && "values" in actionData
+      ? actionData.values.wholesaleBaselinePct
+      : null) ?? String(shop.wholesaleBaselinePct),
   );
   const [fpqMode, setFpqMode] = useState<FpqMode>(
-    (previousValues?.fpqMode as FpqMode) ??
-      (shop.fpqMode as FpqMode) ??
-      "none",
+    ((actionData && "values" in actionData
+      ? actionData.values.fpqMode
+      : null) as FpqMode | null) ?? (shop.fpqMode as FpqMode),
   );
   const [fpqAmount, setFpqAmount] = useState<string>(
-    previousValues?.fpqAmount ??
-      (shop.fpqAmount !== null && shop.fpqAmount !== undefined
-        ? String(shop.fpqAmount)
-        : ""),
+    (actionData && "values" in actionData
+      ? actionData.values.fpqAmount
+      : null) ??
+      (shop.fpqAmount != null ? String(shop.fpqAmount) : ""),
   );
   const [fpqQuantity, setFpqQuantity] = useState<string>(
-    previousValues?.fpqQuantity ??
-      (shop.fpqQuantity !== null && shop.fpqQuantity !== undefined
-        ? String(shop.fpqQuantity)
-        : ""),
+    (actionData && "values" in actionData
+      ? actionData.values.fpqQuantity
+      : null) ??
+      (shop.fpqQuantity != null ? String(shop.fpqQuantity) : ""),
   );
-  const [fpqCombinedLogic, setFpqCombinedLogic] = useState<FpqCombinedLogic>(
-    (previousValues?.fpqCombinedLogic as FpqCombinedLogic) ??
-      (shop.fpqCombinedLogic as FpqCombinedLogic) ??
-      "and",
-  );
+  const [fpqCombinedLogic, setFpqCombinedLogic] =
+    useState<FpqCombinedLogic>(
+      ((actionData && "values" in actionData
+        ? actionData.values.fpqCombinedLogic
+        : null) as FpqCombinedLogic | null) ??
+        (shop.fpqCombinedLogic as FpqCombinedLogic),
+    );
   const [postQualificationMOQ, setPostQualificationMOQ] = useState<string>(
-    previousValues?.postQualificationMOQ ??
-      String(shop.postQualificationMOQ ?? 1),
+    (actionData && "values" in actionData
+      ? actionData.values.postQualificationMOQ
+      : null) ?? String(shop.postQualificationMOQ),
   );
 
-  const showAmount = fpqMode === "amount" || fpqMode === "combined";
-  const showQuantity = fpqMode === "quantity" || fpqMode === "combined";
-  const showCombinedLogic = fpqMode === "combined";
+  /* ----- SaveBar (sticky top via App Bridge) ----- */
+  const initial = {
+    baseline: String(shop.wholesaleBaselinePct),
+    fpqMode: shop.fpqMode as FpqMode,
+    fpqAmount: shop.fpqAmount != null ? String(shop.fpqAmount) : "",
+    fpqQuantity: shop.fpqQuantity != null ? String(shop.fpqQuantity) : "",
+    fpqCombinedLogic: shop.fpqCombinedLogic as FpqCombinedLogic,
+    postQualificationMOQ: String(shop.postQualificationMOQ),
+  };
+  const isDirty =
+    baseline !== initial.baseline ||
+    fpqMode !== initial.fpqMode ||
+    fpqAmount !== initial.fpqAmount ||
+    fpqQuantity !== initial.fpqQuantity ||
+    fpqCombinedLogic !== initial.fpqCombinedLogic ||
+    postQualificationMOQ !== initial.postQualificationMOQ;
+
+  const SAVE_BAR_ID = "settings-pricing-save-bar";
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (isDirty) {
+      shopify.saveBar.show(SAVE_BAR_ID);
+    } else {
+      shopify.saveBar.hide(SAVE_BAR_ID);
+    }
+    return () => {
+      shopify.saveBar.hide(SAVE_BAR_ID);
+    };
+  }, [isDirty, shopify]);
+
+  const handleDiscard = () => {
+    setBaseline(initial.baseline);
+    setFpqMode(initial.fpqMode);
+    setFpqAmount(initial.fpqAmount);
+    setFpqQuantity(initial.fpqQuantity);
+    setFpqCombinedLogic(initial.fpqCombinedLogic);
+    setPostQualificationMOQ(initial.postQualificationMOQ);
+  };
+
+  /* ----- summary strings ----- */
+  const baselineSummary =
+    Number(baseline) > 0 ? `${baseline}% off retail` : "Disabled";
+
+  const fpqSummary = (() => {
+    if (fpqMode === "none") return "Disabled";
+    if (fpqMode === "amount")
+      return `First order ≥ €${fpqAmount || "?"}`;
+    if (fpqMode === "quantity")
+      return `First order ≥ ${fpqQuantity || "?"} units`;
+    return `€${fpqAmount || "?"} ${fpqCombinedLogic.toUpperCase()} ${fpqQuantity || "?"} units`;
+  })();
+
+  const moqSummary =
+    Number(postQualificationMOQ) > 1
+      ? `${postQualificationMOQ} units/order`
+      : "No minimum";
 
   return (
-    <Page backAction={{ content: "App", url: "/app" }}>
+    <Page
+      backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}
+    >
       <TitleBar title="Pricing settings" />
-      <BlockStack gap="400">
-        {/* ----- Wholesale baseline (ADR-006) ----- */}
-        <Card>
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingMd">
-              Wholesale baseline (universal B2B discount)
-            </Text>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              The universal discount % applied to retail prices for any
-              wholesale-approved customer. Volume tiers (qty-based extra
-              discounts) stack on top of this baseline multiplicatively.
-            </Text>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              Example: with baseline 65 and a 10% tier at qty 10+, a €100
-              retail product sells for €31.50 to a wholesale customer at
-              qty 10 (100 × 0.35 × 0.90).
-            </Text>
-          </BlockStack>
-        </Card>
+      <SaveBar id={SAVE_BAR_ID}>
+        <button
+          variant="primary"
+          onClick={() => formRef.current?.requestSubmit()}
+          loading={submitting ? "" : undefined}
+        >
+          Save
+        </button>
+        <button onClick={handleDiscard}>Discard</button>
+      </SaveBar>
+      <Form method="post" ref={formRef}>
+        {/* Hidden inputs for state-driven (non-input) fields */}
+        <input type="hidden" name="fpqMode" value={fpqMode} />
+        <input type="hidden" name="fpqCombinedLogic" value={fpqCombinedLogic} />
 
-        <Form method="post">
-          <BlockStack gap="400">
-            <Card>
-              <FormLayout>
-                {saved && (
-                  <Banner tone="success">
-                    Pricing saved. Changes propagated to the Discount
-                    Function (cart and checkout reflect them now).
-                  </Banner>
-                )}
-                {Object.keys(errors).length > 0 && (
-                  <Banner tone="critical" title="Please fix the errors below" />
-                )}
+        <Layout>
+          {/* ===================== Main column ===================== */}
+          <Layout.Section>
+            <BlockStack gap="400">
+              {Object.keys(errors).length > 0 && (
+                <Banner tone="critical" title="Please fix the errors below" />
+              )}
+              {actionData && "ok" in actionData && actionData.ok && (
+                <Banner tone="success" title="Settings saved">
+                  <p>
+                    Discount Function metafield re-synced. Checkout will
+                    apply the new values on the next cart.
+                  </p>
+                </Banner>
+              )}
 
-                <TextField
-                  label="Wholesale baseline % (off retail for any approved B2B customer)"
-                  name="wholesaleBaselinePct"
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={1}
-                  autoComplete="off"
-                  value={baseline}
-                  onChange={setBaseline}
-                  error={errors.wholesaleBaselinePct}
-                  helpText="0 = no baseline (wholesale customers see retail; only tiers apply). 65 = wholesale customers see 65% off retail."
-                  requiredIndicator
-                />
-              </FormLayout>
-            </Card>
-
-            {/* ----- FPQ (ADR-004) ----- */}
-            <Card>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  First-Purchase Qualifier (gate before wholesale access)
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Require approved wholesale customers to meet a minimum
-                  on their FIRST paid order before they get unrestricted
-                  wholesale pricing on every subsequent cart.
-                </Text>
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  Example: with mode &quot;amount&quot; and €500, a new
-                  wholesale-tagged customer must spend ≥ €500 in their
-                  first order to qualify. After that order, they buy
-                  freely — no minimum on subsequent orders.
-                </Text>
-              </BlockStack>
-            </Card>
-
-            <Card>
-              <FormLayout>
-                <Select
-                  label="FPQ mode (how the first-order gate is evaluated)"
-                  name="fpqMode"
-                  value={fpqMode}
-                  onChange={(v) => setFpqMode(v as FpqMode)}
-                  options={[
-                    {
-                      label: "None — no first-order gate (every order gets wholesale pricing)",
-                      value: "none",
-                    },
-                    {
-                      label: "Amount — first order must reach a € threshold",
-                      value: "amount",
-                    },
-                    {
-                      label: "Quantity — first order must reach a unit count",
-                      value: "quantity",
-                    },
-                    {
-                      label: "Combined — first order must meet both amount AND/OR quantity",
-                      value: "combined",
-                    },
-                  ]}
-                  error={errors.fpqMode}
-                  helpText="Once a customer's first paid order meets the rule, they are marked qualified and the gate doesn't apply again."
-                />
-
-                {showAmount && (
+              {/* ----- Wholesale baseline ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Wholesale baseline
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Universal % off retail applied to every customer with
+                      the &quot;{shop.wholesaleTag}&quot; tag. Volume pricing
+                      rules stack on top multiplicatively (e.g. baseline 60%
+                      + rule 10% off = customer pays 36% of retail).
+                    </Text>
+                  </BlockStack>
                   <TextField
-                    label="Minimum amount (in shop currency, for first order)"
-                    name="fpqAmount"
+                    label="Baseline percent off retail"
+                    name="wholesaleBaselinePct"
                     type="number"
                     min={0}
-                    step={0.01}
+                    max={100}
                     autoComplete="off"
-                    value={fpqAmount}
-                    onChange={setFpqAmount}
-                    error={errors.fpqAmount}
-                    helpText="The first order's subtotal must be at least this much."
+                    value={baseline}
+                    onChange={setBaseline}
+                    error={errors.wholesaleBaselinePct}
+                    suffix="%"
+                    helpText="0 = no baseline (only volume rules apply). 60 = wholesale customers see 60% off retail."
                     requiredIndicator
                   />
-                )}
+                </BlockStack>
+              </Card>
 
-                {showQuantity && (
+              {/* ----- First-Purchase Qualifier (FPQ) ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      First-Purchase Qualifier (FPQ)
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Optional gate on a wholesale customer&apos;s FIRST paid
+                      order. Until they clear it, the Discount Function does
+                      not apply. After their first qualifying order they buy
+                      freely.
+                    </Text>
+                  </BlockStack>
+
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    {FPQ_MODES.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={fpqMode === opt.value}
+                        onSelect={() => setFpqMode(opt.value)}
+                        title={opt.title}
+                        description={opt.description}
+                      />
+                    ))}
+                  </InlineGrid>
+
+                  {(fpqMode === "amount" || fpqMode === "combined") && (
+                    <TextField
+                      label="Minimum amount (first order subtotal)"
+                      name="fpqAmount"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      autoComplete="off"
+                      value={fpqAmount}
+                      onChange={setFpqAmount}
+                      error={errors.fpqAmount}
+                      prefix="€"
+                      helpText="First order's subtotal must be at least this much."
+                      requiredIndicator
+                    />
+                  )}
+
+                  {(fpqMode === "quantity" || fpqMode === "combined") && (
+                    <TextField
+                      label="Minimum quantity (first order units)"
+                      name="fpqQuantity"
+                      type="number"
+                      min={1}
+                      autoComplete="off"
+                      value={fpqQuantity}
+                      onChange={setFpqQuantity}
+                      error={errors.fpqQuantity}
+                      suffix="units"
+                      helpText="First order must include at least this many units."
+                      requiredIndicator
+                    />
+                  )}
+
+                  {fpqMode === "combined" && (
+                    <Select
+                      label="How amount and quantity combine"
+                      options={[
+                        { label: "AND — both must be met", value: "and" },
+                        { label: "OR — either is enough", value: "or" },
+                      ]}
+                      value={fpqCombinedLogic}
+                      onChange={(v) =>
+                        setFpqCombinedLogic(v as FpqCombinedLogic)
+                      }
+                    />
+                  )}
+                </BlockStack>
+              </Card>
+
+              {/* ----- Post-qualification MOQ ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Post-qualification MOQ
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Minimum units per order AFTER the customer is
+                      qualified. Use 1 to let qualified customers buy any
+                      quantity.
+                    </Text>
+                  </BlockStack>
                   <TextField
-                    label="Minimum quantity (units, for first order)"
-                    name="fpqQuantity"
+                    label="Minimum units per order"
+                    name="postQualificationMOQ"
                     type="number"
                     min={1}
-                    step={1}
                     autoComplete="off"
-                    value={fpqQuantity}
-                    onChange={setFpqQuantity}
-                    error={errors.fpqQuantity}
-                    helpText="The first order's total unit count must be at least this much."
+                    value={postQualificationMOQ}
+                    onChange={setPostQualificationMOQ}
+                    error={errors.postQualificationMOQ}
+                    suffix="units"
+                    helpText="1 = no minimum (default)."
                     requiredIndicator
                   />
-                )}
+                </BlockStack>
+              </Card>
+            </BlockStack>
+          </Layout.Section>
 
-                {showCombinedLogic && (
-                  <Select
-                    label="Combined logic (how amount and quantity combine)"
-                    name="fpqCombinedLogic"
-                    value={fpqCombinedLogic}
-                    onChange={(v) => setFpqCombinedLogic(v as FpqCombinedLogic)}
-                    options={[
-                      { label: "AND — first order must meet BOTH amount and quantity", value: "and" },
-                      { label: "OR — first order must meet EITHER amount or quantity", value: "or" },
-                    ]}
-                    error={errors.fpqCombinedLogic}
+          {/* ===================== Sidebar ===================== */}
+          <Layout.Section variant="oneThird">
+            <BlockStack gap="400">
+              <Card>
+                <BlockStack gap="300">
+                  <BlockStack gap="050">
+                    <Text variant="headingMd" as="h3">
+                      Settings summary
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Current setup
+                    </Text>
+                  </BlockStack>
+                  <Divider />
+                  <SummaryRow label="Baseline" value={baselineSummary} />
+                  <SummaryRow label="FPQ" value={fpqSummary} />
+                  <SummaryRow label="MOQ" value={moqSummary} />
+                </BlockStack>
+              </Card>
+
+              <Card>
+                <BlockStack gap="300">
+                  <BlockStack gap="050">
+                    <Text variant="headingMd" as="h3">
+                      Customer journey
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      What a new wholesale customer experiences:
+                    </Text>
+                  </BlockStack>
+                  <Divider />
+                  <JourneyStep
+                    n={1}
+                    title="Registers + gets approved"
+                    body={`Tagged "${shop.wholesaleTag}" in Shopify, added to the eligibility list.`}
                   />
-                )}
-
-                <TextField
-                  label="Post-qualification MOQ (minimum units per order after qualifying)"
-                  name="postQualificationMOQ"
-                  type="number"
-                  min={1}
-                  step={1}
-                  autoComplete="off"
-                  value={postQualificationMOQ}
-                  onChange={setPostQualificationMOQ}
-                  error={errors.postQualificationMOQ}
-                  helpText="1 = no minimum after qualifying (customer buys freely)."
-                  requiredIndicator
-                />
-              </FormLayout>
-            </Card>
-
-            <Card>
-              <InlineStack align="end">
-                <Button submit variant="primary" loading={submitting}>
-                  Save changes
-                </Button>
-              </InlineStack>
-            </Card>
-          </BlockStack>
-        </Form>
-      </BlockStack>
+                  <JourneyStep
+                    n={2}
+                    title={
+                      fpqMode === "none"
+                        ? "Sees wholesale from order #1"
+                        : "Pays retail on first order"
+                    }
+                    body={
+                      fpqMode === "none"
+                        ? "Discount Function applies the baseline + any matching pricing rule immediately."
+                        : `Until they clear the FPQ gate (${fpqSummary.toLowerCase()}), the cart shows retail prices.`
+                    }
+                  />
+                  {fpqMode !== "none" && (
+                    <JourneyStep
+                      n={3}
+                      title="After first qualifying order"
+                      body="Stockly marks them qualified. From here on, every cart pays wholesale + rules apply."
+                    />
+                  )}
+                  {Number(postQualificationMOQ) > 1 && (
+                    <JourneyStep
+                      n={fpqMode === "none" ? 3 : 4}
+                      title="MOQ enforced"
+                      body={`Every subsequent order must include at least ${postQualificationMOQ} units.`}
+                    />
+                  )}
+                </BlockStack>
+              </Card>
+            </BlockStack>
+          </Layout.Section>
+        </Layout>
+      </Form>
     </Page>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              Small helpers                                 */
+/* -------------------------------------------------------------------------- */
+
+function ChoiceCard({
+  selected,
+  onSelect,
+  title,
+  description,
+  disabled,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  description: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      role="radio"
+      aria-checked={selected}
+      tabIndex={disabled ? -1 : 0}
+      onClick={() => {
+        if (!disabled) onSelect();
+      }}
+      onKeyDown={(e) => {
+        if ((e.key === "Enter" || e.key === " ") && !disabled) {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      style={{
+        cursor: disabled ? "not-allowed" : "pointer",
+        border: selected
+          ? "2px solid var(--p-color-border-success)"
+          : "1px solid var(--p-color-border)",
+        borderRadius: "var(--p-border-radius-200)",
+        padding: "var(--p-space-400)",
+        background: selected
+          ? "var(--p-color-bg-surface-success)"
+          : "var(--p-color-bg-surface)",
+        opacity: disabled ? 0.5 : 1,
+        transition: "all 0.15s ease",
+      }}
+    >
+      <InlineStack gap="300" align="start" blockAlign="start" wrap={false}>
+        <RadioButton
+          checked={selected}
+          label=""
+          labelHidden
+          onChange={() => {
+            if (!disabled) onSelect();
+          }}
+          disabled={disabled}
+        />
+        <BlockStack gap="050">
+          <Text as="span" variant="bodyMd" fontWeight="semibold">
+            {title}
+          </Text>
+          <Text as="span" variant="bodySm" tone="subdued">
+            {description}
+          </Text>
+        </BlockStack>
+      </InlineStack>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <InlineStack align="space-between" blockAlign="start" wrap={false}>
+      <Text variant="bodySm" as="span" tone="subdued">
+        {label}
+      </Text>
+      <Box maxWidth="60%">
+        <Text variant="bodySm" as="span" fontWeight="semibold">
+          {value}
+        </Text>
+      </Box>
+    </InlineStack>
+  );
+}
+
+function JourneyStep({
+  n,
+  title,
+  body,
+}: {
+  n: number;
+  title: string;
+  body: string;
+}) {
+  return (
+    <InlineStack gap="200" align="start" blockAlign="start" wrap={false}>
+      <Box
+        background="bg-fill-emphasis"
+        padding="100"
+        borderRadius="full"
+        minWidth="28px"
+      >
+        <Box minHeight="20px" minWidth="20px">
+          <Text
+            as="span"
+            variant="bodySm"
+            fontWeight="bold"
+            tone="text-inverse"
+            alignment="center"
+          >
+            {n}
+          </Text>
+        </Box>
+      </Box>
+      <BlockStack gap="050">
+        <Text as="span" variant="bodyMd" fontWeight="semibold">
+          {title}
+        </Text>
+        <Text as="span" variant="bodySm" tone="subdued">
+          {body}
+        </Text>
+      </BlockStack>
+    </InlineStack>
   );
 }

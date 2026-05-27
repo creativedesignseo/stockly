@@ -22,8 +22,8 @@
  *   - Both Save and Delete redirect to /app/pricing (the list) so the
  *     merchant sees the updated/missing row immediately.
  *
- * The legacy /app/tiers/:id route is left in place for any external
- * links/bookmarks but the list now points here.
+ * Legacy /app/tiers/:id route deleted 2026-05-27 — /app/pricing/:id
+ * is the only edit URL now.
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";

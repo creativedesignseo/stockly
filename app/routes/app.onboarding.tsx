@@ -130,7 +130,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       console.warn("[Stockly] onboarding apply_preset: sync failed:", err);
       syncWarning =
         "Settings saved, but Shopify Discount Function sync did not run. " +
-        "Save any tier from /app/tiers to retry the sync.";
+        "Save any wholesale pricing rule from /app/pricing to retry the sync.";
     }
 
     await saveStepResponse({
@@ -723,7 +723,7 @@ function StepPreset({
                 Your shop settings and{" "}
                 {activePreset.firstTier ? "first tier are " : "are "}
                 live. You can continue to the last step or tweak details
-                later from /app/tiers and /app/settings/pricing.
+                later from /app/pricing and /app/settings/pricing.
               </p>
             </Banner>
           )}

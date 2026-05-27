@@ -84,10 +84,14 @@ export default function Dashboard() {
           <Layout.Section>
             <InlineStack gap="400" wrap>
               <StatCard
-                title="Active tiers"
+                title="Active pricing rules"
                 value={counts.activeTiers}
-                href="/app/tiers"
-                cta={counts.activeTiers === 0 ? "Create your first tier" : "Manage"}
+                href="/app/pricing"
+                cta={
+                  counts.activeTiers === 0
+                    ? "Create your first wholesale pricing"
+                    : "Manage"
+                }
               />
               <StatCard
                 title="Pending applications"
@@ -280,8 +284,11 @@ function buildTips(
       tone: "info",
       badge: "Tip",
       body:
-        "You don't have any tiers yet. Add at least one to start offering volume discounts.",
-      cta: { label: "Create tier", url: "/app/tiers/new" },
+        "You don't have any wholesale pricing rules yet. Add at least one to start offering volume discounts.",
+      cta: {
+        label: "Create wholesale pricing",
+        url: "/app/pricing/new",
+      },
     });
   }
   if (shop.wholesaleBaselinePct === 0) {

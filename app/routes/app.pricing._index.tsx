@@ -18,9 +18,8 @@
  *   - Per-customer overrides "Coming soon" card removed entirely
  *     — it lives in the roadmap, not the UI, until built.
  *
- * Sami-pattern reskin of the legacy /app/tiers list (validated with
- * Jonatan 2026-05-27 — he showed Sami's "Wholesale Pricing" list as
- * the target):
+ * Sami-pattern list (validated with Jonatan 2026-05-27 — he showed
+ * Sami's "Wholesale Pricing" list as the target):
  *   - Tabs filter: All / Active / Inactive. Sami has 5 tabs (All /
  *     Active / Draft / Expired / Pending) but Stockly's Tier model
  *     only has `active: boolean` — no draft / scheduling / lifecycle.
@@ -29,17 +28,13 @@
  *     / Apply Markets / Created. "Apply Customers" and "Apply Markets"
  *     are constant strings for now ("All wholesale" / "All markets")
  *     because Stockly doesn't segment by customer-tag or by Market yet
- *     — those are roadmap items mirrored on the Pricing hub
- *     ("Per-customer overrides" Coming soon card).
- *   - Click on a row → /app/tiers/$id (legacy edit form, still
- *     functional). Migrating the edit form to /app/pricing/$id with
- *     the same Sami-style layout is the natural follow-up task.
+ *     — those are roadmap items.
+ *   - Click on a row → /app/pricing/$id (Sami-style edit form).
  *   - Primary action top-right: "Create new wholesale pricing" →
- *     /app/pricing/new (the new Sami-style create form).
+ *     /app/pricing/new (the Sami-style create form).
  *
- * The legacy /app/tiers route stays alive so any bookmarks /
- * external links keep working. We just stopped surfacing it in
- * navigation (the hub points here instead).
+ * Legacy /app/tiers and /app/tiers/$id routes deleted 2026-05-27 —
+ * /app/pricing is the only entry point.
  */
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData, useNavigate, useSearchParams } from "@remix-run/react";
