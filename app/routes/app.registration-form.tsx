@@ -50,6 +50,15 @@ import type {
   FormField,
   RegistrationForm,
 } from "../lib/registration-form-types";
+import {
+  getRegistrationForm,
+  upsertRegistrationForm,
+} from "../services/registrationForms.server";
+import type {
+  RegistrationFormDefinition,
+  FormAppearance as CanonicalFormAppearance,
+  FormSettings as CanonicalFormSettings,
+} from "../lib/registrationForm/types";
 
 import { LeftRail, type LeftRailSection } from "../components/registration-form/LeftRail";
 import { FieldList } from "../components/registration-form/FieldList";
@@ -66,14 +75,29 @@ import { SEED_STANDARD } from "../components/registration-form/seed-templates";
 /* -------------------------------------------------------------------------- */
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticateAdmin(request);
+  const { shop } = await authenticateAdmin(request);
 
-  // TODO(integration): swap for real getRegistrationForm(shopId) from
-  // app/services/registrationForms.server.ts when the Foundation
-  // implementer's PR merges. Until then we return SEED_STANDARD so
-  // the UI is fully functional without the service layer.
-  // const form = await getRegistrationForm(shop.id);
-  const form = SEED_STANDARD;
+  // Integrated 2026-05-28: real service call from Foundation
+  // (app/services/registrationForms.server.ts). Returns null if the
+  // shop has no form row yet (first-time visit) — fall back to the
+  // SEED_STANDARD template so the builder is immediately usable.
+  // The first save persists the merchant's customization via
+  // upsertRegistrationForm in the action below.
+  const row = await getRegistrationForm(shop.id);
+  // Row shape (Prisma JSON columns) → editor state. Cast through
+  // `unknown` because the canonical Foundation types (interface-based)
+  // and the editor's local discriminated-union types describe the
+  // same JSON at runtime but TS can't prove it across files.
+  const form: RegistrationForm = row
+    ? {
+        id: row.id,
+        status: row.status as "active" | "draft",
+        definition: row.definition as unknown as RegistrationForm["definition"],
+        appearance: row.appearance as unknown as RegistrationForm["appearance"],
+        settings: row.settings as unknown as RegistrationForm["settings"],
+        version: row.version,
+      }
+    : SEED_STANDARD;
 
   return json({ form });
 };
@@ -87,7 +111,7 @@ type SaveResult =
   | { ok: false; error: string };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticateAdmin(request);
+  const { shop } = await authenticateAdmin(request);
 
   const fd = await request.formData();
   const payloadRaw = fd.get("payload");
@@ -102,15 +126,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json<SaveResult>({ ok: false, error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  // TODO(integration): swap for real upsertRegistrationForm(shop.id, {
-  //   definition: parsed.definition,
-  //   appearance: parsed.appearance,
-  //   settings: parsed.settings,
-  //   status: parsed.status,
-  // }) once the Foundation service exists. For now we just echo back
-  // a savedAt timestamp so the SaveBar transitions out of the dirty
-  // state and the merchant gets visible feedback.
-  void parsed;
+  // Integrated 2026-05-28. Same `unknown` cast pattern as the loader —
+  // the editor's discriminated-union types and the canonical
+  // interface-based types describe the same JSON. Foundation's
+  // upsertRegistrationForm also auto-bumps `version` so the storefront
+  // cache-busts on next fetch.
+  try {
+    await upsertRegistrationForm(shop.id, {
+      status: parsed.status,
+      definition: parsed.definition as unknown as RegistrationFormDefinition,
+      appearance: parsed.appearance as unknown as CanonicalFormAppearance,
+      settings: parsed.settings as unknown as CanonicalFormSettings,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[app.registration-form] upsert failed:", err);
+    return json<SaveResult>(
+      { ok: false, error: "Save failed — check server logs" },
+      { status: 500 },
+    );
+  }
 
   return json<SaveResult>({ ok: true, savedAt: new Date().toISOString() });
 };

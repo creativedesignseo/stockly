@@ -89,3 +89,4 @@ temp/
 .playwright-mcp/
 .vercel
 .env*.local
+.claude/worktrees/
