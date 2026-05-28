@@ -1,31 +1,27 @@
 /**
- * Admin route: create a new wholesale pricing rule.
+ * Admin route: create a new flat Wholesale Pricing rule.
  *
  * URL: /app/pricing/new
  *
- * Renamed 2026-05-27 per Jonatan: "tier" was Stockly-internal jargon,
- * "Wholesale Pricing" matches the merchant's mental model (also
- * what Sami / BSS call this concept). The DB table is still `Tier`
- * — only the UI nomenclature changed.
+ * Wholesale Pricing (ADR-014) is a FLAT discount: "these customers pay
+ * X off these products." ONE discount per rule. No quantity dimension,
+ * no quantity bands, no trigger / minimum-quantity. The quantity-break
+ * editor lives in the separate Volume Pricing area (/app/volume-pricing).
  *
- * UX pattern: Sami Wholesale's "New Wholesale Pricing" form
- * (validated with Jonatan 2026-05-27).
+ * This form was restored 2026-05-28 from the pre-multi-band shape: a
+ * single-discount selector. The earlier multi-band editor that had
+ * crept into this route (conflating Wholesale with Volume) was removed.
  *
- *   - Two-column layout: form sections on left (2/3), live "Tier
+ * UX pattern: Sami Wholesale's "New Wholesale Pricing" form.
+ *   - Two-column layout: form sections on left (2/3), live "Pricing
  *     summary" + Preview panel on right (1/3).
- *   - Each form section is its own Polaris Card with title +
- *     subtitle, never a flat vertical stack of fields.
- *   - Scope selection uses radio CARDS (click anywhere on the card)
- *     not a Select dropdown — much more discoverable.
- *   - Right sidebar updates LIVE as the merchant types: they can
- *     verify "OK, this tier applies to All products, kicks in at
- *     10 units, gives 15% off" without scrolling.
- *   - Preview card shows the math for an example €100 retail
- *     product so the merchant sees exactly what the customer would
- *     pay before saving.
+ *   - Each form section is its own Polaris Card with title + subtitle.
+ *   - Scope + discount-type selection use radio CARDS (click anywhere
+ *     on the card) not a Select dropdown — more discoverable.
+ *   - Preview card shows the math for an example €100 retail product.
  *
- * Action validation logic preserved 1:1 from the previous version —
- * only the UI changed.
+ * Storage: createTier with kind="wholesale", minQty=1 and
+ * aggregation="per_line" hardcoded (Wholesale has no quantity concept).
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
@@ -49,23 +45,13 @@ import {
 } from "@shopify/polaris";
 import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-
-import {
-  BandRangeTable,
-  defaultBand,
-  defaultBandRaw,
-  editorBandToRawBand,
-  rawBandToEditorBand,
-  type Band,
-} from "../components/pricing/band-range-table";
 import { useEffect, useRef, useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
-  createRule,
-  type TierAggregation,
+  createTier,
   type TierCustomerEligibility,
   type TierDiscountType,
   type TierMarketEligibility,
@@ -79,7 +65,7 @@ import {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
   // We need wholesaleBaselinePct to render the Preview card live
-  // ("On a €100 retail product, with 55% baseline + this tier 10%,
+  // ("On a €100 retail product, with 55% baseline + this rule 10%,
   // wholesale price is …"). Falling back to 0 keeps the math correct
   // when no baseline has been set yet.
   const shopRow = await prisma.shop.findUnique({
@@ -113,28 +99,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         .filter(Boolean),
     ),
   );
-  const aggregation = (form.get("aggregation") ?? "per_line").toString() as TierAggregation;
+  const discountType = (form.get("discountType") ?? "percentage")
+    .toString() as TierDiscountType;
+  const discountPctStr = (form.get("discountPct") ?? "").toString();
+  const discountAmountStr = (form.get("discountAmount") ?? "").toString();
+  const discountFixedPriceStr = (form.get("discountFixedPrice") ?? "").toString();
   const customerEligibility = (form.get("customerEligibility") ?? "wholesale_tagged")
     .toString() as TierCustomerEligibility;
   const marketEligibility = (form.get("marketEligibility") ?? "all_markets")
     .toString() as TierMarketEligibility;
-
-  // Multi-band (ADR-012): the Discount Range table serializes its rows
-  // into one hidden "bands" input as JSON. Each row carries minQty,
-  // quantityTo (null = open-ended), discountType, and a single
-  // discountValue that maps to pct / amount / fixedPrice by type.
-  type RawBand = {
-    minQty: number;
-    quantityTo: number | null;
-    discountType: TierDiscountType;
-    discountValue: number;
-  };
-  let rawBands: RawBand[] = [];
-  try {
-    rawBands = JSON.parse((form.get("bands") ?? "[]").toString()) as RawBand[];
-  } catch {
-    rawBands = [];
-  }
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
@@ -142,8 +115,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.scope = "Invalid scope";
   if (scope !== "all" && scopeIds.length === 0)
     errors.scopeIds = "Select at least one target";
-  if (!["per_line", "cart_total", "mix_variants"].includes(aggregation))
-    errors.aggregation = "Invalid aggregation mode";
   if (
     !["wholesale_tagged", "logged_in", "all_customers", "specific_customers"].includes(
       customerEligibility,
@@ -159,105 +130,76 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.marketEligibility =
       "Specific markets mode is not available yet (Sprint 5). Pick another option.";
 
-  if (scope === "variant" && aggregation === "cart_total") {
-    errors.aggregation =
-      "Variant-scoped tiers must use per-line aggregation.";
-  }
-  // ADR-012 §4.8: mix_variants is meaningless on variant scope.
-  if (scope === "variant" && aggregation === "mix_variants") {
-    errors.aggregation =
-      "Mix variants aggregation cannot be combined with variant scope.";
-  }
+  if (!["percentage", "fixed_amount", "fixed_price"].includes(discountType))
+    errors.discountType = "Invalid discount type";
 
-  // Per-band validation. The Discount Range table guarantees at least
-  // one row client-side, but we re-validate here defensively.
-  if (!Array.isArray(rawBands) || rawBands.length === 0) {
-    errors.bands = "Add at least one quantity range";
+  // Branch validation by discount type. Exactly one value field is
+  // relevant per type; the others are nulled before the DB write.
+  let discountPct = 0;
+  let discountAmount: number | null = null;
+  let discountFixedPrice: number | null = null;
+  if (discountType === "percentage") {
+    discountPct = Number(discountPctStr);
+    if (Number.isNaN(discountPct) || discountPct <= 0 || discountPct > 100)
+      errors.discountPct = "Discount must be between 0 and 100";
+  } else if (discountType === "fixed_amount") {
+    discountAmount = Number(discountAmountStr);
+    if (Number.isNaN(discountAmount) || discountAmount <= 0)
+      errors.discountAmount =
+        "Amount must be a positive number (in shop currency)";
   } else {
-    rawBands.forEach((b, i) => {
-      const n = i + 1;
-      if (!Number.isInteger(b.minQty) || b.minQty < 1)
-        errors.bands = `Range ${n}: "Quantity from" must be a positive whole number`;
-      else if (
-        b.quantityTo != null &&
-        (!Number.isInteger(b.quantityTo) || b.quantityTo < b.minQty)
-      )
-        errors.bands = `Range ${n}: "Quantity to" must be ≥ "Quantity from" (leave blank for "and above")`;
-      else if (!["percentage", "fixed_amount", "fixed_price"].includes(b.discountType))
-        errors.bands = `Range ${n}: invalid discount type`;
-      else if (
-        b.discountType === "percentage" &&
-        (Number.isNaN(b.discountValue) || b.discountValue < 0 || b.discountValue > 100)
-      )
-        errors.bands = `Range ${n}: percentage must be between 0 and 100`;
-      else if (
-        b.discountType !== "percentage" &&
-        (Number.isNaN(b.discountValue) || b.discountValue <= 0)
-      )
-        errors.bands = `Range ${n}: amount must be greater than 0`;
-    });
+    discountFixedPrice = Number(discountFixedPriceStr);
+    if (Number.isNaN(discountFixedPrice) || discountFixedPrice <= 0)
+      errors.discountFixedPrice =
+        "Price must be a positive number (in shop currency)";
   }
 
-  // Single failure shape so the action's return union stays uniform
-  // (TypeScript otherwise widens `values` to the union of every json
-  // return and can't narrow it in the component).
-  const fail = (errs: Record<string, string>) =>
-    json({
-      errors: errs,
+  if (Object.keys(errors).length > 0) {
+    return json({
+      errors,
       values: {
         name,
         scope,
         scopeIds,
-        aggregation,
+        discountType,
+        discountPctStr,
+        discountAmountStr,
+        discountFixedPriceStr,
         customerEligibility,
         marketEligibility,
-        bands: rawBands,
       },
     });
-
-  if (Object.keys(errors).length > 0) {
-    return fail(errors);
   }
 
-  // Map raw rows → BandInput (split discountValue by type).
-  const bands = rawBands.map((b) => ({
-    minQty: b.minQty,
-    quantityTo: b.quantityTo,
-    discountType: b.discountType,
-    discountPct: b.discountType === "percentage" ? b.discountValue : 0,
-    discountAmount: b.discountType === "fixed_amount" ? b.discountValue : null,
-    discountFixedPrice: b.discountType === "fixed_price" ? b.discountValue : null,
-  }));
-
-  try {
-    await createRule({
-      shopId: shop.id,
-      name,
-      scope,
-      scopeIds,
-      aggregation,
-      customerEligibility,
-      marketEligibility,
-      bands,
-    });
-  } catch (e) {
-    // createRule.validateBands throws human-readable messages on
-    // overlapping / non-ascending / multiple-open-ended bands.
-    return fail({
-      bands: e instanceof Error ? e.message : "Invalid quantity ranges",
-    });
-  }
+  await createTier({
+    shopId: shop.id,
+    name,
+    kind: "wholesale",
+    scope,
+    scopeIds,
+    // Wholesale Pricing has no quantity concept — every qualifying line
+    // gets the discount. minQty=1 / per_line makes the Discount Function
+    // treat it as an always-on flat discount on the scoped products.
+    minQty: 1,
+    aggregation: "per_line",
+    discountType,
+    discountPct,
+    discountAmount,
+    discountFixedPrice,
+    customerEligibility,
+    marketEligibility,
+  });
 
   // Sync to the Shopify Discount Function so checkout enforces it.
   try {
     await syncTiersToFunction(admin, shop.id);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("[tiers.new] syncTiersToFunction failed:", err);
+    console.error("[pricing.new] syncTiersToFunction failed:", err);
   }
 
-  // After creating, go back to /app/pricing (the list) so the
-  // merchant sees the new row appear immediately.
+  // After creating, go back to /app/pricing (the list) so the merchant
+  // sees the new row appear immediately.
   return redirect("/app/pricing");
 };
 
@@ -273,7 +215,7 @@ const SCOPE_OPTIONS: Array<{
   {
     value: "all",
     title: "All products",
-    description: "Tier applies shop-wide. Simplest setup.",
+    description: "Rule applies shop-wide. Simplest setup.",
   },
   {
     value: "product",
@@ -283,8 +225,7 @@ const SCOPE_OPTIONS: Array<{
   {
     value: "variant",
     title: "A specific variant",
-    description:
-      "Pick one variant (e.g. size XL). Most granular control.",
+    description: "Pick one variant (e.g. size XL). Most granular control.",
   },
   {
     value: "collection",
@@ -309,14 +250,12 @@ const CUSTOMER_ELIGIBILITY_OPTIONS: Array<{
   {
     value: "logged_in",
     title: "Logged-in customers",
-    description:
-      "Any customer with an account — no wholesale tag required.",
+    description: "Any customer with an account — no wholesale tag required.",
   },
   {
     value: "all_customers",
     title: "All customers",
-    description:
-      "Everyone, including anonymous shoppers. Use with care.",
+    description: "Everyone, including anonymous shoppers. Use with care.",
   },
   {
     value: "specific_customers",
@@ -346,32 +285,29 @@ const MARKET_ELIGIBILITY_OPTIONS: Array<{
   },
 ];
 
-const AGGREGATION_OPTIONS: Array<{
-  value: TierAggregation;
+const DISCOUNT_TYPE_OPTIONS: Array<{
+  value: TierDiscountType;
   title: string;
   description: string;
 }> = [
   {
-    value: "per_line",
-    title: "Per line",
-    description:
-      "Each product must hit the minimum on its own. 10 of THIS product.",
+    value: "percentage",
+    title: "Percentage off",
+    description: "Example: 65% off the line price.",
   },
   {
-    value: "cart_total",
-    title: "Cart total (assortment)",
-    description:
-      "Sum across all products in scope. Mix and match to reach the minimum.",
+    value: "fixed_amount",
+    title: "Fixed amount off per unit",
+    description: "Example: €10 off each unit.",
   },
   {
-    value: "mix_variants",
-    title: "Mix variants of the same product",
-    description:
-      "Sum quantities across variants of the same product. Mix sizes / colors to hit the minimum.",
+    value: "fixed_price",
+    title: "Fixed price per unit",
+    description: "Example: each unit costs exactly €25.",
   },
 ];
 
-export default function NewTier() {
+export default function NewWholesalePricing() {
   const { baselinePct } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -391,17 +327,17 @@ export default function NewTier() {
   const [scopeItems, setScopeItems] = useState<ScopeItem[]>(
     (actionData?.values?.scopeIds ?? []).map((id) => ({ id, title: "" })),
   );
-  // Multi-band Discount Range table. Each row is one quantity band.
-  // On a validation-error replay, actionData.values.bands holds the
-  // numeric RawBand[] we POSTed — rehydrate it back into string-based
-  // editor rows. Otherwise start with one sensible default band.
-  const [bands, setBands] = useState<Band[]>(() =>
-    actionData?.values?.bands && actionData.values.bands.length > 0
-      ? actionData.values.bands.map(rawBandToEditorBand)
-      : [defaultBand()],
+  const [discountType, setDiscountType] = useState<TierDiscountType>(
+    (actionData?.values?.discountType as TierDiscountType) ?? "percentage",
   );
-  const [aggregation, setAggregation] = useState<TierAggregation>(
-    (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
+  const [discountPct, setDiscountPct] = useState<string>(
+    actionData?.values?.discountPctStr ?? "65",
+  );
+  const [discountAmount, setDiscountAmount] = useState<string>(
+    actionData?.values?.discountAmountStr ?? "",
+  );
+  const [discountFixedPrice, setDiscountFixedPrice] = useState<string>(
+    actionData?.values?.discountFixedPriceStr ?? "",
   );
   const [customerEligibility, setCustomerEligibility] =
     useState<TierCustomerEligibility>(
@@ -416,22 +352,17 @@ export default function NewTier() {
 
   const errors = actionData?.errors ?? {};
 
-  /* ----- Save bar (sticky top, App Bridge style) -----
-   * Tracks "is the form dirty?" by comparing every field against
-   * its initial value. When dirty → show the SaveBar at the top
-   * of the Shopify admin (the same UX Sami / BSS have). The bar's
-   * primary button triggers formRef.current?.requestSubmit() so
-   * the standard Remix <Form> POST flow runs (action validates,
-   * creates the tier, redirects to /app/pricing).
-   * Discard resets all state back to the initial values.
-   */
+  /* ----- Save bar (sticky top, App Bridge style) ----- */
   const initial = {
     name: actionData?.values?.name ?? "",
     scope: (actionData?.values?.scope as TierScope) ?? ("all" as TierScope),
     scopeIds: actionData?.values?.scopeIds ?? ([] as string[]),
-    aggregation:
-      (actionData?.values?.aggregation as TierAggregation) ??
-      ("per_line" as TierAggregation),
+    discountType:
+      (actionData?.values?.discountType as TierDiscountType) ??
+      ("percentage" as TierDiscountType),
+    discountPct: actionData?.values?.discountPctStr ?? "65",
+    discountAmount: actionData?.values?.discountAmountStr ?? "",
+    discountFixedPrice: actionData?.values?.discountFixedPriceStr ?? "",
     customerEligibility:
       (actionData?.values?.customerEligibility as TierCustomerEligibility) ??
       ("wholesale_tagged" as TierCustomerEligibility),
@@ -439,27 +370,15 @@ export default function NewTier() {
       (actionData?.values?.marketEligibility as TierMarketEligibility) ??
       ("all_markets" as TierMarketEligibility),
   };
-  // Serialize bands for the hidden input + dirty check. One default
-  // band = "pristine"; any edit/add/remove flips dirty.
-  const bandsPayload = JSON.stringify(bands.map(editorBandToRawBand));
-  const initialBandsPayload = JSON.stringify(
-    (actionData?.values?.bands ?? [defaultBandRaw()]).map((b) => ({
-      minQty: Number(b.minQty),
-      quantityTo:
-        b.quantityTo === null || b.quantityTo === undefined
-          ? null
-          : Number(b.quantityTo),
-      discountType: b.discountType,
-      discountValue: Number(b.discountValue),
-    })),
-  );
   const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
     name !== initial.name ||
     scope !== initial.scope ||
     !sameIdSet(currentScopeIds, initial.scopeIds) ||
-    bandsPayload !== initialBandsPayload ||
-    aggregation !== initial.aggregation ||
+    discountType !== initial.discountType ||
+    discountPct !== initial.discountPct ||
+    discountAmount !== initial.discountAmount ||
+    discountFixedPrice !== initial.discountFixedPrice ||
     customerEligibility !== initial.customerEligibility ||
     marketEligibility !== initial.marketEligibility;
 
@@ -472,8 +391,6 @@ export default function NewTier() {
     } else {
       shopify.saveBar.hide(SAVE_BAR_ID);
     }
-    // The cleanup hides the bar when the component unmounts — keeps
-    // the global Shopify admin state clean on navigation.
     return () => {
       shopify.saveBar.hide(SAVE_BAR_ID);
     };
@@ -483,24 +400,15 @@ export default function NewTier() {
     setName(initial.name);
     setScope(initial.scope);
     setScopeItems(initial.scopeIds.map((id) => ({ id, title: "" })));
-    setBands(
-      actionData?.values?.bands && actionData.values.bands.length > 0
-        ? actionData.values.bands.map(rawBandToEditorBand)
-        : [defaultBand()],
-    );
-    setAggregation(initial.aggregation);
+    setDiscountType(initial.discountType);
+    setDiscountPct(initial.discountPct);
+    setDiscountAmount(initial.discountAmount);
+    setDiscountFixedPrice(initial.discountFixedPrice);
     setCustomerEligibility(initial.customerEligibility);
     setMarketEligibility(initial.marketEligibility);
   };
 
-  /* ----- Resource Picker (multi-select) -----
-   *
-   * `multiple: true` lets the merchant pick N products in one shot
-   * (Sami/BSS UX pattern — one rule with many targets is much faster
-   * than duplicating the rule N times). We pass `selectionIds` so
-   * re-opening the picker keeps the current selection highlighted
-   * and the merchant can add/remove without losing the previous set.
-   */
+  /* ----- Resource Picker (multi-select) ----- */
   const openResourcePicker = async () => {
     if (scope === "all") return;
     const result = await shopify.resourcePicker({
@@ -517,30 +425,26 @@ export default function NewTier() {
     setScopeItems((prev) => prev.filter((s) => s.id !== id));
   };
 
-  /* ----- preview math -----
-   *  baseline always applies multiplicatively first. Then the tier
-   *  either layers on as another multiplicative factor (percentage)
-   *  or subtracts a flat amount per unit (fixed_amount). Preview
-   *  assumes qty=1 on a €100 retail unit so the merchant can read
-   *  the impact at a glance.
+  /* ----- preview math (single discount on a €100 retail unit) -----
+   *  baseline applies multiplicatively first. Then the discount either
+   *  layers on as another multiplicative factor (percentage), subtracts
+   *  a flat amount per unit (fixed_amount), or overrides the per-unit
+   *  price entirely (fixed_price — baseline ignored).
    */
-  // Preview uses the HIGHEST band (last row) — the deepest discount the
-  // customer can unlock — on a €100 retail unit.
   const previewRetail = 100;
   const baselineFactor = 1 - baselinePct / 100;
-  const previewBand = bands[bands.length - 1];
-  const pType = previewBand?.discountType ?? "percentage";
-  const pValue = Number(previewBand?.discountValue) || 0;
+  const tierPct = Number(discountPct) || 0;
+  const tierAmount = Number(discountAmount) || 0;
+  const tierFixedPrice = Number(discountFixedPrice) || 0;
   let previewWholesale: number;
-  if (pType === "fixed_price") {
-    // Final per-unit price overrides retail entirely (baseline ignored).
-    previewWholesale = Math.min(previewRetail, pValue);
-  } else if (pType === "fixed_amount") {
-    previewWholesale = Math.max(0, previewRetail * baselineFactor - pValue);
+  if (discountType === "fixed_price") {
+    previewWholesale = Math.min(previewRetail, tierFixedPrice);
+  } else if (discountType === "fixed_amount") {
+    previewWholesale = Math.max(0, previewRetail * baselineFactor - tierAmount);
   } else {
     previewWholesale = Math.max(
       0,
-      previewRetail * baselineFactor * (1 - pValue / 100),
+      previewRetail * baselineFactor * (1 - tierPct / 100),
     );
   }
   const previewSavings = previewRetail - previewWholesale;
@@ -560,36 +464,22 @@ export default function NewTier() {
         ? `${scopeOption.title} (none selected)`
         : `${scopeItems.length} ${scopeNoun}`;
 
-  const aggLabel =
-    aggregation === "per_line"
-      ? "per line"
-      : aggregation === "mix_variants"
-        ? "mix variants"
-        : "cart total";
-  const triggerSummary = `${bands.length} ${bands.length === 1 ? "range" : "ranges"} · ${aggLabel}`;
-
   const discountSummary =
-    bands.length === 0
-      ? "—"
-      : bands
-          .map((b) => {
-            const v = Number(b.discountValue) || 0;
-            if (b.discountType === "fixed_price") return `€${v}/unit`;
-            if (b.discountType === "fixed_amount") return `−€${v}`;
-            return `${v}%`;
-          })
-          .join(" · ");
+    discountType === "fixed_price"
+      ? tierFixedPrice
+        ? `€${tierFixedPrice}/unit`
+        : "—"
+      : discountType === "fixed_amount"
+        ? tierAmount
+          ? `€${tierAmount} off per unit`
+          : "—"
+        : tierPct
+          ? `${tierPct}% off`
+          : "—";
 
   return (
     <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
       <TitleBar title="New wholesale pricing" />
-      {/*
-        Sticky SaveBar at the top of the Shopify admin. Driven by the
-        `isDirty` state computed above — App Bridge handles the actual
-        portal rendering. The primary button submits the existing
-        Remix <Form> via formRef.current.requestSubmit() so action
-        validation + redirect still flow normally.
-       */}
       <SaveBar id={SAVE_BAR_ID}>
         <button
           variant="primary"
@@ -604,12 +494,11 @@ export default function NewTier() {
         {/*
           Hidden inputs mirror the state so the standard <form> POST
           carries everything — keeps the action contract unchanged
-          while the visible UI uses Polaris components that don't
-          submit by name on their own (radio cards, etc.).
+          while the visible UI uses Polaris components that don't submit
+          by name on their own (radio cards, etc.).
          */}
         <input type="hidden" name="scope" value={scope} />
-        <input type="hidden" name="aggregation" value={aggregation} />
-        <input type="hidden" name="bands" value={bandsPayload} />
+        <input type="hidden" name="discountType" value={discountType} />
         <input
           type="hidden"
           name="customerEligibility"
@@ -620,10 +509,6 @@ export default function NewTier() {
           name="marketEligibility"
           value={marketEligibility}
         />
-        {/*
-          One hidden input per selected resource. action() uses
-          form.getAll("scopeIds") to collect them into an array.
-         */}
         {scope !== "all" &&
           scopeItems.map((item) => (
             <input
@@ -663,64 +548,9 @@ export default function NewTier() {
                     value={name}
                     onChange={setName}
                     error={errors.name}
-                    placeholder="e.g. Volume pricing — 10+ units"
+                    placeholder="e.g. Wholesale — 65% off"
                     requiredIndicator
                   />
-                </BlockStack>
-              </Card>
-
-              {/* ----- Scope ----- */}
-              <Card>
-                <BlockStack gap="400">
-                  <BlockStack gap="100">
-                    <Text variant="headingMd" as="h2">
-                      Scope
-                    </Text>
-                    <Text variant="bodySm" as="p" tone="subdued">
-                      Which products does this tier apply to? You can have
-                      multiple tiers with different scopes — the most specific
-                      tier wins at checkout (variant &gt; product &gt; all).
-                    </Text>
-                  </BlockStack>
-
-                  {/*
-                    Grid 2×2 instead of vertical stack — feedback from
-                    Jonatan 2026-05-27 ("4 opciones en línea de 2 hace
-                    que sea UX más amigable", referring to Sami's
-                    Customer eligibility layout).
-                   */}
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                    {SCOPE_OPTIONS.map((opt) => (
-                      <ChoiceCard
-                        key={opt.value}
-                        selected={scope === opt.value}
-                        onSelect={() => setScope(opt.value)}
-                        title={opt.title}
-                        description={opt.description}
-                      />
-                    ))}
-                  </InlineGrid>
-
-                  {scope !== "all" && (
-                    <ScopePicker
-                      scope={scope}
-                      items={scopeItems}
-                      onBrowse={openResourcePicker}
-                      onRemove={removeScopeItem}
-                      error={errors.scopeIds}
-                    />
-                  )}
-
-                  {scope === "collection" && (
-                    <Banner tone="warning">
-                      <p>
-                        Collection-scoped tiers display on the storefront but
-                        the checkout Discount Function falls back to baseline
-                        for them. Use product or variant scope if you need
-                        the discount enforced at checkout.
-                      </p>
-                    </Banner>
-                  )}
                 </BlockStack>
               </Card>
 
@@ -812,84 +642,135 @@ export default function NewTier() {
                 </BlockStack>
               </Card>
 
-              {/* ----- How quantities are counted (aggregation) ----- */}
+              {/* ----- Scope ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      How quantities are counted
+                      Scope
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      Applies to every range below. Choose how the cart
-                      quantity is measured against each range&apos;s minimum.
+                      Which products does this rule apply to? You can have
+                      multiple rules with different scopes — the most specific
+                      rule wins at checkout (variant &gt; product &gt; all).
+                    </Text>
+                  </BlockStack>
+
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    {SCOPE_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={scope === opt.value}
+                        onSelect={() => setScope(opt.value)}
+                        title={opt.title}
+                        description={opt.description}
+                      />
+                    ))}
+                  </InlineGrid>
+
+                  {scope !== "all" && (
+                    <ScopePicker
+                      scope={scope}
+                      items={scopeItems}
+                      onBrowse={openResourcePicker}
+                      onRemove={removeScopeItem}
+                      error={errors.scopeIds}
+                    />
+                  )}
+
+                  {scope === "collection" && (
+                    <Banner tone="warning">
+                      <p>
+                        Collection-scoped rules display on the storefront but
+                        the checkout Discount Function falls back to baseline
+                        for them. Use product or variant scope if you need the
+                        discount enforced at checkout.
+                      </p>
+                    </Banner>
+                  )}
+                </BlockStack>
+              </Card>
+
+              {/* ----- Discount (single value) ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Discount
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      One flat discount for this rule. Percentage and fixed
+                      amount compose with the shop&apos;s wholesale baseline;
+                      fixed price overrides it. The Preview panel on the right
+                      shows the live math.
                     </Text>
                   </BlockStack>
 
                   <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                    {AGGREGATION_OPTIONS.map((opt) => {
-                      const disabled =
-                        scope === "variant" &&
-                        (opt.value === "cart_total" || opt.value === "mix_variants");
-                      return (
-                        <ChoiceCard
-                          key={opt.value}
-                          selected={aggregation === opt.value}
-                          onSelect={() => {
-                            if (!disabled) setAggregation(opt.value);
-                          }}
-                          title={opt.title}
-                          description={
-                            disabled
-                              ? `${opt.description} — not available for variant-scoped pricing.`
-                              : opt.description
-                          }
-                          disabled={disabled}
-                        />
-                      );
-                    })}
+                    {DISCOUNT_TYPE_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={discountType === opt.value}
+                        onSelect={() => setDiscountType(opt.value)}
+                        title={opt.title}
+                        description={opt.description}
+                      />
+                    ))}
                   </InlineGrid>
 
-                  {errors.aggregation && (
-                    <Banner tone="critical">
-                      <p>{errors.aggregation}</p>
-                    </Banner>
+                  {discountType === "percentage" && (
+                    <TextField
+                      label="Discount percent"
+                      name="discountPct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      autoComplete="off"
+                      value={discountPct}
+                      onChange={setDiscountPct}
+                      error={errors.discountPct}
+                      suffix="%"
+                      helpText="Between 0 and 100. Composes multiplicatively on top of the baseline."
+                      requiredIndicator
+                    />
+                  )}
+                  {discountType === "fixed_amount" && (
+                    <TextField
+                      label="Amount off per unit"
+                      name="discountAmount"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      autoComplete="off"
+                      value={discountAmount}
+                      onChange={setDiscountAmount}
+                      error={errors.discountAmount}
+                      prefix="€"
+                      helpText="Flat amount subtracted from each unit AFTER the baseline applies. Use shop-currency value."
+                      placeholder="10.00"
+                      requiredIndicator
+                    />
+                  )}
+                  {discountType === "fixed_price" && (
+                    <TextField
+                      label="Final price per unit"
+                      name="discountFixedPrice"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      autoComplete="off"
+                      value={discountFixedPrice}
+                      onChange={setDiscountFixedPrice}
+                      error={errors.discountFixedPrice}
+                      prefix="€"
+                      helpText="Each unit costs exactly this amount. The shop baseline is ignored for fixed-price rules."
+                      placeholder="25.00"
+                      requiredIndicator
+                    />
                   )}
                 </BlockStack>
               </Card>
-
-              {/* ----- Discount Range (multi-band) ----- */}
-              <Card>
-                <BlockStack gap="400">
-                  <BlockStack gap="100">
-                    <Text variant="headingMd" as="h2">
-                      Discount Range
-                    </Text>
-                    <Text variant="bodySm" as="p" tone="subdued">
-                      The more they buy, the bigger the discount. Add one row
-                      per quantity band. Leave the last &quot;Quantity to&quot;
-                      blank for &quot;and above&quot;.
-                    </Text>
-                  </BlockStack>
-
-                  <BandRangeTable
-                    bands={bands}
-                    onChange={setBands}
-                    currency="€"
-                  />
-
-                  {errors.bands && (
-                    <Banner tone="critical">
-                      <p>{errors.bands}</p>
-                    </Banner>
-                  )}
-                </BlockStack>
-              </Card>
-
-              {/*
-                PageActions at the bottom removed 2026-05-27 — the
-                sticky SaveBar at the top (App Bridge) handles
-                Save + Discard. Having both was duplicate UX.
-               */}
             </BlockStack>
           </Layout.Section>
 
@@ -907,12 +788,8 @@ export default function NewTier() {
                     </Text>
                   </BlockStack>
                   <Divider />
-                  <SummaryRow
-                    label="Name"
-                    value={name || "—"}
-                  />
+                  <SummaryRow label="Name" value={name || "—"} />
                   <SummaryRow label="Scope" value={scopeSummary} />
-                  <SummaryRow label="Trigger" value={triggerSummary} />
                   <SummaryRow label="Discount" value={discountSummary} />
                 </BlockStack>
               </Card>
@@ -949,9 +826,8 @@ export default function NewTier() {
                       Preview
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      On a €100 retail product at the deepest range
-                      ({bands.length === 1 ? "the only range" : `range ${bands.length}`}),
-                      what a qualifying customer pays at checkout:
+                      On a €100 retail product, what a qualifying customer
+                      pays at checkout:
                     </Text>
                   </BlockStack>
                   <Divider />
@@ -962,25 +838,25 @@ export default function NewTier() {
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
                     value={
-                      pType === "fixed_price"
+                      discountType === "fixed_price"
                         ? "ignored (fixed price)"
                         : `× ${baselineFactor.toFixed(2)}`
                     }
                   />
                   <SummaryRow
                     label={
-                      pType === "fixed_price"
-                        ? "This range (fixed price)"
-                        : pType === "fixed_amount"
-                          ? "This range (flat)"
-                          : `This range (${pValue}%)`
+                      discountType === "fixed_price"
+                        ? "This rule (fixed price)"
+                        : discountType === "fixed_amount"
+                          ? "This rule (flat)"
+                          : `This rule (${tierPct}%)`
                     }
                     value={
-                      pType === "fixed_price"
-                        ? `€${pValue.toFixed(2)}`
-                        : pType === "fixed_amount"
-                          ? `− €${pValue.toFixed(2)}`
-                          : `× ${(1 - pValue / 100).toFixed(2)}`
+                      discountType === "fixed_price"
+                        ? `€${tierFixedPrice.toFixed(2)}`
+                        : discountType === "fixed_amount"
+                          ? `− €${tierAmount.toFixed(2)}`
+                          : `× ${(1 - tierPct / 100).toFixed(2)}`
                     }
                   />
                   <Divider />
@@ -1008,9 +884,8 @@ export default function NewTier() {
 /* -------------------------------------------------------------------------- */
 
 /**
- * One target picked from the Resource Picker. We keep title + image
- * so the UI can render a real thumbnail + label instead of the
- * `gid://shopify/Product/123` URL the previous form used to show.
+ * One target picked from the Resource Picker. We keep title + image so
+ * the UI can render a real thumbnail + label instead of the raw GID.
  */
 type ScopeItem = {
   id: string;
@@ -1056,8 +931,6 @@ function sameIdSet(a: string[], b: string[]) {
  * Empty/loaded picker UI block. Shows either a "Browse products"
  * call-to-action button (no selection yet) or a "Selected: N items"
  * summary with an "Edit selection" button that re-opens the picker.
- * Per Jonatan 2026-05-27: the picker is the only path — no manual
- * GID input, no raw URL on screen.
  */
 function ScopePicker({
   scope,
@@ -1122,7 +995,6 @@ function ScopePicker({
 
 /**
  * One row of the selected-items list: thumbnail + title + remove button.
- * Used both in the main Scope card and in the sidebar Preview card.
  */
 function ScopeItemRow({
   item,
@@ -1163,9 +1035,9 @@ function ScopeItemRow({
 
 /**
  * Visual "radio card": full-width clickable card that toggles a
- * RadioButton inside. Used for Scope and Aggregation selection so
- * the merchant sees the available options as cards (Sami-style)
- * instead of a hidden Select dropdown.
+ * RadioButton inside. Used for Scope, discount-type, customer/market
+ * eligibility selection so the merchant sees the options as cards
+ * (Sami-style) instead of a hidden Select dropdown.
  */
 function ChoiceCard({
   selected,
@@ -1232,7 +1104,7 @@ function ChoiceCard({
 }
 
 /**
- * One row of the "Tier summary" / "Preview" sidebar cards: label on
+ * One row of the "Pricing summary" / "Preview" sidebar cards: label on
  * the left, value on the right. `emphasis` bolds the value (used for
  * the final wholesale price).
  */

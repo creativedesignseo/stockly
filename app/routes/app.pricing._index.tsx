@@ -24,8 +24,8 @@
  *     Active / Draft / Expired / Pending) but Stockly's Tier model
  *     only has `active: boolean` — no draft / scheduling / lifecycle.
  *     Showing 3 honest tabs instead of 5 with empty fakes.
- *   - Columns: ID / Name / Status / Apply Customers / Apply Products
- *     / Apply Markets / Created. "Apply Customers" and "Apply Markets"
+ *   - Columns: ID / Name / Status / Apply Customers / Discount /
+ *     Apply Products / Apply Markets / Created. "Apply Markets"
  *     are constant strings for now ("All wholesale" / "All markets")
  *     because Stockly doesn't segment by customer-tag or by Market yet
  *     — those are roadmap items.
@@ -119,7 +119,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // shop-wide setup numbers shown in the banner.
   // ADR-012: list aggregates one row per groupId (multi-band rule).
   const [rules, shopRow] = await Promise.all([
-    listRules(shop.id),
+    // Wholesale Pricing only — Volume rules live under /app/volume-pricing.
+    listRules(shop.id, { kind: "wholesale" }),
     prisma.shop.findUnique({
       where: { id: shop.id },
       select: {
@@ -237,10 +238,10 @@ export default function PricingList() {
             image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
           >
             <Text as="p" variant="bodyMd">
-              Wholesale pricing rules reward B2B customers with automatic
-              discounts based on volume — by quantity or by mixing products
-              to hit a cart total. They stack on top of the shop-wide
-              baseline.
+              Wholesale pricing rules give B2B customers a flat discount on
+              the products you choose — a percentage off, a fixed amount off
+              per unit, or a fixed price per unit. They stack on top of the
+              shop-wide baseline.
             </Text>
           </EmptyState>
         </Card>
@@ -324,7 +325,7 @@ export default function PricingList() {
               { title: "Name" },
               { title: "Status" },
               { title: "Apply Customers" },
-              { title: "Volume bands" },
+              { title: "Discount" },
               { title: "Apply Products" },
               { title: "Apply Markets" },
               { title: "Created" },
@@ -365,7 +366,7 @@ export default function PricingList() {
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodyMd">
-                    {formatBandSummary(rule.bandCount, rule.minQty, rule.maxQty)}
+                    {formatDiscountSummary(rule.bands[0])}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
@@ -521,22 +522,28 @@ function formatCustomerEligibility(value: string | null | undefined): string {
 }
 
 /**
- * ADR-012: render the "Volume bands" column. One band keeps the
- * single-band copy ("10+ units") so legacy rules look unchanged.
- * Multi-band rules show "N bands · X-Y units" (∞ when open-ended).
+ * Render the flat "Discount" column for a wholesale rule. A wholesale
+ * rule has a single discount; we read it off the first band. Percentage
+ * → "65% off"; fixed amount → "−€10/unit"; fixed price → "€25/unit".
  */
-function formatBandSummary(
-  bandCount: number,
-  minQty: number,
-  maxQty: number | null,
+function formatDiscountSummary(
+  band:
+    | {
+        discountType: string;
+        discountPct: number;
+        discountAmount: number | null;
+        discountFixedPrice: number | null;
+      }
+    | undefined,
 ): string {
-  if (bandCount <= 1) {
-    return maxQty != null
-      ? `${minQty}–${maxQty} units`
-      : `${minQty}+ units`;
-  }
-  const upper = maxQty != null ? `${maxQty}` : "∞";
-  return `${bandCount} bands · ${minQty}–${upper} units`;
+  if (!band) return "—";
+  if (band.discountType === "fixed_price")
+    return band.discountFixedPrice != null
+      ? `€${band.discountFixedPrice}/unit`
+      : "—";
+  if (band.discountType === "fixed_amount")
+    return band.discountAmount != null ? `−€${band.discountAmount}/unit` : "—";
+  return band.discountPct > 0 ? `${band.discountPct}% off` : "—";
 }
 
 function ScopeCell({ scope }: { scope: string }) {

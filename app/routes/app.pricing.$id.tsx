@@ -1,29 +1,25 @@
 /**
- * Admin route: edit (or delete) an existing wholesale pricing rule.
+ * Admin route: edit (or delete) an existing flat Wholesale Pricing rule.
  *
  * URL: /app/pricing/:id
  *
- * Same Sami-style layout as /app/pricing/new (validated with Jonatan
- * 2026-05-27 — he asked why the edit form was still the legacy ugly
- * page: "qué pasó con lo bonito que habíamos hecho"). Direct port
- * with these add-ons:
+ * Wholesale Pricing (ADR-014) is a FLAT discount: ONE value per rule,
+ * no quantity dimension. This is the single-discount edit form restored
+ * 2026-05-28 — the multi-band editor that had crept in (conflating
+ * Wholesale with Volume Pricing) was removed. Volume's quantity-break
+ * editor lives in the separate /app/volume-pricing area.
  *
- *   - Loader fetches the tier by id (with shop-id ownership check)
- *     and pre-populates state.
- *   - "Pricing rule information" card gets an Active/Inactive toggle
- *     in the top-right. Lets the merchant disable the rule without
- *     deleting (preserves history).
+ * Same Sami-style layout as /app/pricing/new with these add-ons:
+ *   - Loader resolves the rule by its Tier.id (legacy bookmark) or
+ *     groupId (new list links) and pre-populates state from the FIRST
+ *     band. A wholesale rule is always 1 band; a legacy group that
+ *     happens to carry multiple bands won't crash — we just edit the
+ *     first band's discount.
+ *   - "Pricing rule information" card has an Active/Draft toggle.
  *   - Action handles two intents:
- *       intent=update  → validate + updateTier (same logic as create)
- *       intent=delete  → deleteTier (hard delete)
- *   - Danger zone Card at the bottom with a destructive "Delete this
- *     wholesale pricing" button (uses fetcher.submit so the page
- *     redirects on success and shows a loading state on the button).
- *   - Both Save and Delete redirect to /app/pricing (the list) so the
- *     merchant sees the updated/missing row immediately.
- *
- * Legacy /app/tiers/:id route deleted 2026-05-27 — /app/pricing/:id
- * is the only edit URL now.
+ *       intent=update → validate + updateTier on the first band.
+ *       intent=delete → deleteRule (removes every band of the group).
+ *   - Both Save and Delete redirect to /app/pricing (the list).
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
@@ -62,31 +58,21 @@ import {
   deleteRule,
   getRule,
   getTier,
-  updateRule,
-  type TierAggregation,
+  updateTier,
   type TierCustomerEligibility,
   type TierDiscountType,
   type TierMarketEligibility,
   type TierScope,
 } from "../services/tiers.server";
-import {
-  BandRangeTable,
-  editorBandToRawBand,
-  rawBandToEditorBand,
-  tierRowToEditorBand,
-  type Band,
-} from "../components/pricing/band-range-table";
 
 /* -------------------------------------------------------------------------- */
 /*                                  LOADER                                    */
 /* -------------------------------------------------------------------------- */
 
 /**
- * ADR-012: the list view links use a rule's `groupId`. Legacy
- * bookmarks still use `Tier.id`. Resolve either by trying id first,
- * then falling back to groupId. Returns the FIRST band of the group
- * (sorted ascending by minQty) — for legacy 1-band rules that's the
- * only band; for multi-band rules the rule-level fields all match.
+ * The list view links use a rule's `groupId`; legacy bookmarks use
+ * `Tier.id`. Resolve either: try id first, then fall back to groupId
+ * (returning the first band of the group, sorted ascending by minQty).
  */
 async function resolveTierOrGroup(rawId: string, shopId: string) {
   const direct = await getTier(rawId, shopId);
@@ -102,34 +88,35 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
-  const [tier, shopRow] = await Promise.all([
+  const [resolved, shopRow] = await Promise.all([
     resolveTierOrGroup(id, shop.id),
     prisma.shop.findUnique({
       where: { id: shop.id },
       select: { wholesaleBaselinePct: true },
     }),
   ]);
-  if (!tier)
+  if (!resolved)
     throw new Response("Wholesale pricing not found", { status: 404 });
 
-  // ADR-012: load the FULL rule (all bands) so the multi-band editor can
-  // render every quantity range. `tier` above is just the first band we
-  // resolved from the id/groupId; the group it belongs to has N bands.
-  const groupId = tier.groupId ?? tier.id;
+  // Load the full rule (its group) so we can read the first band. A
+  // wholesale rule is 1 band; a legacy multi-band group resolves to its
+  // first band — the form only ever edits that one band's discount.
+  const groupId = resolved.groupId ?? resolved.id;
   const rule = await getRule(groupId, shop.id);
-  if (!rule)
+  if (!rule || rule.bands.length === 0)
     throw new Response("Wholesale pricing not found", { status: 404 });
+
+  const firstBand = rule.bands[0];
 
   // Resolve the rule's targets to (id, title, image) so the form can
   // render a real thumbnail + label instead of the raw GID URL. We use
   // the generic `nodes(ids:)` query because the rule's scope determines
   // whether the targets are Products, ProductVariants, or Collections.
-  // Read scopeIds[] first (the new field), fall back to legacy scopeId.
   const targetIds =
-    tier.scopeIds && tier.scopeIds.length > 0
-      ? tier.scopeIds
-      : tier.scopeId
-        ? [tier.scopeId]
+    firstBand.scopeIds && firstBand.scopeIds.length > 0
+      ? firstBand.scopeIds
+      : firstBand.scopeId
+        ? [firstBand.scopeId]
         : [];
   let scopeItems: Array<{ id: string; title: string; image: string | null }> =
     [];
@@ -160,10 +147,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
         }`,
         { variables: { ids: targetIds } },
       );
-      // Loosely typed for normalization below — Shopify returns a
-      // mixed array of Product/ProductVariant/Collection so we type
-      // each field as optional and pick what's actually present.
-      const json = (await res.json()) as {
+      const data = (await res.json()) as {
         data?: {
           nodes?: Array<
             | ({
@@ -178,7 +162,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
           >;
         };
       };
-      scopeItems = (json.data?.nodes ?? [])
+      scopeItems = (data.data?.nodes ?? [])
         .filter((n): n is NonNullable<typeof n> => n != null && !!n.id)
         .map((n) => {
           const isVariant = n.__typename === "ProductVariant";
@@ -195,23 +179,40 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
       // If Shopify dropped any ids (deleted resources), keep the gid so
       // the merchant can see them and decide to remove.
       const returnedIds = new Set(scopeItems.map((s) => s.id));
-      for (const id of targetIds) {
-        if (!returnedIds.has(id)) {
-          scopeItems.push({ id, title: "(deleted or unavailable)", image: null });
+      for (const targetId of targetIds) {
+        if (!returnedIds.has(targetId)) {
+          scopeItems.push({
+            id: targetId,
+            title: "(deleted or unavailable)",
+            image: null,
+          });
         }
       }
     } catch (err) {
-      // Don't block the form on a metadata-fetch failure. Show raw
-      // ids — the merchant can still edit + save the rule.
+      // Don't block the form on a metadata-fetch failure. Show raw ids —
+      // the merchant can still edit + save the rule.
       // eslint-disable-next-line no-console
       console.error("[pricing.$id] scope-target fetch failed:", err);
-      scopeItems = targetIds.map((id) => ({ id, title: "", image: null }));
+      scopeItems = targetIds.map((tid) => ({ id: tid, title: "", image: null }));
     }
   }
 
+  // Flatten the first band's fields into a plain object for the form.
   return json({
-    rule,
-    groupId,
+    rule: {
+      groupId,
+      tierId: firstBand.id,
+      name: rule.name,
+      scope: rule.scope,
+      active: rule.active,
+      discountType: firstBand.discountType,
+      discountPct: firstBand.discountPct,
+      discountAmount: firstBand.discountAmount,
+      discountFixedPrice: firstBand.discountFixedPrice,
+      customerEligibility: rule.customerEligibility,
+      marketEligibility: rule.marketEligibility,
+      bandCount: rule.bandCount,
+    },
     baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
     scopeItems,
   });
@@ -226,10 +227,7 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
-  // ADR-012: id may be a Tier.id (legacy bookmark) or a groupId (new
-  // list links). Resolve to the underlying band; if the URL was a
-  // groupId, `existing.groupId === id` so we always know the group
-  // for downstream multi-band operations.
+  // id may be a Tier.id (legacy bookmark) or a groupId (new list links).
   const existing = await resolveTierOrGroup(id, shop.id);
   if (!existing)
     throw new Response("Wholesale pricing not found", { status: 404 });
@@ -239,8 +237,8 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   const intent = (form.get("intent") ?? "").toString();
 
   if (intent === "delete") {
-    // ADR-012: delete EVERY band of the rule, not just the resolved
-    // one. Legacy 1-band rules remove a single row (unchanged behavior).
+    // Delete every band of the rule (legacy 1-band rules remove a single
+    // row — unchanged behavior).
     await deleteRule(groupId, shop.id);
     try {
       await syncTiersToFunction(admin, shop.id);
@@ -265,8 +263,11 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
         .filter(Boolean),
     ),
   );
-  const aggregation = (form.get("aggregation") ?? "per_line")
-    .toString() as TierAggregation;
+  const discountType = (form.get("discountType") ?? "percentage")
+    .toString() as TierDiscountType;
+  const discountPctStr = (form.get("discountPct") ?? "").toString();
+  const discountAmountStr = (form.get("discountAmount") ?? "").toString();
+  const discountFixedPriceStr = (form.get("discountFixedPrice") ?? "").toString();
   const customerEligibility = (
     form.get("customerEligibility") ?? "wholesale_tagged"
   ).toString() as TierCustomerEligibility;
@@ -275,36 +276,12 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
   ).toString() as TierMarketEligibility;
   const active = form.get("active") === "on";
 
-  // Multi-band (ADR-012): same JSON contract as /app/pricing/new.
-  type RawBand = {
-    minQty: number;
-    quantityTo: number | null;
-    discountType: TierDiscountType;
-    discountValue: number;
-  };
-  let rawBands: RawBand[] = [];
-  try {
-    rawBands = JSON.parse((form.get("bands") ?? "[]").toString()) as RawBand[];
-  } catch {
-    rawBands = [];
-  }
-
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
   if (!["product", "variant", "collection", "all"].includes(scope))
     errors.scope = "Invalid scope";
   if (scope !== "all" && scopeIds.length === 0)
     errors.scopeIds = "Select at least one target";
-  if (!["per_line", "cart_total", "mix_variants"].includes(aggregation))
-    errors.aggregation = "Invalid aggregation mode";
-  if (scope === "variant" && aggregation === "cart_total") {
-    errors.aggregation =
-      "Variant-scoped pricing rules must use per-line aggregation.";
-  }
-  if (scope === "variant" && aggregation === "mix_variants") {
-    errors.aggregation =
-      "Mix variants aggregation cannot be combined with variant scope.";
-  }
   if (
     !["wholesale_tagged", "logged_in", "all_customers", "specific_customers"].includes(
       customerEligibility,
@@ -320,79 +297,72 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.marketEligibility =
       "Specific markets mode is not available yet (Sprint 5). Pick another option.";
 
-  if (!Array.isArray(rawBands) || rawBands.length === 0) {
-    errors.bands = "Add at least one quantity range";
+  if (!["percentage", "fixed_amount", "fixed_price"].includes(discountType))
+    errors.discountType = "Invalid discount type";
+
+  let discountPct = 0;
+  let discountAmount: number | null = null;
+  let discountFixedPrice: number | null = null;
+  if (discountType === "percentage") {
+    discountPct = Number(discountPctStr);
+    if (Number.isNaN(discountPct) || discountPct <= 0 || discountPct > 100)
+      errors.discountPct = "Discount must be between 0 and 100";
+  } else if (discountType === "fixed_amount") {
+    discountAmount = Number(discountAmountStr);
+    if (Number.isNaN(discountAmount) || discountAmount <= 0)
+      errors.discountAmount =
+        "Amount must be a positive number (in shop currency)";
   } else {
-    rawBands.forEach((b, i) => {
-      const n = i + 1;
-      if (!Number.isInteger(b.minQty) || b.minQty < 1)
-        errors.bands = `Range ${n}: "Quantity from" must be a positive whole number`;
-      else if (
-        b.quantityTo != null &&
-        (!Number.isInteger(b.quantityTo) || b.quantityTo < b.minQty)
-      )
-        errors.bands = `Range ${n}: "Quantity to" must be ≥ "Quantity from" (leave blank for "and above")`;
-      else if (!["percentage", "fixed_amount", "fixed_price"].includes(b.discountType))
-        errors.bands = `Range ${n}: invalid discount type`;
-      else if (
-        b.discountType === "percentage" &&
-        (Number.isNaN(b.discountValue) || b.discountValue < 0 || b.discountValue > 100)
-      )
-        errors.bands = `Range ${n}: percentage must be between 0 and 100`;
-      else if (
-        b.discountType !== "percentage" &&
-        (Number.isNaN(b.discountValue) || b.discountValue <= 0)
-      )
-        errors.bands = `Range ${n}: amount must be greater than 0`;
-    });
+    discountFixedPrice = Number(discountFixedPriceStr);
+    if (Number.isNaN(discountFixedPrice) || discountFixedPrice <= 0)
+      errors.discountFixedPrice =
+        "Price must be a positive number (in shop currency)";
   }
 
-  const fail = (errs: Record<string, string>) =>
-    json({
-      errors: errs,
+  if (Object.keys(errors).length > 0) {
+    return json({
+      errors,
       values: {
         name,
         scope,
         scopeIds,
-        aggregation,
+        discountType,
+        discountPctStr,
+        discountAmountStr,
+        discountFixedPriceStr,
         customerEligibility,
         marketEligibility,
         active,
-        bands: rawBands,
       },
     });
-
-  if (Object.keys(errors).length > 0) {
-    return fail(errors);
   }
 
-  const bands = rawBands.map((b) => ({
-    minQty: b.minQty,
-    quantityTo: b.quantityTo,
-    discountType: b.discountType,
-    discountPct: b.discountType === "percentage" ? b.discountValue : 0,
-    discountAmount: b.discountType === "fixed_amount" ? b.discountValue : null,
-    discountFixedPrice: b.discountType === "fixed_price" ? b.discountValue : null,
-  }));
+  // A wholesale rule is 1 band; we update that band in place. Resolve
+  // the first band of the group (legacy multi-band groups: we only edit
+  // the first band's discount — the rest are untouched).
+  const firstBand = await prisma.tier.findFirst({
+    where: { shopId: shop.id, groupId },
+    orderBy: { minQty: "asc" },
+    select: { id: true },
+  });
+  if (!firstBand)
+    throw new Response("Wholesale pricing not found", { status: 404 });
 
-  try {
-    // ADR-012 replace-all: deletes the group's bands and re-creates them
-    // atomically. Rule-level fields apply to every band.
-    await updateRule(groupId, shop.id, {
-      name,
-      scope,
-      scopeIds: scope === "all" ? [] : scopeIds,
-      aggregation,
-      customerEligibility,
-      marketEligibility,
-      active,
-      bands,
-    });
-  } catch (e) {
-    return fail({
-      bands: e instanceof Error ? e.message : "Invalid quantity ranges",
-    });
-  }
+  await updateTier(firstBand.id, {
+    name,
+    scope,
+    scopeIds: scope === "all" ? [] : scopeIds,
+    discountType,
+    discountPct,
+    discountAmount,
+    discountFixedPrice,
+    customerEligibility,
+    marketEligibility,
+    active,
+    // Wholesale Pricing has no quantity concept — keep the band always-on.
+    minQty: 1,
+    aggregation: "per_line",
+  });
 
   try {
     await syncTiersToFunction(admin, shop.id);
@@ -451,14 +421,12 @@ const CUSTOMER_ELIGIBILITY_OPTIONS: Array<{
   {
     value: "logged_in",
     title: "Logged-in customers",
-    description:
-      "Any customer with an account — no wholesale tag required.",
+    description: "Any customer with an account — no wholesale tag required.",
   },
   {
     value: "all_customers",
     title: "All customers",
-    description:
-      "Everyone, including anonymous shoppers. Use with care.",
+    description: "Everyone, including anonymous shoppers. Use with care.",
   },
   {
     value: "specific_customers",
@@ -488,32 +456,29 @@ const MARKET_ELIGIBILITY_OPTIONS: Array<{
   },
 ];
 
-const AGGREGATION_OPTIONS: Array<{
-  value: TierAggregation;
+const DISCOUNT_TYPE_OPTIONS: Array<{
+  value: TierDiscountType;
   title: string;
   description: string;
 }> = [
   {
-    value: "per_line",
-    title: "Per line",
-    description:
-      "Each product must hit the minimum on its own. 10 of THIS product.",
+    value: "percentage",
+    title: "Percentage off",
+    description: "Example: 65% off the line price.",
   },
   {
-    value: "cart_total",
-    title: "Cart total (assortment)",
-    description:
-      "Sum across all products in scope. Mix and match to reach the minimum.",
+    value: "fixed_amount",
+    title: "Fixed amount off per unit",
+    description: "Example: €10 off each unit.",
   },
   {
-    value: "mix_variants",
-    title: "Mix variants of the same product",
-    description:
-      "Sum quantities across variants of the same product. Mix sizes / colors to hit the minimum.",
+    value: "fixed_price",
+    title: "Fixed price per unit",
+    description: "Example: each unit costs exactly €25.",
   },
 ];
 
-export default function EditPricing() {
+export default function EditWholesalePricing() {
   const { rule, baselinePct, scopeItems: initialScopeItems } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
@@ -523,10 +488,8 @@ export default function EditPricing() {
     navigation.formData?.get("intent") === "update";
   const shopify = useAppBridge();
 
-  /* ----- form state (pre-populated from the rule) ----- */
-  const [name, setName] = useState<string>(
-    actionData?.values?.name ?? rule.name,
-  );
+  /* ----- form state (pre-populated from the rule's first band) ----- */
+  const [name, setName] = useState<string>(actionData?.values?.name ?? rule.name);
   const [scope, setScope] = useState<TierScope>(
     (actionData?.values?.scope as TierScope) ?? (rule.scope as TierScope),
   );
@@ -535,16 +498,25 @@ export default function EditPricing() {
       ? actionData.values.scopeIds.map((id) => ({ id, title: "" }))
       : initialScopeItems,
   );
-  // Multi-band Discount Range. On a validation-error replay use the
-  // numeric bands we POSTed; otherwise hydrate from the rule's DB rows.
-  const [bands, setBands] = useState<Band[]>(() =>
-    actionData?.values?.bands && actionData.values.bands.length > 0
-      ? actionData.values.bands.map(rawBandToEditorBand)
-      : rule.bands.map(tierRowToEditorBand),
+  const [discountType, setDiscountType] = useState<TierDiscountType>(
+    (actionData?.values?.discountType as TierDiscountType) ??
+      (rule.discountType as TierDiscountType),
   );
-  const [aggregation, setAggregation] = useState<TierAggregation>(
-    (actionData?.values?.aggregation as TierAggregation) ??
-      (rule.aggregation as TierAggregation),
+  const [discountPct, setDiscountPct] = useState<string>(
+    actionData?.values?.discountPctStr ??
+      (rule.discountType === "percentage" ? String(rule.discountPct) : ""),
+  );
+  const [discountAmount, setDiscountAmount] = useState<string>(
+    actionData?.values?.discountAmountStr ??
+      (rule.discountType === "fixed_amount" && rule.discountAmount != null
+        ? String(rule.discountAmount)
+        : ""),
+  );
+  const [discountFixedPrice, setDiscountFixedPrice] = useState<string>(
+    actionData?.values?.discountFixedPriceStr ??
+      (rule.discountType === "fixed_price" && rule.discountFixedPrice != null
+        ? String(rule.discountFixedPrice)
+        : ""),
   );
   const [customerEligibility, setCustomerEligibility] =
     useState<TierCustomerEligibility>(
@@ -565,15 +537,21 @@ export default function EditPricing() {
   const errors = actionData?.errors ?? {};
 
   /* ----- SaveBar (App Bridge, sticky top) ----- */
-  const initialScopeIds = rule.scopeIds ?? [];
-  const initialBandsPayload = JSON.stringify(
-    rule.bands.map(tierRowToEditorBand).map(editorBandToRawBand),
-  );
   const initial = {
     name: rule.name,
     scope: rule.scope as TierScope,
-    scopeIds: initialScopeIds,
-    aggregation: rule.aggregation as TierAggregation,
+    scopeIds: initialScopeItems.map((s) => s.id),
+    discountType: rule.discountType as TierDiscountType,
+    discountPct:
+      rule.discountType === "percentage" ? String(rule.discountPct) : "",
+    discountAmount:
+      rule.discountType === "fixed_amount" && rule.discountAmount != null
+        ? String(rule.discountAmount)
+        : "",
+    discountFixedPrice:
+      rule.discountType === "fixed_price" && rule.discountFixedPrice != null
+        ? String(rule.discountFixedPrice)
+        : "",
     customerEligibility:
       ((rule.customerEligibility as TierCustomerEligibility | null) ??
         "wholesale_tagged") as TierCustomerEligibility,
@@ -582,14 +560,15 @@ export default function EditPricing() {
         "all_markets") as TierMarketEligibility,
     active: rule.active,
   };
-  const bandsPayload = JSON.stringify(bands.map(editorBandToRawBand));
   const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
     name !== initial.name ||
     scope !== initial.scope ||
     !sameIdSet(currentScopeIds, initial.scopeIds) ||
-    bandsPayload !== initialBandsPayload ||
-    aggregation !== initial.aggregation ||
+    discountType !== initial.discountType ||
+    discountPct !== initial.discountPct ||
+    discountAmount !== initial.discountAmount ||
+    discountFixedPrice !== initial.discountFixedPrice ||
     customerEligibility !== initial.customerEligibility ||
     marketEligibility !== initial.marketEligibility ||
     active !== initial.active;
@@ -612,8 +591,10 @@ export default function EditPricing() {
     setName(initial.name);
     setScope(initial.scope);
     setScopeItems(initialScopeItems);
-    setBands(rule.bands.map(tierRowToEditorBand));
-    setAggregation(initial.aggregation);
+    setDiscountType(initial.discountType);
+    setDiscountPct(initial.discountPct);
+    setDiscountAmount(initial.discountAmount);
+    setDiscountFixedPrice(initial.discountFixedPrice);
     setCustomerEligibility(initial.customerEligibility);
     setMarketEligibility(initial.marketEligibility);
     setActive(initial.active);
@@ -642,7 +623,7 @@ export default function EditPricing() {
   const handleDelete = () => {
     if (
       !confirm(
-        `Permanently delete "${rule.name}"?\n\nThis cannot be undone. To keep history, toggle the rule inactive instead.`,
+        `Permanently delete "${rule.name}"?\n\nThis cannot be undone. To keep history, toggle the rule to Draft instead.`,
       )
     )
       return;
@@ -651,21 +632,21 @@ export default function EditPricing() {
     deleteFetcher.submit(fd, { method: "POST" });
   };
 
-  /* ----- preview math (deepest / last band on a €100 unit) ----- */
+  /* ----- preview math (single discount on a €100 retail unit) ----- */
   const previewRetail = 100;
   const baselineFactor = 1 - baselinePct / 100;
-  const previewBand = bands[bands.length - 1];
-  const pType = previewBand?.discountType ?? "percentage";
-  const pValue = Number(previewBand?.discountValue) || 0;
+  const tierPct = Number(discountPct) || 0;
+  const tierAmount = Number(discountAmount) || 0;
+  const tierFixedPrice = Number(discountFixedPrice) || 0;
   let previewWholesale: number;
-  if (pType === "fixed_price") {
-    previewWholesale = Math.min(previewRetail, pValue);
-  } else if (pType === "fixed_amount") {
-    previewWholesale = Math.max(0, previewRetail * baselineFactor - pValue);
+  if (discountType === "fixed_price") {
+    previewWholesale = Math.min(previewRetail, tierFixedPrice);
+  } else if (discountType === "fixed_amount") {
+    previewWholesale = Math.max(0, previewRetail * baselineFactor - tierAmount);
   } else {
     previewWholesale = Math.max(
       0,
-      previewRetail * baselineFactor * (1 - pValue / 100),
+      previewRetail * baselineFactor * (1 - tierPct / 100),
     );
   }
   const previewSavings = previewRetail - previewWholesale;
@@ -684,25 +665,18 @@ export default function EditPricing() {
         ? `${scopeOption.title} (none selected)`
         : `${scopeItems.length} ${scopeNoun}`;
 
-  const aggLabel =
-    aggregation === "per_line"
-      ? "per line"
-      : aggregation === "mix_variants"
-        ? "mix variants"
-        : "cart total";
-  const triggerSummary = `${bands.length} ${bands.length === 1 ? "range" : "ranges"} · ${aggLabel}`;
-
   const discountSummary =
-    bands.length === 0
-      ? "—"
-      : bands
-          .map((b) => {
-            const v = Number(b.discountValue) || 0;
-            if (b.discountType === "fixed_price") return `€${v}/unit`;
-            if (b.discountType === "fixed_amount") return `−€${v}`;
-            return `${v}%`;
-          })
-          .join(" · ");
+    discountType === "fixed_price"
+      ? tierFixedPrice
+        ? `€${tierFixedPrice}/unit`
+        : "—"
+      : discountType === "fixed_amount"
+        ? tierAmount
+          ? `€${tierAmount} off per unit`
+          : "—"
+        : tierPct
+          ? `${tierPct}% off`
+          : "—";
 
   return (
     <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
@@ -720,8 +694,7 @@ export default function EditPricing() {
       <Form method="post" ref={formRef}>
         <input type="hidden" name="intent" value="update" />
         <input type="hidden" name="scope" value={scope} />
-        <input type="hidden" name="aggregation" value={aggregation} />
-        <input type="hidden" name="bands" value={bandsPayload} />
+        <input type="hidden" name="discountType" value={discountType} />
         <input
           type="hidden"
           name="customerEligibility"
@@ -733,7 +706,6 @@ export default function EditPricing() {
           value={marketEligibility}
         />
         {active && <input type="hidden" name="active" value="on" />}
-        {/* One hidden input per selected resource (see new.tsx). */}
         {scope !== "all" &&
           scopeItems.map((item) => (
             <input
@@ -751,6 +723,17 @@ export default function EditPricing() {
                 <Banner tone="critical" title="Please fix the errors below" />
               )}
 
+              {rule.bandCount > 1 && (
+                <Banner tone="warning" title="Legacy multi-band rule">
+                  <p>
+                    This rule was created with multiple quantity bands. Editing
+                    it here updates only the first band as a flat wholesale
+                    discount. To manage quantity breaks, use the Volume Pricing
+                    area instead.
+                  </p>
+                </Banner>
+              )}
+
               {/* ----- Pricing rule information ----- */}
               <Card>
                 <BlockStack gap="400">
@@ -764,9 +747,9 @@ export default function EditPricing() {
                         Pricing rule information
                       </Text>
                       <Text variant="bodySm" as="p" tone="subdued">
-                        Internal label for this rule + active/inactive toggle.
-                        Draft rules are kept for history but don&apos;t
-                        apply at checkout.
+                        Internal label for this rule + active/draft toggle.
+                        Draft rules are kept for history but don&apos;t apply
+                        at checkout.
                       </Text>
                     </BlockStack>
                     <InlineStack gap="200" blockAlign="center">
@@ -784,56 +767,9 @@ export default function EditPricing() {
                     value={name}
                     onChange={setName}
                     error={errors.name}
-                    placeholder="e.g. Volume pricing — 10+ units"
+                    placeholder="e.g. Wholesale — 65% off"
                     requiredIndicator
                   />
-                </BlockStack>
-              </Card>
-
-              {/* ----- Scope ----- */}
-              <Card>
-                <BlockStack gap="400">
-                  <BlockStack gap="100">
-                    <Text variant="headingMd" as="h2">
-                      Scope
-                    </Text>
-                    <Text variant="bodySm" as="p" tone="subdued">
-                      Which products does this rule apply to?
-                    </Text>
-                  </BlockStack>
-
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                    {SCOPE_OPTIONS.map((opt) => (
-                      <ChoiceCard
-                        key={opt.value}
-                        selected={scope === opt.value}
-                        onSelect={() => setScope(opt.value)}
-                        title={opt.title}
-                        description={opt.description}
-                      />
-                    ))}
-                  </InlineGrid>
-
-                  {scope !== "all" && (
-                    <ScopePicker
-                      scope={scope}
-                      items={scopeItems}
-                      onBrowse={openResourcePicker}
-                      onRemove={removeScopeItem}
-                      error={errors.scopeIds}
-                    />
-                  )}
-
-                  {scope === "collection" && (
-                    <Banner tone="warning">
-                      <p>
-                        Collection-scoped rules display on the storefront but
-                        the checkout Discount Function falls back to baseline
-                        for them. Use product or variant scope if you need the
-                        discount enforced at checkout.
-                      </p>
-                    </Banner>
-                  )}
                 </BlockStack>
               </Card>
 
@@ -925,70 +861,130 @@ export default function EditPricing() {
                 </BlockStack>
               </Card>
 
-              {/* ----- How quantities are counted (aggregation) ----- */}
+              {/* ----- Scope ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      How quantities are counted
+                      Scope
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      Applies to every range below.
+                      Which products does this rule apply to?
                     </Text>
                   </BlockStack>
 
-                  <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                    {AGGREGATION_OPTIONS.map((opt) => {
-                      const disabled =
-                        scope === "variant" &&
-                        (opt.value === "cart_total" || opt.value === "mix_variants");
-                      return (
-                        <ChoiceCard
-                          key={opt.value}
-                          selected={aggregation === opt.value}
-                          onSelect={() => {
-                            if (!disabled) setAggregation(opt.value);
-                          }}
-                          title={opt.title}
-                          description={
-                            disabled
-                              ? `${opt.description} — not available for variant-scoped pricing.`
-                              : opt.description
-                          }
-                          disabled={disabled}
-                        />
-                      );
-                    })}
+                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+                    {SCOPE_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={scope === opt.value}
+                        onSelect={() => setScope(opt.value)}
+                        title={opt.title}
+                        description={opt.description}
+                      />
+                    ))}
                   </InlineGrid>
 
-                  {errors.aggregation && (
-                    <Banner tone="critical">
-                      <p>{errors.aggregation}</p>
+                  {scope !== "all" && (
+                    <ScopePicker
+                      scope={scope}
+                      items={scopeItems}
+                      onBrowse={openResourcePicker}
+                      onRemove={removeScopeItem}
+                      error={errors.scopeIds}
+                    />
+                  )}
+
+                  {scope === "collection" && (
+                    <Banner tone="warning">
+                      <p>
+                        Collection-scoped rules display on the storefront but
+                        the checkout Discount Function falls back to baseline
+                        for them. Use product or variant scope if you need the
+                        discount enforced at checkout.
+                      </p>
                     </Banner>
                   )}
                 </BlockStack>
               </Card>
 
-              {/* ----- Discount Range (multi-band) ----- */}
+              {/* ----- Discount (single value) ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      Discount Range
+                      Discount
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      The more they buy, the bigger the discount. Add one row
-                      per quantity band. Leave the last &quot;Quantity to&quot;
-                      blank for &quot;and above&quot;.
+                      One flat discount for this rule. Percentage and fixed
+                      amount compose with the shop&apos;s wholesale baseline;
+                      fixed price overrides it. The Preview panel on the right
+                      shows the live math.
                     </Text>
                   </BlockStack>
 
-                  <BandRangeTable bands={bands} onChange={setBands} currency="€" />
+                  <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
+                    {DISCOUNT_TYPE_OPTIONS.map((opt) => (
+                      <ChoiceCard
+                        key={opt.value}
+                        selected={discountType === opt.value}
+                        onSelect={() => setDiscountType(opt.value)}
+                        title={opt.title}
+                        description={opt.description}
+                      />
+                    ))}
+                  </InlineGrid>
 
-                  {errors.bands && (
-                    <Banner tone="critical">
-                      <p>{errors.bands}</p>
-                    </Banner>
+                  {discountType === "percentage" && (
+                    <TextField
+                      label="Discount percent"
+                      name="discountPct"
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      autoComplete="off"
+                      value={discountPct}
+                      onChange={setDiscountPct}
+                      error={errors.discountPct}
+                      suffix="%"
+                      helpText="Between 0 and 100. Composes multiplicatively on top of the baseline."
+                      requiredIndicator
+                    />
+                  )}
+                  {discountType === "fixed_amount" && (
+                    <TextField
+                      label="Amount off per unit"
+                      name="discountAmount"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      autoComplete="off"
+                      value={discountAmount}
+                      onChange={setDiscountAmount}
+                      error={errors.discountAmount}
+                      prefix="€"
+                      helpText="Flat amount subtracted from each unit AFTER the baseline applies. Use shop-currency value."
+                      placeholder="10.00"
+                      requiredIndicator
+                    />
+                  )}
+                  {discountType === "fixed_price" && (
+                    <TextField
+                      label="Final price per unit"
+                      name="discountFixedPrice"
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      autoComplete="off"
+                      value={discountFixedPrice}
+                      onChange={setDiscountFixedPrice}
+                      error={errors.discountFixedPrice}
+                      prefix="€"
+                      helpText="Each unit costs exactly this amount. The shop baseline is ignored for fixed-price rules."
+                      placeholder="25.00"
+                      requiredIndicator
+                    />
                   )}
                 </BlockStack>
               </Card>
@@ -1002,8 +998,8 @@ export default function EditPricing() {
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
                       Deleting removes this rule permanently. To keep history
-                      instead, toggle the rule inactive using the Status
-                      switch at the top of the form.
+                      instead, toggle the rule to Draft using the Status switch
+                      at the top of the form.
                     </Text>
                   </BlockStack>
                   <InlineStack>
@@ -1040,7 +1036,6 @@ export default function EditPricing() {
                   />
                   <SummaryRow label="Name" value={name || "—"} />
                   <SummaryRow label="Scope" value={scopeSummary} />
-                  <SummaryRow label="Trigger" value={triggerSummary} />
                   <SummaryRow label="Discount" value={discountSummary} />
                 </BlockStack>
               </Card>
@@ -1089,25 +1084,25 @@ export default function EditPricing() {
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
                     value={
-                      pType === "fixed_price"
+                      discountType === "fixed_price"
                         ? "ignored (fixed price)"
                         : `× ${baselineFactor.toFixed(2)}`
                     }
                   />
                   <SummaryRow
                     label={
-                      pType === "fixed_price"
-                        ? "This range (fixed price)"
-                        : pType === "fixed_amount"
-                          ? "This range (flat)"
-                          : `This range (${pValue}%)`
+                      discountType === "fixed_price"
+                        ? "This rule (fixed price)"
+                        : discountType === "fixed_amount"
+                          ? "This rule (flat)"
+                          : `This rule (${tierPct}%)`
                     }
                     value={
-                      pType === "fixed_price"
-                        ? `€${pValue.toFixed(2)}`
-                        : pType === "fixed_amount"
-                          ? `− €${pValue.toFixed(2)}`
-                          : `× ${(1 - pValue / 100).toFixed(2)}`
+                      discountType === "fixed_price"
+                        ? `€${tierFixedPrice.toFixed(2)}`
+                        : discountType === "fixed_amount"
+                          ? `− €${tierAmount.toFixed(2)}`
+                          : `× ${(1 - tierPct / 100).toFixed(2)}`
                     }
                   />
                   <Divider />
@@ -1137,7 +1132,7 @@ export default function EditPricing() {
 /**
  * One target picked from the Resource Picker. Mirrors the type in
  * app.pricing.new.tsx — kept duplicated (not in a shared module) so
- * each route remains self-contained for the audit.
+ * each route remains self-contained.
  */
 type ScopeItem = {
   id: string;
@@ -1361,8 +1356,8 @@ function SummaryRow({
 }
 
 /**
- * Status toggle styled as a Shopify-admin switch. Polaris doesn't
- * ship a first-class "switch" component in v12; we use a button with
+ * Status toggle styled as a Shopify-admin switch. Polaris doesn't ship
+ * a first-class "switch" component in v12; we use a button with
  * role="switch" + aria-checked + a small rendered pill.
  */
 function StatusToggle({
