@@ -3,11 +3,12 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-28 — Wholesale/Volume Pricing SPLIT into two areas (ADR-014)
-**Last commit:** `f27f6b1` — merge: Volume Pricing area + Wholesale restore + nav split
+**Last updated:** 2026-05-29 — SaveBar fix + tsc CI fix LIVE; Fly deploy gated to manual
+**Last commit:** `7ad8434` — ci(fly): gate deploy behind workflow_dispatch instead of push to main
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v54` (Wholesale/Volume split deploy 2026-05-28)
+**Fly version:** `v58` (manual deploy 2026-05-29 — SaveBar fix `865e35d` finally shipped; the 2026-05-28 push-deploy of it had failed on a release_command timeout)
+**Deploy is now MANUAL:** `.github/workflows/fly-deploy.yml` is `workflow_dispatch` only. Push to main no longer ships to prod. Deploy with `gh workflow run fly-deploy.yml --ref main`.
 **Shopify app version:** `stockly-24` (Function unchanged by the split — kind is admin-only)
 
 **Pricing areas (ADR-014):**
