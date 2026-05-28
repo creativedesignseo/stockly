@@ -185,8 +185,24 @@ Shopify App Store.
 
 ## Known pre-existing failures (not blockers, but on the floor)
 
-_None outstanding. Lint warnings from `935de4b` (unused `Form` /
-`navigation` / `submitting`) cleaned up on 2026-05-26._
+- **`tsc --noEmit` fails on `extensions/stockly-volume-discount/src/run.ts`
+  in a fresh worktree** (discovered 2026-05-28, volume-pricing area work).
+  8 errors: 2× `Cannot find module '../generated/api'` (TS2307) plus 6×
+  implicit-`any` callbacks that depend on those generated types. Root
+  cause: `extensions/stockly-volume-discount/generated/api.ts` is a
+  Shopify codegen artifact produced by `npm run typegen` (i.e.
+  `shopify app function typegen`) and is NOT committed to git, so it's
+  absent until someone runs typegen (needs Shopify CLI auth). The
+  root-level `tsc` in `scripts/verify.sh` compiles the extension source
+  and trips on the missing module. Proven pre-existing: removing the new
+  `app.volume-pricing.*` route files leaves exactly the same 8 errors,
+  all confined to `run.ts`; the new routes add zero type errors. Fix is
+  either to run `typegen` before verify, exclude the extension from the
+  root tsconfig, or commit the generated stub. Not caused by and not
+  related to the volume-pricing routes.
+
+  Lint warnings from `935de4b` (unused `Form` / `navigation` /
+  `submitting`) cleaned up on 2026-05-26.
 
 ---
 
