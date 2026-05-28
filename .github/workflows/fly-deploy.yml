@@ -1,10 +1,12 @@
 # See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
 
 name: Fly Deploy
+# Manual-only (gated) per AGENTS.md: "no fly deploy without explicit
+# permission". Trigger from the Actions tab or
+# `gh workflow run fly-deploy.yml --ref main`. Pushing to main no longer
+# ships to prod on its own.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 jobs:
   deploy:
     name: Deploy app
