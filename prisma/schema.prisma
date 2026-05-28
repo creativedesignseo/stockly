@@ -122,6 +122,17 @@ model Tier {
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   name        String
+  /// ADR-014 (2026-05-28): which admin area owns this rule.
+  ///   'wholesale' (default): a flat wholesale discount — single
+  ///     discount per rule, no quantity dimension. Managed under
+  ///     /app/pricing (Wholesale Pricing). Every existing row
+  ///     back-fills to this.
+  ///   'volume': a quantity-break rule — N bands sharing a groupId.
+  ///     Managed under /app/volume-pricing (Volume Pricing).
+  /// kind is organizational only — the Discount Function reads the
+  /// same metafield and applies discounts identically regardless of
+  /// kind. It exists so the two admin lists can filter their own rules.
+  kind        String   @default("wholesale")
   scope       String   // 'product' | 'variant' | 'collection' | 'all'
   /// DEPRECATED 2026-05-27: legacy single-target GID. Kept for one
   /// release cycle for back-compat reads; new code reads scopeIds[]

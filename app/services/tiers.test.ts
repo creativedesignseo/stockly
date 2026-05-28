@@ -23,6 +23,7 @@ function tier(overrides: Partial<Tier> = {}): Tier {
     id: "tier-1",
     shopId: "shop-1",
     name: "Default",
+    kind: "wholesale",
     scope: "all",
     scopeId: null,
     scopeIds: [],

@@ -17,6 +17,13 @@ import type { Tier } from "@prisma/client";
 
 export type TierScope = "product" | "variant" | "collection" | "all";
 /**
+ * Which admin area owns a rule (ADR-014). 'wholesale' = flat discount
+ * (one value per rule, no quantity), managed under /app/pricing.
+ * 'volume' = quantity-break bands, managed under /app/volume-pricing.
+ * Organizational only — the Discount Function treats both identically.
+ */
+export type TierKind = "wholesale" | "volume";
+/**
  * Aggregation modes (ADR-007 + ADR-012).
  *  - 'per_line': each line's qty individually evaluated.
  *  - 'cart_total': sum of all eligible-scope line quantities.
@@ -166,12 +173,13 @@ export function applyDiscount(basePrice: number, discountPct: number): number {
  */
 export async function listTiers(
   shopId: string,
-  options: { activeOnly?: boolean } = {},
+  options: { activeOnly?: boolean; kind?: TierKind } = {},
 ) {
   return prisma.tier.findMany({
     where: {
       shopId,
       ...(options.activeOnly ? { active: true } : {}),
+      ...(options.kind ? { kind: options.kind } : {}),
     },
     // `position` and `minQty` collide on most freshly-created tiers
     // (default position=0, similar minQty). Without a stable tiebreaker
@@ -212,6 +220,8 @@ export type TierDiscountType = "percentage" | "fixed_amount" | "fixed_price";
 export async function createTier(data: {
   shopId: string;
   name: string;
+  /** ADR-014: 'wholesale' (default) or 'volume'. */
+  kind?: TierKind;
   scope: TierScope;
   /** DEPRECATED: legacy single-target GID. Prefer scopeIds. */
   scopeId?: string | null;
@@ -272,6 +282,7 @@ export async function createTier(data: {
     data: {
       shopId: data.shopId,
       name: data.name,
+      kind: data.kind ?? "wholesale",
       scope: data.scope,
       scopeId,
       scopeIds,
@@ -401,6 +412,8 @@ export interface BandInput {
 export interface RuleInput {
   shopId: string;
   name: string;
+  /** ADR-014: 'wholesale' (default) or 'volume'. */
+  kind?: TierKind;
   scope: TierScope;
   scopeIds?: string[];
   aggregation?: TierAggregation;
@@ -424,6 +437,7 @@ export interface RuleInput {
 export interface RuleSummary {
   groupId: string;
   name: string;
+  kind: string;
   scope: string;
   scopeIds: string[];
   customerEligibility: string;
@@ -561,6 +575,7 @@ export async function createRule(input: RuleInput): Promise<{
         data: {
           shopId: input.shopId,
           name: input.name,
+          kind: input.kind ?? "wholesale",
           scope: input.scope,
           scopeId,
           scopeIds,
@@ -624,6 +639,7 @@ export async function updateRule(
         data: {
           shopId,
           name: input.name,
+          kind: input.kind ?? "wholesale",
           scope: input.scope,
           scopeId,
           scopeIds,
@@ -669,7 +685,7 @@ export async function deleteRule(groupId: string, shopId: string) {
  */
 export async function listRules(
   shopId: string,
-  options: { activeOnly?: boolean } = {},
+  options: { activeOnly?: boolean; kind?: TierKind } = {},
 ): Promise<RuleSummary[]> {
   const tiers = await listTiers(shopId, options);
   // Group by groupId. Legacy back-fill guarantees no NULLs in prod;
@@ -705,6 +721,7 @@ export async function listRules(
     summaries.push({
       groupId: key,
       name: first.name,
+      kind: first.kind,
       scope: first.scope,
       scopeIds: first.scopeIds,
       customerEligibility: first.customerEligibility,
@@ -746,6 +763,7 @@ export async function getRule(
   return {
     groupId,
     name: first.name,
+    kind: first.kind,
     scope: first.scope,
     scopeIds: first.scopeIds,
     customerEligibility: first.customerEligibility,
