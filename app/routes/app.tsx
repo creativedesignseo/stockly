@@ -46,14 +46,17 @@ export default function App() {
         </Link>
         <Link to="/app/onboarding?force=1">Setup</Link>
         {/*
-          /app/pricing is the hub introduced 2026-05-27 — it absorbs
-          the entry points for tiers and baseline/FPQ/MOQ settings
-          (Settings button on the list links to /app/settings/pricing
-          for the shop-wide knobs). Legacy /app/tiers and
-          /app/tiers/$id removed 2026-05-27 — /app/pricing is the
-          only entry point now.
+          Two sibling pricing areas (mirrors Sami's structure):
+            - Wholesale Pricing (/app/pricing) — the hub introduced
+              2026-05-27 for tiers and baseline/FPQ/MOQ settings
+              (Settings button on the list links to /app/settings/pricing
+              for the shop-wide knobs). Legacy /app/tiers and
+              /app/tiers/$id removed 2026-05-27.
+            - Volume Pricing (/app/volume-pricing) — quantity-break
+              discounts, built out in a sibling effort.
         */}
-        <Link to="/app/pricing">Pricing</Link>
+        <Link to="/app/pricing">Wholesale Pricing</Link>
+        <Link to="/app/volume-pricing">Volume Pricing</Link>
         <Link to="/app/registration-form">Registration form</Link>
         <Link to="/app/customers/applications">Applications</Link>
         <Link to="/app/qualify-customer">Qualify customer</Link>

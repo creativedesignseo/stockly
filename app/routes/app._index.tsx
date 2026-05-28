@@ -90,8 +90,14 @@ export default function Dashboard() {
                 cta={
                   counts.activeTiers === 0
                     ? "Create your first wholesale pricing"
-                    : "Manage"
+                    : "Manage Wholesale Pricing"
                 }
+              />
+              <NavCard
+                title="Volume Pricing"
+                body="Quantity-break discounts for your customers."
+                href="/app/volume-pricing"
+                cta="Manage Volume Pricing"
               />
               <StatCard
                 title="Pending applications"
@@ -213,6 +219,36 @@ function StatCard({
             </Text>
             {attention && <Badge tone="attention">Action</Badge>}
           </InlineStack>
+          <Button url={href} variant="plain">
+            {cta}
+          </Button>
+        </BlockStack>
+      </Card>
+    </Box>
+  );
+}
+
+function NavCard({
+  title,
+  body,
+  href,
+  cta,
+}: {
+  title: string;
+  body: string;
+  href: string;
+  cta: string;
+}) {
+  return (
+    <Box minWidth="220px">
+      <Card>
+        <BlockStack gap="200">
+          <Text as="h3" variant="headingSm" tone="subdued">
+            {title}
+          </Text>
+          <Text as="p" variant="bodySm" tone="subdued">
+            {body}
+          </Text>
           <Button url={href} variant="plain">
             {cta}
           </Button>
