@@ -3,13 +3,14 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-29 — SaveBar fix + tsc CI fix LIVE; Fly deploy gated to manual
-**Last commit:** `7ad8434` — ci(fly): gate deploy behind workflow_dispatch instead of push to main
+**Last updated:** 2026-05-29 — Registration Form UI polish LIVE (admin preview + storefront)
+**Last commit:** `0703f48` — feat(registration-form): faithful admin preview + polished storefront UI
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v58` (manual deploy 2026-05-29 — SaveBar fix `865e35d` finally shipped; the 2026-05-28 push-deploy of it had failed on a release_command timeout)
-**Deploy is now MANUAL:** `.github/workflows/fly-deploy.yml` is `workflow_dispatch` only. Push to main no longer ships to prod. Deploy with `gh workflow run fly-deploy.yml --ref main`.
-**Shopify app version:** `stockly-24` (Function unchanged by the split — kind is admin-only)
+**Fly version:** `v59` (manual deploy 2026-05-29 — Registration Form faithful preview)
+**Shopify app version:** `stockly-25` (storefront registration-form.css polish; ⚠️ deploy warned `registration-form.js` is 12.9 KB > 10 KB app-block threshold — non-blocking, trim later)
+**Earlier 2026-05-29:** Fly v58 shipped the SaveBar fix `865e35d` (its 2026-05-28 push-deploy had failed on a release_command timeout); deploy is now gated to manual `workflow_dispatch`
+**Deploy is now MANUAL:** `.github/workflows/fly-deploy.yml` is `workflow_dispatch` only. Push to main no longer ships to prod. Deploy with `gh workflow run fly-deploy.yml --ref main`. Storefront extension ships separately via `npx shopify app deploy`.
 
 **Pricing areas (ADR-014):**
   - **Wholesale Pricing** `/app/pricing` — FLAT discount per rule (one value, no quantity). `Tier.kind='wholesale'`.
