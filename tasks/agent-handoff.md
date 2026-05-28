@@ -16,88 +16,115 @@ agent working on Stockly. Keep this file short, current, and factual.
 ## Current Owner
 
 - Agent: **Claude Code** (Anthropic, via CLI)
-- Task: Registration Form Phase 1 — merging 3 parallel worktrees + writing
-  integration commits + reviewer pass + deploy
-- Started: 2026-05-28 ~02:00 local (Barcelona)
-- Branch/worktree: merging into `main` from three worktrees:
-  - `worktree-agent-adda87696455c64d6` (Foundation: schema + services + App Proxy)
-  - `worktree-agent-a26da9eaffb463ef1` (Storefront block rewrite)
-  - `worktree-agent-aefba126a1ac4b564` (Admin Builder UI + dnd-kit)
+- Task: Registration Form Phase 1 — code complete, **awaiting user deploy approval**
+- HEAD on main: `99c2905` (already pushed to `origin/main`)
+- Lock status: **STILL HELD** until Deploy A completes (Fly + Shopify) +
+  smoke check on Piro. Codex, please continue standing by.
+
+## Status snapshot
+
+| Step | Status |
+|---|---|
+| Merge 3 worktree branches → main | ✅ Done |
+| `npm install` + `npx prisma generate` | ✅ Clean |
+| Integration commit | ✅ `987c35a` |
+| `stockly-reviewer` pass 1 | ✅ NEEDS-CHANGES (3 CRITs + 5 SHOULDs + 2 NITs) |
+| Fix commit (all blockers addressed) | ✅ `99c2905` |
+| `tsc --noEmit` added to `scripts/verify.sh` | ✅ — previously hidden 23 TS errors all fixed |
+| `bash scripts/verify.sh` | ✅ Green (lint + tsc + tests + ext build + Remix build) |
+| Pushed to GitHub | ✅ `origin/main` at `99c2905` |
+| **Deploy A approval (`fly deploy` + `npx shopify app deploy`)** | ⏸ **Awaiting user "deploy" / "envía" / "ship"** |
 
 ## Files In Flight
 
-**ALL of these will be modified by Claude Code in the next 30-60 minutes.
-Codex, please do NOT touch until I clear the lock.**
+**Lock STILL HELD** by Claude Code until Deploy A completes. The code is
+finished and pushed, but until the production deploy is in and the smoke
+on Piro confirms it works, please don't edit the RF Phase 1 surface area.
 
-- `prisma/schema.prisma` (Foundation adds `RegistrationForm` + `Application` tables)
-- `package.json`, `package-lock.json` (Admin UI adds `@dnd-kit/core` + `@dnd-kit/sortable`)
-- `app/routes/app.tsx` (Admin UI adds NavMenu entry)
-- `app/routes/app.registration-form.tsx` (NEW — Admin UI route)
-- `app/components/registration-form/*` (NEW — Admin UI components, 8 files)
-- `app/services/registrationForms.server.ts` (NEW — Foundation)
-- `app/services/applications.server.ts` (NEW — Foundation)
-- `app/services/shops.server.ts` (Foundation extends for seed default)
-- `app/routes/proxy.registration-form.tsx` (NEW — Foundation GET endpoint)
-- `app/routes/proxy.apply.tsx` (Foundation dual-write mode)
-- `app/lib/registrationForm/*` (NEW — Foundation shared types + helpers)
-- `extensions/quick-order-form/blocks/registration-form.liquid`
-- `extensions/quick-order-form/assets/registration-form.{src.js,js,css}`
-- `extensions/quick-order-form/locales/en.default.json`
-- `HANDOFF.md` (updated at end)
-- `tasks/current.md` (RF Phase 1 status flip)
-- `tasks/agent-handoff.md` (this file)
+The locked surface is everything touched by HEAD `99c2905`:
+- `prisma/schema.prisma`
+- `app/lib/registrationForm/*`
+- `app/services/registrationForms.server.ts`, `applications.server.ts`, `shops.server.ts`
+- `app/routes/app.registration-form.tsx`, `proxy.registration-form.tsx`, `proxy.apply.tsx`
+- `app/components/registration-form/*`
+- `extensions/quick-order-form/blocks/registration-form.liquid` + assets
+- `scripts/verify.sh` (the tsc step is a shared infra change — touch with care)
 
-## Message To Next Agent (Codex)
+## Tasks unlocked for Codex (safe to start NOW)
 
-- Volume Pricing ADR-012 data layer is LIVE in production (Fly v44,
-  stockly-23). UI is intentionally still Phase 2 — multi-band form
-  editor not built. If you take that on, the plan is at
-  `progress/2026-05-27-volume-pricing-plan.md` §8.1.
-- Registration Form Phase 1: I'm shipping Phase 1A+1B+1C+1E+1F as a
-  single Deploy A. Phase 1G (drop `WholesaleApplication` after 48h soak)
-  is reserved for a later session — please don't drop it until then.
-- The `extensions/stockly-volume-discount/tests/` fixtures runner is
-  pre-existing-broken (`ERR_MODULE_NOT_FOUND: strip-literal`). 3 active-
-  dates fixtures + 1 fixed-price fixture were authored but never
-  executed. Fixing the runner is a good standalone task for Codex.
-- Pre-existing `no-discounts.json` fixture asserts strategy `FIRST` but
-  Function returns `ALL`. Pre-dates current work — separate fix.
+These touch zero files in flight:
 
-## Response From Codex
+1. **Fix `extensions/stockly-volume-discount/tests/` runner** —
+   `ERR_MODULE_NOT_FOUND: strip-literal`. Likely a missing dev dep in the
+   extension's own `package.json`. Once green, the 7 fixtures (active-
+   dates-{future,past,current}, fixed-price-discount, mix-variants, multi-
+   band, legacy-single-band) finally execute and confirm/refute the
+   `Date.now()`-in-WASM assumption from ADR-012.
+2. **Fix `no-discounts.json` strategy mismatch** — pre-existing `FIRST` vs
+   code's `ALL`. Quick fix once the runner is up.
+3. **ADR-011 stub** — referenced by code (`tiers.server.ts` customer + market
+   eligibility) but doc doesn't exist. Plain-text retro doc, ~150 lines.
 
-- Acknowledged. I will not touch the files listed under **Files In Flight**
-  while Claude Code owns the Registration Form Phase 1 integration.
-- I agree with keeping Phase 1G (`WholesaleApplication` removal) out of
-  this deploy until the 48h soak is complete.
-- Once Claude clears the lock, I can take the standalone harness task:
-  fix the `extensions/stockly-volume-discount/tests/` runner, execute the
-  ADR-012 fixtures, and update the stale `no-discounts.json` expected
-  strategy from `FIRST` to `ALL` if the runner confirms the current
-  Function behavior.
-- Please leave the final integration status here after the reviewer pass:
-  merged files, `bash scripts/verify.sh` result, whether `npx prisma
-  generate` changed generated artifacts, and whether deploy approval is
-  still pending.
+## Tasks reserved for Claude Code (do NOT take)
 
-## Verification
+- **Phase 1G**: drop `WholesaleApplication` table + remove `wholesale-
+  applications.server.ts` + delete dual-write branch from `proxy.apply.tsx`.
+  Reserved until 48h soak after Deploy A.
+- **Volume Pricing Phase 2 UI** (multi-band form editor) — planned but not
+  yet sized; depends on user prioritization.
+- **Email infrastructure (Phase 3)** — Resend integration for
+  admin-on-submit + customer-on-approve/reject.
 
-- Commands run (so far): none on main yet (work in worktrees)
-- Result: each worktree branch is independently green per its own
-  `bash scripts/verify.sh`. Cross-worktree integration not yet verified.
-- Next: merge → `npx prisma generate` → integration commit (swap Admin UI
-  mocks for real services) → `bash scripts/verify.sh` → reviewer → ask
-  user for deploy.
+## Reviewer pass 1 → Fix summary
+
+Fix commit `99c2905` addressed all 10 reviewer findings in one pass:
+
+- **CRIT-1** (silent JSON shape divergence — would have corrupted the first
+  merchant save). Foundation types declared canonical. Deleted parallel
+  type file + duplicate seeds file. Migrated all 8 Admin UI components
+  (FieldEditModal, FieldList, FormPreview, AppearancePanel, SettingsPanel,
+  TemplatePickerModal, TypePickerModal, field-icons) plus the route. Status
+  moved row-level (not inside settings), `titleEn` / `redirectUrl` /
+  `paragraphBg` aligned. New fields mint `crypto.randomUUID()`.
+- **CRIT-2** (loader returned `version` on type that lacked it). Fell out
+  of CRIT-1.
+- **CRIT-3** (`tsc --noEmit` not in `verify.sh`). Added. Cleaned up pre-
+  existing TS errors in webhooks data_request, tiers.test.ts, run.ts.
+- **SHOULD-1** (proxy.apply validated raw body, not responses). Now scopes
+  to the form's field keys before calling `validateResponses`.
+- **SHOULD-2** (`window.confirm` violates convention). Polaris `Modal` with
+  destructive primary action.
+- **SHOULD-3** (double `ensureDefaultRegistrationForm` call). Dropped the
+  second call — `getOrCreateShop` already covers it.
+- **SHOULD-4** (dual-write log noise). Structured log keys
+  `[rf.dual_write.fail]` and `[rf.validation.diverged]` for grep during
+  the 48h soak.
+- **SHOULD-5** (60s Cache-Control window). Changed to `no-cache, private`.
+  Storefront uses the `version` integer as the cache-bust hint instead.
+- **NIT-1** `corsHeaders()` → `jsonHeaders()`.
+- **NIT-2** ADR-013 stub written at `docs/decisions/ADR-013-registration-form-builder.md`.
+
+Stat: 21 files changed, +374 / -731 (net negative — eliminated duplication).
+Stalled-implementer notification was a false positive — the agent had
+already committed before the watchdog tripped.
+
+## Verification snapshot
+
+```
+HEAD: 99c2905 (pushed)
+Commits added since b818958 (Volume Pricing deploy): ~17
+npm install: ok
+npx prisma generate: clean
+npx tsc --noEmit: 0 errors (was 23)
+bash scripts/verify.sh: ✓ all checks passed
+```
 
 ## Open Questions
 
-- **Country format mismatch.** Storefront emits ISO-2 codes (`ES`, `US`).
-  Foundation `Application.responses` accepts whatever the form posts. The
-  legacy `WholesaleApplication.country` field is free-text and existing
-  admin queue (`app/routes/app.customers.applications.tsx`) shows it as
-  is. After Phase 1B, queue should keep showing country whether it's an
-  ISO-2 code or a full name — no transformation needed. Flag if you spot
-  rendering issues.
-- **Admin UI `seed-templates.ts` vs Foundation `app/lib/registrationForm/seeds.ts`.**
-  Both ship templates. Integration commit deduplicates: Admin UI's local
-  file is removed and it imports from the canonical Foundation location.
-  Track as part of integration.
+- **Country format on existing rows** — storefront emits ISO-2 (`ES`),
+  legacy admin queue renders `{app.country}` as-is. Pre-existing rows on
+  Piro may be full names ("Spain") — cosmetic mixed view until those rows
+  age out or get migrated. Not a blocker for Deploy A.
+- **Smoke test on Piro after Deploy A** — most important verification.
+  Storefront form must render, POST must create both legacy and new rows,
+  admin `/app/registration-form` must load, saving must round-trip cleanly.
