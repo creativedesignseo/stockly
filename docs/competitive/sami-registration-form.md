@@ -364,3 +364,136 @@ This is a large feature. Recommendation: ship in 4 phases, not 1.
 ## 8. Pitch consequence (non-technical)
 
 If Stockly ships the form builder + Volume Pricing + Customer/Market eligibility + Discount Methods, the feature gap vs Sami SILVER plan ($30/mo) is ~5% — Stockly would be at near-parity on the admin UX while still running on Shopify Basic. That's a strong sales narrative IF backed by stable infrastructure (email, scheduling, theme blocks).
+
+---
+
+## 9. Design system — MEASURED tokens (2026-05-29, via Claude browser)
+
+> Sections 1–8 above were inferred from screenshots. This section is
+> **measured live** from the Sami iframe on `desarrollo-adspubli` using
+> Playwright `getComputedStyle`, so the numbers are exact, not guessed.
+> Screenshots saved under `assets/sami-registration-form/`:
+> `sami-01-landing.png` (empty state), `sami-02-form-list.png` (list),
+> `sami-03-editor.png` (builder). Reproduce by navigating to
+> `/apps/wholesale-sami/admin/registration-form` — the app renders in an
+> iframe named `app-iframe` served from `d1vn7kssr6luje.cloudfront.net`;
+> the builder canvas is a separate `previewFrame` (srcdoc).
+
+### 9.1 The big finding: Sami's admin UI is **Shopify Polaris**, verbatim
+
+Every admin surface (list, banner, builder chrome) uses Polaris tokens
+unchanged. **Stockly already uses Polaris**, so replicating Sami's admin
+look is not "design work" — it's using the same Polaris components we
+already ship. Measured admin tokens:
+
+| Token | Value | Polaris equiv |
+|---|---|---|
+| Font family | `Inter, -apple-system, system-ui, "San Francisco", "Segoe UI", Roboto, ...` | `--p-font-family-sans` |
+| Page background | `rgb(241,241,241)` | `--p-color-bg` |
+| Surface / card | `rgb(255,255,255)` | `--p-color-bg-surface` |
+| Text default | `rgb(48,48,48)` | `--p-color-text` |
+| Text subdued | `rgb(97,97,97)` | `--p-color-text-secondary` |
+| Border radius | `8px` | `--p-border-radius-200` |
+| Section heading ("Form elements") | 13px / weight 600 / `rgb(48,48,48)` | `Text variant="headingSm"` |
+| Body / row text | 13px / weight 450 / `rgb(48,48,48)` | `Text variant="bodyMd"` |
+| IndexTable header | 12px / weight 550 / `rgb(97,97,97)` on `rgb(247,247,247)`, padding `8px 8px 8px 12px` | `IndexTable` default |
+| IndexTable cell | 13px / 450, padding `6px 8px 6px 12px` | `IndexTable.Row` |
+
+Button variants measured:
+- **Primary (gated/premium)** — "Add new registration form": white text, bg `rgba(0,0,0,0.17)` (this is the *disabled* state because the plan caps forms; an enabled Polaris primary is solid `rgb(0,0,0)` → `Button variant="primary"`). Has a small crown/upgrade icon.
+- **Secondary** — "Lock the registration page": bg white, radius 8px, padding `6px 12px`, 13px/450, with the signature Polaris inset shadow `rgb(181,181,181) 0 -1px 0 0 inset, rgba(0,0,0,.1) 0 0 0 1px inset, rgb(255,255,255) 0 .5px 0 1.5px inset` → plain `<Button>`.
+- **Tertiary** — "Views registered customers": bg `rgb(227,227,227)`, padding `4px 12px 4px 6px` → `Button variant="tertiary"` with icon.
+
+### 9.2 The storefront form preview — the "boxed-form" template (what to actually replicate + improve)
+
+This is the canvas the user wants "more worked". The "Standard" template
+renders inside `previewFrame` with its own CSS (NOT Polaris — this is the
+storefront output). Root CSS variables Sami exposes:
+
+```css
+:root{
+  --samita_ws-rgs-form-width: 600px;          /* card max-width */
+  --samita_ws-rgs-form-padding: 30px;
+  --samita_ws-rgs-form-sm-padding: 15px;      /* mobile */
+  --samita_ws-rgs-form-default-font-size: 14px;
+  --samita_ws-default-heading-1-font-size: 26px;
+  --samita_ws-default-heading-2-font-size: 19px;
+  --samita_ws-default-heading-3-font-size: 17px;
+  --samita_ws-rounded-radius: 20px;           /* "rounded" style preset */
+  --samita_ws-border-radius-small: 8px;
+}
+/* Font choices the Appearance panel offers (Google Fonts):
+   Montserrat, Roboto, Poppins. Default fallback when none picked = serif (Times). */
+```
+
+Measured computed values of the rendered "Standard" form:
+
+| Element | Measured style |
+|---|---|
+| Card | bg white, radius **2px**, padding 30px, margin `30px 77px`, **max-width 600px**, shadow `rgba(0,0,0,.14) 0 2px 2px, rgba(0,0,0,.12) 0 3px 1px -2px, rgba(0,0,0,.2) 0 1px 5px` (Material elevation-2) |
+| Heading `<h3>` "Create an account" | 26px / weight 600 / line-height 39px / black; font = template font (fell back to **Times serif** in our capture) |
+| Subtitle | 16px / 400 / black |
+| Label | 16px / 400 / black |
+| Input | bg **`rgb(241,241,241)`**, **no border**, radius 2px, height 41px, font 14px, padding `10px 12px`, subtle shadow `rgba(50,50,93,.15) 0 1px 3px, rgba(0,0,0,.02) 0 1px 0` |
+| Submit button | **Arial** 14px, white on **`rgb(0,0,0)`**, border `1px solid #000`, radius 2px, padding `11px 22px`, width 100px |
+| Layout | 2-column grid (First/Last side by side, Password/Confirm side by side); Email full-width |
+
+**"Standard" template fields** (measured, in order, all required):
+`First Name` (text) · `Last Name` (text) · `Email` (text) · `Password` (password) · `Confirm password` (password).
+
+> Design critique for "more worked" (the user's ask): Sami's default is
+> dated — 2px radius, Material drop-shadow, gray flat inputs with no
+> border, serif fallback heading, hard-black submit. To make Stockly's
+> canvas feel more premium without leaving Polaris-adjacent tokens:
+> bump radius to 8–12px, replace the Material shadow with a single soft
+> shadow (`0 1px 3px rgba(0,0,0,.1)`), give inputs a 1px border + focus
+> ring, ship a real default font (Inter), and use the merchant's brand
+> color on the submit instead of pure black. Keep the 600px / 2-col grid
+> structure — that part is fine.
+
+### 9.3 Editor chrome — confirmations (correcting §1.3 inferences)
+
+- **Edit URL is `/registration-form/{id}`** (e.g. `/registration-form/12265`), not `/new`. `/new` is only the create path; editing an existing form uses the numeric id.
+- **Left rail = 7 section icons + 1 fullscreen toggle at the very bottom** (8 total, stacked at x≈8, ~44px apart). Confirms the 7-panel switcher in §1.3.
+- **Top bar** (left→right): template name input + char counter `Standard 8/50`, `Active`/`Draft` segmented toggle, `English ▾` locale switcher, `Desktop view ▾`. App Bridge contextual save bar shows `Cambios sin guardar / Descartar / Guardar`.
+- **SHORT CODE info banner** (blue) sits atop the canvas: `SHORT CODE: {SamitaWSRegistrationForm:MTIyNjU=} - Use this shortcode to embed the form to front store`. The merchant pastes this shortcode into a theme/page to render the form (so the embed mechanism is a **shortcode token**, not a theme app block — relevant for Stockly's storefront strategy).
+
+### 9.4 List view — confirmed columns (matches user screenshot 4)
+
+IndexTable with tabs `All / Active / Draft`, search + sort. Columns:
+`☐ | Id (#12265) | Name (Standard) | Short Code (copyable chip {SamitaWSRegistrationForm:MTIyNjU=}) | Status (toggle switch) | Create At (2026-05-28 18:32:08)`.
+Above it: the yellow "Protect your B2B registration page" banner with
+`Lock the registration page` CTA, plus header actions
+`Views registered customers` and the gated `Add new registration form`.
+
+### 9.5 What this means for the Stockly build
+
+Because the admin is pure Polaris and Stockly is already Polaris, the
+"make it look exactly like Sami" requirement is essentially free for the
+list + builder chrome — reuse `IndexTable`, `Tabs`, `Banner`, `Button`,
+contextual save bar. The only real design effort is §9.2 (the storefront
+form renderer), and there the recommendation is to **match Sami's
+structure (600px, 2-col, shortcode embed) but modernize the styling** per
+the critique above. This slots directly into Phase 1 (renderer) and
+Phase 2 (builder) of §6.
+
+### 9.6 Rail panels — measured live (corrects §1.3 inferences)
+
+Clicked through each of the 7 rail icons and read the resulting panel
+content. Measured mapping:
+
+| # | Panel | Measured contents |
+|---|---|---|
+| 1 | **Form elements** | First Name, Last Name, Email, Password rows + `Add element` |
+| 2 | **Appearance** | Layout `Default / Boxed`, Width (`px` input), Style `Classic`, color pickers: Main / Heading / Label / Description / Option (+ Paragraph, Paragraph background) |
+| 3 | **After submit** | Action `Clear form`, dynamic vars `{{page.title}}` / `{{page.href}}` / "Show more", rich-text editor `(en)` with File/Edit/View/Insert/Format/Tools/Table menus |
+| 4 | **Email Notifications** | "Also send to dynamic email", `{{data}}` (all visible input data), `{{page.title}}` |
+| 5 | *indistinct* | Click landed on the same state as After submit — could not isolate a distinct 5th panel programmatically. §1.3 inferred "Integrations"; treat as unconfirmed. |
+| 6 | **Customer tags** ⚠️ | "Add tag when customer is approved" + "Add Tags". **This corrects §1.3/§1.f**, which inferred icon 6 was "Settings / error messages". The measured panel 6 is customer **tagging on approval** — directly equivalent to Stockly's existing wholesale-tag-on-approve logic. (Error-message config likely lives under a different/secondary panel.) |
+| 7 | **Account page** | "Edit account page", "Other Page" (gated, crown icon) |
+
+Takeaway for Stockly: panel 6 (tag-on-approve) is a feature Stockly
+**already has** server-side (`approveCustomer` tags the Shopify customer).
+Surfacing it as a builder panel is pure UI. Panels 1, 2, 7 are the core
+build; 3 and 4 (after-submit + email) map to the deferred Phase 3/4 work
+and the still-open email-notifications gap.
