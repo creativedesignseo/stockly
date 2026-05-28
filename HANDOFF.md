@@ -3,14 +3,15 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-28 — Volume Pricing ADR-012 data layer LIVE (admin UI is Phase 2)
-**Last commit:** `75ac172` — `docs(competitive): Sami reverse-engineering + RF Phase 1 plan`
+**Last updated:** 2026-05-28 — Registration Form Phase 1 LIVE (ADR-013) + Volume Pricing ADR-012 data layer LIVE
+**Last commit:** `3dab71d` — `docs(handoff): RF Phase 1 code complete, awaiting deploy approval`
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v44` (Volume Pricing deploy 2026-05-28)
-**Shopify app version:** `stockly-23` (Function WASM: fixed_price + mix_variants + active dates + quantityTo + multi-band)
-**Tier back-fill:** 3 legacy rows back-filled to groupId on prod (Bulk 24+, Whosale, Mercados 1) — 0 NULLs remaining
-**Reviewer-nit fixes shipped (commit `2f5d809`):** backfill `--dry-run` flag + `listRules` orphan warning
+**Fly version:** `v48` (Registration Form Phase 1 deploy 2026-05-28)
+**Shopify app version:** `stockly-24` (storefront block rewritten — schema-driven dynamic render)
+**Postgres:** `RegistrationForm` + `Application` tables added; legacy `WholesaleApplication` retained (dual-write for 48h soak before Phase 1G drops it)
+**Reviewer pass 1 verdict:** NEEDS-CHANGES (3 CRITs + 5 SHOULDs + 2 NITs) → all addressed in fix commit `99c2905`
+**`tsc --noEmit`** now part of `scripts/verify.sh` — 0 errors at HEAD (was 23 pre-existing)
 **Public legal URLs (LIVE, DRAFT):**
   - https://stockly-lustrous-forest-4364.fly.dev/legal/privacy
   - https://stockly-lustrous-forest-4364.fly.dev/legal/terms

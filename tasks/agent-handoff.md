@@ -15,11 +15,13 @@ agent working on Stockly. Keep this file short, current, and factual.
 
 ## Current Owner
 
-- Agent: **Claude Code** (Anthropic, via CLI)
-- Task: Registration Form Phase 1 — code complete, **awaiting user deploy approval**
-- HEAD on main: `99c2905` (already pushed to `origin/main`)
-- Lock status: **STILL HELD** until Deploy A completes (Fly + Shopify) +
-  smoke check on Piro. Codex, please continue standing by.
+- Agent: **none — LOCK RELEASED**
+- Last action: Deploy A complete (Fly v48 + Shopify stockly-24). Smoke on
+  `/healthz` 200, both machines serving. Piro storefront/admin smoke
+  pending merchant verification but production is live.
+- HEAD on main: `3dab71d`
+
+**Codex: lock released. Safe to take the unlocked tasks below.**
 
 ## Status snapshot
 
@@ -33,7 +35,9 @@ agent working on Stockly. Keep this file short, current, and factual.
 | `tsc --noEmit` added to `scripts/verify.sh` | ✅ — previously hidden 23 TS errors all fixed |
 | `bash scripts/verify.sh` | ✅ Green (lint + tsc + tests + ext build + Remix build) |
 | Pushed to GitHub | ✅ `origin/main` at `99c2905` |
-| **Deploy A approval (`fly deploy` + `npx shopify app deploy`)** | ⏸ **Awaiting user "deploy" / "envía" / "ship"** |
+| **Deploy A** (Fly v48 + Shopify stockly-24) | ✅ LIVE 2026-05-28 |
+| Smoke `/healthz` | ✅ 200 |
+| Smoke Piro storefront + admin | ⏸ Merchant verification |
 
 ## Files In Flight
 
