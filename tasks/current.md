@@ -185,21 +185,18 @@ Shopify App Store.
 
 ## Known pre-existing failures (not blockers, but on the floor)
 
-- **`tsc --noEmit` fails on `extensions/stockly-volume-discount/src/run.ts`
-  in a fresh worktree** (discovered 2026-05-28, volume-pricing area work).
-  8 errors: 2× `Cannot find module '../generated/api'` (TS2307) plus 6×
-  implicit-`any` callbacks that depend on those generated types. Root
-  cause: `extensions/stockly-volume-discount/generated/api.ts` is a
-  Shopify codegen artifact produced by `npm run typegen` (i.e.
-  `shopify app function typegen`) and is NOT committed to git, so it's
-  absent until someone runs typegen (needs Shopify CLI auth). The
-  root-level `tsc` in `scripts/verify.sh` compiles the extension source
-  and trips on the missing module. Proven pre-existing: removing the new
-  `app.volume-pricing.*` route files leaves exactly the same 8 errors,
-  all confined to `run.ts`; the new routes add zero type errors. Fix is
-  either to run `typegen` before verify, exclude the extension from the
-  root tsconfig, or commit the generated stub. Not caused by and not
-  related to the volume-pricing routes.
+- **RESOLVED 2026-05-29.** `tsc --noEmit` previously failed on
+  `extensions/stockly-volume-discount/src/run.ts` in a fresh worktree
+  (8 errors: missing `../generated/api` + dependent implicit-`any`).
+  Root cause was that the Shopify codegen artifact
+  `extensions/stockly-volume-discount/generated/api.ts` was
+  `.gitignore`d, so absent until `npm run typegen` (needs CLI auth).
+  Fix: committed `generated/api.ts` (the `.gitignore` now keeps the
+  rest of `generated/` ignored but whitelists `api.ts`). This keeps the
+  root `tsc` type-checking the run.ts revenue path in CI/fresh clones
+  with zero fragility. Regenerate the artifact with `npm run typegen`
+  after `schema.graphql` changes. `bash scripts/verify.sh` green at the
+  fix commit.
 
   Lint warnings from `935de4b` (unused `Form` / `navigation` /
   `submitting`) cleaned up on 2026-05-26.
@@ -259,8 +256,12 @@ pilot #2".
     required). Production stores will require explicit grant + Partners
     review (blocked by **B0-5** Privacy Policy URL).
 
-- **`.github/workflows/fly-deploy.yml`** exists locally but is currently
-  **untracked** in git. No CI/CD for Fly today; every deploy is manual.
-  Decision pending: commit + add `FLY_API_TOKEN` GitHub secret (so push
-  to `main` auto-deploys), or keep manual until pilot #2. Tracked here
-  to avoid re-discovering this twice.
+- **`.github/workflows/fly-deploy.yml`** is committed (since `6461a32`)
+  and triggers `flyctl deploy --remote-only` **on every push to
+  `main`** — IF the `FLY_API_TOKEN` GitHub secret is set. This conflicts
+  with AGENTS.md's "no `fly deploy` without explicit permission" rule.
+  DECISION PENDING (2026-05-29): either (a) switch the trigger to
+  `workflow_dispatch` so deploys stay manual/gated, or (b) keep
+  auto-deploy on push and accept that pushing to `main` ships to prod.
+  Verify whether `FLY_API_TOKEN` is actually configured in GitHub before
+  deciding — if it isn't, the workflow is currently a no-op safety-wise.

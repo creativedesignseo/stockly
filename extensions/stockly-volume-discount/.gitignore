@@ -1,2 +1,7 @@
 dist
-generated
+# Commit the Shopify Function codegen so `tsc --noEmit` (root tsconfig
+# includes the extension) passes in a fresh worktree / CI without
+# needing `shopify app function typegen` (which requires CLI auth).
+# Regenerate with `npm run typegen` after schema.graphql changes.
+generated/*
+!generated/api.ts
