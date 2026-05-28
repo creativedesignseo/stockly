@@ -3,12 +3,18 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-28 — Registration Form Phase 1 LIVE (ADR-013) + Volume Pricing ADR-012 data layer LIVE
-**Last commit:** `3dab71d` — `docs(handoff): RF Phase 1 code complete, awaiting deploy approval`
+**Last updated:** 2026-05-28 — Wholesale/Volume Pricing SPLIT into two areas (ADR-014)
+**Last commit:** `f27f6b1` — merge: Volume Pricing area + Wholesale restore + nav split
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v48` (Registration Form Phase 1 deploy 2026-05-28)
-**Shopify app version:** `stockly-24` (storefront block rewritten — schema-driven dynamic render)
+**Fly version:** `v54` (Wholesale/Volume split deploy 2026-05-28)
+**Shopify app version:** `stockly-24` (Function unchanged by the split — kind is admin-only)
+
+**Pricing areas (ADR-014):**
+  - **Wholesale Pricing** `/app/pricing` — FLAT discount per rule (one value, no quantity). `Tier.kind='wholesale'`.
+  - **Volume Pricing** `/app/volume-pricing` — multi-band quantity breaks. `Tier.kind='volume'`.
+  - The Discount Function reads the same metafield and applies discounts identically regardless of kind. `kind` only filters the two admin lists.
+  - 6 existing prod Tier rows back-filled to `kind='wholesale'` via the column default on `prisma db push`.
 **Postgres:** `RegistrationForm` + `Application` tables added; legacy `WholesaleApplication` retained (dual-write for 48h soak before Phase 1G drops it)
 **Reviewer pass 1 verdict:** NEEDS-CHANGES (3 CRITs + 5 SHOULDs + 2 NITs) → all addressed in fix commit `99c2905`
 **`tsc --noEmit`** now part of `scripts/verify.sh` — 0 errors at HEAD (was 23 pre-existing)
