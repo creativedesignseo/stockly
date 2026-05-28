@@ -31,7 +31,7 @@ import {
 // table alongside the legacy WholesaleApplication. Both tables
 // receive writes during the soak; legacy is dropped in Phase 1G.
 import {
-  ensureDefaultRegistrationForm,
+  getRegistrationForm,
   parseDefinition,
   parseSettings,
 } from "../services/registrationForms.server";
@@ -106,28 +106,47 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // active form definition, log any divergence. Non-blocking — the
   // legacy validator is still authoritative during the soak. When the
   // logs show zero divergence we cut over.
+  //
+  // SHOULD-3: getOrCreateShop above already calls ensureDefaultRegistrationForm,
+  // so we just read here (one fewer DB hit on the hot path).
+  // SHOULD-1: build a `responses` object scoped to the form's field
+  // keys before validating. Passing raw `body` would treat honeypot/
+  // intent fields as form responses and report spurious divergence.
+  // SHOULD-4: structured log keys ([rf.validation.diverged]) so we can
+  // grep `fly logs` for the soak monitoring.
   try {
-    const form = await ensureDefaultRegistrationForm(shopRow.id);
-    const definition = parseDefinition(form);
-    const settings = parseSettings(form);
-    const newErrors = validateResponses(
-      definition,
-      body,
-      settings.errorMessages,
-    );
-    if (newErrors.length > 0) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[Stockly RF] schema-driven validator caught extra issues (logged only)",
-        { shop: shopRow.id, newErrors },
+    const form = await getRegistrationForm(shopRow.id);
+    if (form) {
+      const definition = parseDefinition(form);
+      const settings = parseSettings(form);
+      const responses: Record<string, string> = {};
+      for (const step of definition.steps) {
+        for (const field of step.fields) {
+          if (body[field.key] !== undefined) {
+            responses[field.key] = body[field.key];
+          }
+        }
+      }
+      const newErrors = validateResponses(
+        definition,
+        responses,
+        settings.errorMessages,
       );
+      if (newErrors.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn("[rf.validation.diverged]", {
+          shop: shopRow.id,
+          formVersion: form.version,
+          errors: newErrors,
+        });
+      }
     }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn(
-      "[Stockly RF] schema-driven mirror validation failed (non-blocking)",
-      err,
-    );
+    console.warn("[rf.validation.error]", {
+      shop: shopRow.id,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 
   try {
@@ -145,11 +164,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         shopifyCustomerId: loggedInCustomerId ?? null,
       });
     } catch (mirrorErr) {
+      // SHOULD-4: structured log key for soak monitoring. Grep
+      // `fly logs` for [rf.dual_write.fail] during the 48h window.
       // eslint-disable-next-line no-console
-      console.error(
-        "[Stockly RF] dual-write to Application table failed",
-        mirrorErr,
-      );
+      console.error("[rf.dual_write.fail]", {
+        shop: shopRow.id,
+        error: mirrorErr instanceof Error ? mirrorErr.message : String(mirrorErr),
+        stack:
+          mirrorErr instanceof Error ? mirrorErr.stack?.slice(0, 500) : undefined,
+      });
     }
 
     return json(

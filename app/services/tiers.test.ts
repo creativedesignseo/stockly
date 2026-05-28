@@ -34,6 +34,16 @@ function tier(overrides: Partial<Tier> = {}): Tier {
     customerEligibility: "wholesale_tagged",
     marketEligibility: "all_markets",
     marketIds: [],
+    // ADR-012 multi-band Volume Pricing fields. Test mocks default to
+    // a single-band rule (groupId via id, no quantityTo ceiling, no
+    // scheduling, no PDP table widget) to mirror the legacy shape.
+    quantityTo: null,
+    groupId: null,
+    discountFixedPrice: null,
+    startsAt: null,
+    endsAt: null,
+    showTableOnPdp: false,
+    tableTemplateId: null,
     active: true,
     position: 0,
     createdAt: new Date("2026-01-01"),

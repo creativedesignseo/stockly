@@ -540,7 +540,8 @@ export function run(input: RunInput): FunctionRunResult {
   //    `fixedAmount` entry whose value is the total money discount
   //    on the line — guarantees Shopify computes the same wholesale
   //    price we precomputed in lineWholesale.
-  const discounts = lineCalcs.flatMap((calc) => {
+  type DiscountEntry = FunctionRunResult["discounts"][number];
+  const discounts: DiscountEntry[] = lineCalcs.flatMap<DiscountEntry>((calc) => {
     if (calc.lineRetail <= 0) return [];
     // Nothing to discount (no baseline, no tier of any type).
     if (

@@ -5,10 +5,11 @@
 import { describe, expect, it } from "vitest";
 
 import { layoutFieldsIntoRows } from "./layout";
-import type { FormField } from "../../lib/registration-form-types";
+import type { FormField } from "../../lib/registrationForm/types";
 
 function f(key: string, width: "full" | "half"): FormField {
   return {
+    id: key,
     type: "text",
     key,
     label: key,

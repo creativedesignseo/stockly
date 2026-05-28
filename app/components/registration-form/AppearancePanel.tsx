@@ -16,7 +16,7 @@ import {
 import type {
   AppearanceColors,
   FormAppearance,
-} from "../../lib/registration-form-types";
+} from "../../lib/registrationForm/types";
 
 const COLOR_FIELDS: Array<{ key: keyof AppearanceColors; label: string }> = [
   { key: "main", label: "Main" },
@@ -25,7 +25,7 @@ const COLOR_FIELDS: Array<{ key: keyof AppearanceColors; label: string }> = [
   { key: "description", label: "Description" },
   { key: "option", label: "Option" },
   { key: "paragraph", label: "Paragraph" },
-  { key: "paragraphBackground", label: "Paragraph background" },
+  { key: "paragraphBg", label: "Paragraph background" },
 ];
 
 /**

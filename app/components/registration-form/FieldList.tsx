@@ -39,7 +39,7 @@ import {
   PlusIcon,
 } from "@shopify/polaris-icons";
 
-import type { FormField } from "../../lib/registration-form-types";
+import type { FormField } from "../../lib/registrationForm/types";
 import { FIELD_ICON, FIELD_TYPE_LABEL } from "./field-icons";
 
 /* -------------------------------------------------------------------------- */
@@ -62,7 +62,7 @@ function SortableFieldRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: field.key });
+  } = useSortable({ id: field.id });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -111,7 +111,7 @@ function SortableFieldRow({
               {field.required ? " *" : ""}
             </Text>
             <Text as="span" variant="bodySm" tone="subdued">
-              {FIELD_TYPE_LABEL[field.type]} · {field.width}
+              {FIELD_TYPE_LABEL[field.type]} · {field.width ?? "full"}
             </Text>
           </BlockStack>
         </InlineStack>
@@ -148,8 +148,8 @@ export function FieldList({
 }: {
   fields: FormField[];
   onReorder: (next: FormField[]) => void;
-  onEdit: (key: string) => void;
-  onDelete: (key: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
   onAdd: () => void;
 }) {
   const sensors = useSensors(
@@ -162,8 +162,8 @@ export function FieldList({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const oldIndex = fields.findIndex((f) => f.key === active.id);
-    const newIndex = fields.findIndex((f) => f.key === over.id);
+    const oldIndex = fields.findIndex((f) => f.id === active.id);
+    const newIndex = fields.findIndex((f) => f.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     onReorder(arrayMove(fields, oldIndex, newIndex));
   };
@@ -190,16 +190,16 @@ export function FieldList({
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={fields.map((f) => f.key)}
+            items={fields.map((f) => f.id)}
             strategy={verticalListSortingStrategy}
           >
             <BlockStack gap="200">
               {fields.map((field) => (
                 <SortableFieldRow
-                  key={field.key}
+                  key={field.id}
                   field={field}
-                  onEdit={() => onEdit(field.key)}
-                  onDelete={() => onDelete(field.key)}
+                  onEdit={() => onEdit(field.id)}
+                  onDelete={() => onDelete(field.id)}
                 />
               ))}
             </BlockStack>

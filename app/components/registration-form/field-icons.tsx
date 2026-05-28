@@ -11,7 +11,7 @@ import {
   NoteIcon,
 } from "@shopify/polaris-icons";
 
-import type { FieldType } from "../../lib/registration-form-types";
+import type { FieldType } from "../../lib/registrationForm/types";
 
 export const FIELD_ICON: Record<FieldType, typeof TextIcon> = {
   text: TextIcon,

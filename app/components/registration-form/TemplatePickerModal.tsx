@@ -1,6 +1,12 @@
 /**
  * TemplatePickerModal — 3 cards (Standard / Modern / Samita-B2B).
- * Selecting one replaces the current draft with the chosen template.
+ * Selecting one resets the current draft to the chosen template.
+ *
+ * Templates come from the canonical Foundation seeds module
+ * (`app/lib/registrationForm/seeds.ts`). The picker only emits the
+ * `SeedTemplateId` — the parent route applies the template to the
+ * editor state (since it owns RegistrationFormDefinition + appearance
+ * + settings as a whole).
  */
 import {
   Modal,
@@ -10,12 +16,8 @@ import {
   Box,
 } from "@shopify/polaris";
 
-import {
-  TEMPLATES,
-  TEMPLATE_META,
-  type TemplateKey,
-} from "./seed-templates";
-import type { RegistrationForm } from "../../lib/registration-form-types";
+import { TEMPLATES, TEMPLATE_META } from "../../lib/registrationForm/seeds";
+import type { SeedTemplateId } from "../../lib/registrationForm/types";
 
 export function TemplatePickerModal({
   open,
@@ -24,7 +26,7 @@ export function TemplatePickerModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onPick: (form: RegistrationForm) => void;
+  onPick: (id: SeedTemplateId) => void;
 }) {
   return (
     <Modal
@@ -42,9 +44,9 @@ export function TemplatePickerModal({
           <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
             {TEMPLATE_META.map((meta) => (
               <TemplateCard
-                key={meta.key}
-                templateKey={meta.key}
-                title={meta.title}
+                key={meta.id}
+                templateKey={meta.id}
+                title={meta.name}
                 description={meta.description}
                 onPick={onPick}
               />
@@ -62,17 +64,17 @@ function TemplateCard({
   description,
   onPick,
 }: {
-  templateKey: TemplateKey;
+  templateKey: SeedTemplateId;
   title: string;
   description: string;
-  onPick: (form: RegistrationForm) => void;
+  onPick: (id: SeedTemplateId) => void;
 }) {
   const tmpl = TEMPLATES[templateKey];
-  const fieldCount = tmpl.definition.steps[0]?.fields.length ?? 0;
+  const fieldCount = tmpl.steps[0]?.fields.length ?? 0;
   return (
     <button
       type="button"
-      onClick={() => onPick(tmpl)}
+      onClick={() => onPick(templateKey)}
       style={{
         display: "block",
         width: "100%",

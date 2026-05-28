@@ -3,7 +3,7 @@
  * Extracted from FormPreview so we can unit-test the row-pairing
  * logic without rendering React.
  */
-import type { FormField } from "../../lib/registration-form-types";
+import type { FormField } from "../../lib/registrationForm/types";
 
 /**
  * Lay out fields into rows where two adjacent "half" fields share

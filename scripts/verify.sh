@@ -110,6 +110,20 @@ run_npm_script() {
 #    the full picture; final exit code reflects whether any failed.
 # -----------------------------------------------------------------
 run_npm_script lint
+
+# CRIT-3 (reviewer 2026-05-28): tsc --noEmit catches type errors that
+# Remix's loose vite:build silently swallows (the integration commit
+# that hid a `version` field type mismatch is the canonical example).
+# Run after lint so a quick syntax issue shows up before the slower
+# type check.
+say "${C_BOLD}Running: tsc --noEmit${C_RESET}"
+if npx tsc --noEmit; then
+  ok "tsc --noEmit passed"
+else
+  fail "tsc --noEmit failed"
+  FAILED=$((FAILED + 1))
+fi
+
 run_npm_script test
 run_npm_script build:extensions
 run_npm_script build

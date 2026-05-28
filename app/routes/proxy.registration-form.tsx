@@ -36,10 +36,11 @@
  * `authenticate.public.appProxy` (throws 401 on tamper). No additional
  * CSRF token needed — see progress/2026-05-28-app-proxy-contract.md.
  *
- * Caching: Cache-Control: private, max-age=60. `private` because the
- * payload could in the future vary on customer state. 60s matches the
- * sibling `proxy.context.tsx` TTL. The storefront should still refetch
- * on every page load — this just prevents a hot reload storm.
+ * Caching: Cache-Control: no-cache, private. Reviewer SHOULD-5 — a
+ * 60s window between merchant save and storefront preview is bad UX
+ * (the merchant clicks Save then refreshes the storefront and sees
+ * stale data for up to a minute). `version` integer on the row is the
+ * cache-bust hint for any future client-side de-duping.
  *
  * Defense in depth: if a shop predates the Phase 1A schema, the GET
  * loader calls `ensureDefaultRegistrationForm` to seed the back-compat
@@ -68,7 +69,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   if (!shopDomain) {
     return json(
       { ok: false, error: "Missing shop parameter" },
-      { status: 400, headers: corsHeaders() },
+      { status: 400, headers: jsonHeaders() },
     );
   }
 
@@ -90,11 +91,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   return json(payload, {
     status: 200,
-    headers: { ...corsHeaders(), "Cache-Control": "private, max-age=60" },
+    headers: { ...jsonHeaders(), "Cache-Control": "no-cache, private" },
   });
 };
 
-function corsHeaders() {
+function jsonHeaders() {
   return {
     "Content-Type": "application/json; charset=utf-8",
   };

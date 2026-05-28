@@ -68,7 +68,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         OR: [
           customerId ? { shopifyCustomerId: customerId } : undefined,
           customerEmail ? { email: customerEmail } : undefined,
-        ].filter(Boolean) as Array<Record<string, string>>,
+        ].filter(Boolean) as unknown as Array<Record<string, string>>,
       },
     }),
     prisma.wholesaleApplication.findMany({
@@ -77,7 +77,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         OR: [
           customerId ? { shopifyCustomerId: customerId } : undefined,
           customerEmail ? { email: customerEmail } : undefined,
-        ].filter(Boolean) as Array<Record<string, string>>,
+        ].filter(Boolean) as unknown as Array<Record<string, string>>,
       },
     }),
   ]);

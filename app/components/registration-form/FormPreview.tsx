@@ -23,7 +23,7 @@ import type {
   FormField,
   FormSettings,
   RegistrationFormDefinition,
-} from "../../lib/registration-form-types";
+} from "../../lib/registrationForm/types";
 import { layoutFieldsIntoRows } from "./layout";
 
 const COUNTRY_OPTIONS = [
@@ -61,7 +61,7 @@ function PreviewField({ field }: { field: FormField }) {
     case "phone":
       return <TextField {...common} type="tel" />;
     case "textarea":
-      return <TextField {...common} multiline={field.rows ?? 4} />;
+      return <TextField {...common} multiline={4} />;
     case "select":
       return (
         <Select
@@ -69,7 +69,7 @@ function PreviewField({ field }: { field: FormField }) {
           helpText={field.helpText}
           options={[
             { label: field.placeholder ?? "Select…", value: "" },
-            ...field.options.map((o) => ({ label: o.label, value: o.value })),
+            ...(field.options ?? []).map((o) => ({ label: o.label, value: o.value })),
           ]}
           value=""
           onChange={() => {
@@ -138,7 +138,7 @@ export function FormPreview({
           <div style={wrapperStyle}>
             <BlockStack gap="400">
               <Text as="h2" variant="headingLg">
-                {settings.title || "Wholesale registration"}
+                {settings.titleEn || "Wholesale registration"}
               </Text>
               {fields.length === 0 ? (
                 <Text as="p" variant="bodySm" tone="subdued">

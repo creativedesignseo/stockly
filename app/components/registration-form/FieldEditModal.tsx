@@ -22,8 +22,7 @@ import type {
   FieldType,
   FormField,
   FieldWidth,
-  SelectField,
-} from "../../lib/registration-form-types";
+} from "../../lib/registrationForm/types";
 import { FIELD_TYPE_LABEL } from "./field-icons";
 import { isValidFieldKey, slugifyKey } from "./keys";
 
@@ -79,12 +78,15 @@ export function FieldEditModal({
       setLabel(field.label);
       setKey(field.key);
       setKeyTouched(true); // existing keys are sacred — never auto-rewrite
-      setRequired(field.required);
-      setWidth(field.width);
+      setRequired(field.required ?? false);
+      setWidth(field.width ?? "full");
       setPlaceholder(field.placeholder ?? "");
       setHelpText(field.helpText ?? "");
+      // Foundation types make `options` optional even on select fields
+      // (one canonical interface, no discriminated union). Default to []
+      // when the seed/saved data forgot it.
       if (field.type === "select") {
-        setOptions(field.options.map((o) => ({ ...o })));
+        setOptions((field.options ?? []).map((o) => ({ ...o })));
       } else {
         setOptions([]);
       }
@@ -136,40 +138,27 @@ export function FieldEditModal({
       return;
     }
 
-    const base = {
+    // Foundation's FormField is a single interface, not a discriminated
+    // union. `id` is required — reuse the existing one on edit, mint a
+    // fresh one on add. `options` is only populated for select.
+    const next: FormField = {
+      id: field?.id ?? crypto.randomUUID(),
       key: trimmedKey,
       label: trimmedLabel,
+      type,
       required,
       width,
       placeholder: placeholder.trim() || undefined,
       helpText: helpText.trim() || undefined,
+      ...(type === "select"
+        ? {
+            options: options.map((o) => ({
+              value: o.value.trim() || slugifyKey(o.label),
+              label: o.label.trim(),
+            })),
+          }
+        : {}),
     };
-
-    let next: FormField;
-    switch (type) {
-      case "select":
-        next = {
-          ...base,
-          type: "select",
-          options: options.map((o) => ({
-            value: o.value.trim() || slugifyKey(o.label),
-            label: o.label.trim(),
-          })),
-        } satisfies SelectField;
-        break;
-      case "textarea":
-        next = { ...base, type: "textarea", rows: 4 };
-        break;
-      case "password":
-        next = { ...base, type: "password" };
-        break;
-      case "text":
-      case "email":
-      case "phone":
-      case "country":
-        next = { ...base, type } as FormField;
-        break;
-    }
     onSave(next);
   };
 
@@ -201,7 +190,7 @@ export function FieldEditModal({
           {error && (
             <Box
               padding="300"
-              background="bg-surface-critical-subdued"
+              background="bg-surface-critical"
               borderRadius="200"
             >
               <Text as="p" variant="bodySm" tone="critical">

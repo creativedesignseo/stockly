@@ -12,7 +12,7 @@ import {
   Box,
 } from "@shopify/polaris";
 
-import type { FieldType } from "../../lib/registration-form-types";
+import type { FieldType } from "../../lib/registrationForm/types";
 import { FIELD_ICON, FIELD_TYPE_LABEL } from "./field-icons";
 
 const TYPES: FieldType[] = [

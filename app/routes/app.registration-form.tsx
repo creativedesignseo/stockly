@@ -40,6 +40,7 @@ import {
   InlineStack,
   Text,
   Box,
+  Modal,
 } from "@shopify/polaris";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { useEffect, useMemo, useState } from "react";
@@ -48,17 +49,21 @@ import { authenticateAdmin } from "../lib/auth.server";
 import type {
   FieldType,
   FormField,
-  RegistrationForm,
-} from "../lib/registration-form-types";
+  FormAppearance,
+  FormSettings,
+  RegistrationFormDefinition,
+  SeedTemplateId,
+} from "../lib/registrationForm/types";
+import {
+  DEFAULT_APPEARANCE,
+  DEFAULT_FORM_DEFINITION,
+  DEFAULT_SETTINGS,
+  TEMPLATES,
+} from "../lib/registrationForm/seeds";
 import {
   getRegistrationForm,
   upsertRegistrationForm,
 } from "../services/registrationForms.server";
-import type {
-  RegistrationFormDefinition,
-  FormAppearance as CanonicalFormAppearance,
-  FormSettings as CanonicalFormSettings,
-} from "../lib/registrationForm/types";
 
 import { LeftRail, type LeftRailSection } from "../components/registration-form/LeftRail";
 import { FieldList } from "../components/registration-form/FieldList";
@@ -68,7 +73,20 @@ import { AppearancePanel } from "../components/registration-form/AppearancePanel
 import { SettingsPanel } from "../components/registration-form/SettingsPanel";
 import { FormPreview } from "../components/registration-form/FormPreview";
 import { TemplatePickerModal } from "../components/registration-form/TemplatePickerModal";
-import { SEED_STANDARD } from "../components/registration-form/seed-templates";
+
+/**
+ * Editor state — exactly what the builder manipulates and POSTs back.
+ * Server-side metadata (id, version, shopId, createdAt) lives on the
+ * Prisma row and is NEVER mutated by the editor. The action passes
+ * this shape straight to upsertRegistrationForm; the loader builds it
+ * from the row or from Foundation's DEFAULT_* constants on first visit.
+ */
+type EditorState = {
+  status: "active" | "draft";
+  definition: RegistrationFormDefinition;
+  appearance: FormAppearance;
+  settings: FormSettings;
+};
 
 /* -------------------------------------------------------------------------- */
 /*                                  LOADER                                    */
@@ -77,27 +95,29 @@ import { SEED_STANDARD } from "../components/registration-form/seed-templates";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
 
-  // Integrated 2026-05-28: real service call from Foundation
-  // (app/services/registrationForms.server.ts). Returns null if the
-  // shop has no form row yet (first-time visit) — fall back to the
-  // SEED_STANDARD template so the builder is immediately usable.
-  // The first save persists the merchant's customization via
-  // upsertRegistrationForm in the action below.
+  // Real service call from Foundation. Returns null if the shop has no
+  // form row yet (first-time visit) — fall back to Foundation's
+  // DEFAULT_* constants so the builder is immediately usable. The first
+  // save persists the merchant's customization via upsertRegistrationForm.
+  //
+  // Prisma JSON columns are typed as `Prisma.JsonValue` — narrow via a
+  // single `as unknown as <Foundation type>` cast at the boundary.
+  // Runtime shape is guaranteed identical because the same Foundation
+  // types are what `upsertRegistrationForm` accepted on write.
   const row = await getRegistrationForm(shop.id);
-  // Row shape (Prisma JSON columns) → editor state. Cast through
-  // `unknown` because the canonical Foundation types (interface-based)
-  // and the editor's local discriminated-union types describe the
-  // same JSON at runtime but TS can't prove it across files.
-  const form: RegistrationForm = row
+  const form: EditorState = row
     ? {
-        id: row.id,
         status: row.status as "active" | "draft",
-        definition: row.definition as unknown as RegistrationForm["definition"],
-        appearance: row.appearance as unknown as RegistrationForm["appearance"],
-        settings: row.settings as unknown as RegistrationForm["settings"],
-        version: row.version,
+        definition: row.definition as unknown as RegistrationFormDefinition,
+        appearance: row.appearance as unknown as FormAppearance,
+        settings: row.settings as unknown as FormSettings,
       }
-    : SEED_STANDARD;
+    : {
+        status: "active",
+        definition: DEFAULT_FORM_DEFINITION,
+        appearance: DEFAULT_APPEARANCE,
+        settings: DEFAULT_SETTINGS,
+      };
 
   return json({ form });
 };
@@ -119,24 +139,22 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json<SaveResult>({ ok: false, error: "Missing payload" }, { status: 400 });
   }
 
-  let parsed: RegistrationForm;
+  let parsed: EditorState;
   try {
-    parsed = JSON.parse(payloadRaw) as RegistrationForm;
+    parsed = JSON.parse(payloadRaw) as EditorState;
   } catch {
     return json<SaveResult>({ ok: false, error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  // Integrated 2026-05-28. Same `unknown` cast pattern as the loader —
-  // the editor's discriminated-union types and the canonical
-  // interface-based types describe the same JSON. Foundation's
-  // upsertRegistrationForm also auto-bumps `version` so the storefront
-  // cache-busts on next fetch.
+  // EditorState matches upsertRegistrationForm's input verbatim — no
+  // cast needed. Foundation auto-bumps `version` so the storefront's
+  // GET (Cache-Control: no-cache, per ADR-013) refetches on next load.
   try {
     await upsertRegistrationForm(shop.id, {
       status: parsed.status,
-      definition: parsed.definition as unknown as RegistrationFormDefinition,
-      appearance: parsed.appearance as unknown as CanonicalFormAppearance,
-      settings: parsed.settings as unknown as CanonicalFormSettings,
+      definition: parsed.definition,
+      appearance: parsed.appearance,
+      settings: parsed.settings,
     });
   } catch (err) {
     // eslint-disable-next-line no-console
@@ -165,8 +183,12 @@ export default function RegistrationFormBuilder() {
   // The entire editor state is one object that mirrors what we'll
   // POST back to the action. Deep clone on mount so the initial
   // reference can still be used for the "isDirty" comparison below.
-  const [form, setForm] = useState<RegistrationForm>(() =>
+  const [form, setForm] = useState<EditorState>(() =>
     structuredClone(initialForm),
+  );
+  // Inline-confirm modal state (replaces window.confirm — SHOULD-2).
+  const [pendingDeleteFieldId, setPendingDeleteFieldId] = useState<string | null>(
+    null,
   );
   const [section, setSection] = useState<LeftRailSection>("elements");
 
@@ -213,9 +235,9 @@ export default function RegistrationFormBuilder() {
 
   /* ---- handlers ---- */
 
-  const updateField = <K extends keyof RegistrationForm>(
+  const updateField = <K extends keyof EditorState>(
     key: K,
-    value: RegistrationForm[K],
+    value: EditorState[K],
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const handleSave = () => {
@@ -237,28 +259,33 @@ export default function RegistrationFormBuilder() {
     });
   };
 
-  const handleEditField = (key: string) => {
-    const target = form.definition.steps[0].fields.find((f) => f.key === key);
+  // Foundation fields carry a stable `id` for dnd-kit + edit/delete
+  // identity. We address fields by `id` here (not `key`) because the
+  // merchant can rename a key in the editor and the handler shouldn't
+  // race the rename.
+  const handleEditField = (id: string) => {
+    const target = form.definition.steps[0].fields.find((f) => f.id === id);
     if (!target) return;
     setEditing({ field: target, type: target.type, open: true });
   };
 
-  const handleDeleteField = (key: string) => {
-    if (typeof window !== "undefined") {
-      const target = form.definition.steps[0].fields.find((f) => f.key === key);
-      if (!target) return;
-      const ok = window.confirm(
-        `Delete field "${target.label}"? This cannot be undone.`,
-      );
-      if (!ok) return;
-    }
+  const handleDeleteField = (id: string) => {
+    // SHOULD-2: replaces window.confirm with an inline confirm modal.
+    // Storing only the id keeps the modal's render decoupled from the
+    // field's mutability.
+    setPendingDeleteFieldId(id);
+  };
+
+  const confirmDeleteField = () => {
+    if (!pendingDeleteFieldId) return;
     setForm((prev) => {
       const cloned = structuredClone(prev);
       cloned.definition.steps[0].fields = cloned.definition.steps[0].fields.filter(
-        (f) => f.key !== key,
+        (f) => f.id !== pendingDeleteFieldId,
       );
       return cloned;
     });
+    setPendingDeleteFieldId(null);
   };
 
   const handleAddField = () => setTypePickerOpen(true);
@@ -272,7 +299,7 @@ export default function RegistrationFormBuilder() {
     setForm((prev) => {
       const cloned = structuredClone(prev);
       const fields = cloned.definition.steps[0].fields;
-      const existingIdx = fields.findIndex((f) => f.key === editing.field?.key);
+      const existingIdx = fields.findIndex((f) => f.id === editing.field?.id);
       if (existingIdx >= 0) {
         fields[existingIdx] = next;
       } else {
@@ -283,15 +310,20 @@ export default function RegistrationFormBuilder() {
     setEditing({ field: null, type: "text", open: false });
   };
 
-  const handlePickTemplate = (tmpl: RegistrationForm) => {
-    setForm({
-      ...tmpl,
-      id: form.id,
-      shopId: form.shopId,
-    });
+  // Template picker emits a SeedTemplateId — apply the chosen template's
+  // definition to the editor state. Status / appearance / settings stay
+  // the merchant's (only the field list resets).
+  const handlePickTemplate = (id: SeedTemplateId) => {
+    setForm((prev) => ({
+      ...prev,
+      definition: structuredClone(TEMPLATES[id]),
+    }));
     setTemplatePickerOpen(false);
   };
 
+  const pendingDeleteField = pendingDeleteFieldId
+    ? form.definition.steps[0].fields.find((f) => f.id === pendingDeleteFieldId)
+    : null;
   const existingKeys = form.definition.steps[0].fields.map((f) => f.key);
 
   /* ---- render ---- */
@@ -333,11 +365,11 @@ export default function RegistrationFormBuilder() {
               <TextField
                 label="Form title"
                 labelHidden
-                value={form.settings.title}
+                value={form.settings.titleEn}
                 onChange={(v) =>
                   updateField("settings", {
                     ...form.settings,
-                    title: v.slice(0, 50),
+                    titleEn: v.slice(0, 50),
                   })
                 }
                 maxLength={50}
@@ -347,21 +379,18 @@ export default function RegistrationFormBuilder() {
               />
             </Box>
             <InlineStack gap="300" blockAlign="center" wrap={false}>
-              <Badge tone={form.settings.status === "active" ? "success" : undefined}>
-                {form.settings.status === "active" ? "Active" : "Draft"}
+              <Badge tone={form.status === "active" ? "success" : undefined}>
+                {form.status === "active" ? "Active" : "Draft"}
               </Badge>
               <Button
                 onClick={() =>
-                  updateField("settings", {
-                    ...form.settings,
-                    status:
-                      form.settings.status === "active" ? "draft" : "active",
-                  })
+                  updateField(
+                    "status",
+                    form.status === "active" ? "draft" : "active",
+                  )
                 }
               >
-                {form.settings.status === "active"
-                  ? "Switch to draft"
-                  : "Activate"}
+                {form.status === "active" ? "Switch to draft" : "Activate"}
               </Button>
             </InlineStack>
           </InlineStack>
@@ -443,6 +472,26 @@ export default function RegistrationFormBuilder() {
         onClose={() => setTemplatePickerOpen(false)}
         onPick={handlePickTemplate}
       />
+      {/* SHOULD-2: inline delete confirm replaces window.confirm. */}
+      <Modal
+        open={pendingDeleteFieldId !== null}
+        onClose={() => setPendingDeleteFieldId(null)}
+        title="Delete field?"
+        primaryAction={{
+          content: "Delete",
+          destructive: true,
+          onAction: confirmDeleteField,
+        }}
+        secondaryActions={[
+          { content: "Cancel", onAction: () => setPendingDeleteFieldId(null) },
+        ]}
+      >
+        <Modal.Section>
+          <Text as="p" variant="bodyMd">
+            Delete field{pendingDeleteField ? ` "${pendingDeleteField.label}"` : ""}? This cannot be undone.
+          </Text>
+        </Modal.Section>
+      </Modal>
     </Page>
   );
 }
