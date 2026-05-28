@@ -60,14 +60,22 @@ import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
   deleteRule,
+  getRule,
   getTier,
-  updateTier,
+  updateRule,
   type TierAggregation,
   type TierCustomerEligibility,
   type TierDiscountType,
   type TierMarketEligibility,
   type TierScope,
 } from "../services/tiers.server";
+import {
+  BandRangeTable,
+  editorBandToRawBand,
+  rawBandToEditorBand,
+  tierRowToEditorBand,
+  type Band,
+} from "../components/pricing/band-range-table";
 
 /* -------------------------------------------------------------------------- */
 /*                                  LOADER                                    */
@@ -102,6 +110,14 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     }),
   ]);
   if (!tier)
+    throw new Response("Wholesale pricing not found", { status: 404 });
+
+  // ADR-012: load the FULL rule (all bands) so the multi-band editor can
+  // render every quantity range. `tier` above is just the first band we
+  // resolved from the id/groupId; the group it belongs to has N bands.
+  const groupId = tier.groupId ?? tier.id;
+  const rule = await getRule(groupId, shop.id);
+  if (!rule)
     throw new Response("Wholesale pricing not found", { status: 404 });
 
   // Resolve the rule's targets to (id, title, image) so the form can
@@ -194,7 +210,8 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   }
 
   return json({
-    tier,
+    rule,
+    groupId,
     baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
     scopeItems,
   });
@@ -240,9 +257,6 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
 
   const name = (form.get("name") ?? "").toString().trim();
   const scope = (form.get("scope") ?? "all").toString() as TierScope;
-  // Multi-target (2026-05-27). Same parsing strategy as
-  // /app/pricing/new: scopeIds arrives as multiple hidden inputs and
-  // we de-dupe before validating.
   const scopeIds = Array.from(
     new Set(
       form
@@ -251,11 +265,6 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
         .filter(Boolean),
     ),
   );
-  const minQtyStr = (form.get("minQty") ?? "").toString();
-  const discountType = (form.get("discountType") ?? "percentage")
-    .toString() as TierDiscountType;
-  const discountPctStr = (form.get("discountPct") ?? "").toString();
-  const discountAmountStr = (form.get("discountAmount") ?? "").toString();
   const aggregation = (form.get("aggregation") ?? "per_line")
     .toString() as TierAggregation;
   const customerEligibility = (
@@ -265,6 +274,20 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     form.get("marketEligibility") ?? "all_markets"
   ).toString() as TierMarketEligibility;
   const active = form.get("active") === "on";
+
+  // Multi-band (ADR-012): same JSON contract as /app/pricing/new.
+  type RawBand = {
+    minQty: number;
+    quantityTo: number | null;
+    discountType: TierDiscountType;
+    discountValue: number;
+  };
+  let rawBands: RawBand[] = [];
+  try {
+    rawBands = JSON.parse((form.get("bands") ?? "[]").toString()) as RawBand[];
+  } catch {
+    rawBands = [];
+  }
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
@@ -278,7 +301,6 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.aggregation =
       "Variant-scoped pricing rules must use per-line aggregation.";
   }
-  // ADR-012 §4.8: mix_variants is meaningless on variant scope.
   if (scope === "variant" && aggregation === "mix_variants") {
     errors.aggregation =
       "Mix variants aggregation cannot be combined with variant scope.";
@@ -298,77 +320,79 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.marketEligibility =
       "Specific markets mode is not available yet (Sprint 5). Pick another option.";
 
-  const minQty = Number(minQtyStr);
-  if (!Number.isInteger(minQty) || minQty < 1)
-    errors.minQty = "Minimum quantity must be a positive integer";
-
-  if (!["percentage", "fixed_amount"].includes(discountType))
-    errors.discountType = "Invalid discount type";
-
-  let discountPct = 0;
-  let discountAmount: number | null = null;
-  if (discountType === "percentage") {
-    discountPct = Number(discountPctStr);
-    if (Number.isNaN(discountPct) || discountPct < 0 || discountPct > 100)
-      errors.discountPct = "Discount must be between 0 and 100";
+  if (!Array.isArray(rawBands) || rawBands.length === 0) {
+    errors.bands = "Add at least one quantity range";
   } else {
-    discountAmount = Number(discountAmountStr);
-    if (Number.isNaN(discountAmount) || discountAmount <= 0)
-      errors.discountAmount =
-        "Amount must be a positive number (in shop currency)";
+    rawBands.forEach((b, i) => {
+      const n = i + 1;
+      if (!Number.isInteger(b.minQty) || b.minQty < 1)
+        errors.bands = `Range ${n}: "Quantity from" must be a positive whole number`;
+      else if (
+        b.quantityTo != null &&
+        (!Number.isInteger(b.quantityTo) || b.quantityTo < b.minQty)
+      )
+        errors.bands = `Range ${n}: "Quantity to" must be ≥ "Quantity from" (leave blank for "and above")`;
+      else if (!["percentage", "fixed_amount", "fixed_price"].includes(b.discountType))
+        errors.bands = `Range ${n}: invalid discount type`;
+      else if (
+        b.discountType === "percentage" &&
+        (Number.isNaN(b.discountValue) || b.discountValue < 0 || b.discountValue > 100)
+      )
+        errors.bands = `Range ${n}: percentage must be between 0 and 100`;
+      else if (
+        b.discountType !== "percentage" &&
+        (Number.isNaN(b.discountValue) || b.discountValue <= 0)
+      )
+        errors.bands = `Range ${n}: amount must be greater than 0`;
+    });
   }
 
-  if (Object.keys(errors).length > 0) {
-    return json({
-      errors,
+  const fail = (errs: Record<string, string>) =>
+    json({
+      errors: errs,
       values: {
         name,
         scope,
         scopeIds,
-        minQtyStr,
-        discountType,
-        discountPctStr,
-        discountAmountStr,
         aggregation,
         customerEligibility,
         marketEligibility,
         active,
+        bands: rawBands,
       },
     });
+
+  if (Object.keys(errors).length > 0) {
+    return fail(errors);
   }
 
-  // Per-band fields (qty + discount) go on the resolved tier row only.
-  await updateTier(existing.id, {
-    name,
-    scope,
-    scopeIds: scope === "all" ? [] : scopeIds,
-    minQty,
-    discountPct,
-    discountType,
-    discountAmount,
-    aggregation,
-    customerEligibility,
-    marketEligibility,
-    active,
-  });
+  const bands = rawBands.map((b) => ({
+    minQty: b.minQty,
+    quantityTo: b.quantityTo,
+    discountType: b.discountType,
+    discountPct: b.discountType === "percentage" ? b.discountValue : 0,
+    discountAmount: b.discountType === "fixed_amount" ? b.discountValue : null,
+    discountFixedPrice: b.discountType === "fixed_price" ? b.discountValue : null,
+  }));
 
-  // ADR-012: rule-level fields propagate to EVERY band of the group so
-  // multi-band rules stay internally consistent. updateMany ignores the
-  // resolved band (already updated above with the same values). Cheap
-  // and safe; legacy 1-band rules are a no-op here.
-  await prisma.tier.updateMany({
-    where: { shopId: shop.id, groupId, NOT: { id: existing.id } },
-    data: {
+  try {
+    // ADR-012 replace-all: deletes the group's bands and re-creates them
+    // atomically. Rule-level fields apply to every band.
+    await updateRule(groupId, shop.id, {
       name,
       scope,
       scopeIds: scope === "all" ? [] : scopeIds,
-      scopeId: scope === "all" ? null : (scopeIds[0] ?? null),
       aggregation,
       customerEligibility,
       marketEligibility,
       active,
-    },
-  });
+      bands,
+    });
+  } catch (e) {
+    return fail({
+      bands: e instanceof Error ? e.message : "Invalid quantity ranges",
+    });
+  }
 
   try {
     await syncTiersToFunction(admin, shop.id);
@@ -490,7 +514,7 @@ const AGGREGATION_OPTIONS: Array<{
 ];
 
 export default function EditPricing() {
-  const { tier, baselinePct, scopeItems: initialScopeItems } =
+  const { rule, baselinePct, scopeItems: initialScopeItems } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -499,96 +523,72 @@ export default function EditPricing() {
     navigation.formData?.get("intent") === "update";
   const shopify = useAppBridge();
 
-  /* ----- form state (pre-populated from tier) ----- */
+  /* ----- form state (pre-populated from the rule) ----- */
   const [name, setName] = useState<string>(
-    actionData?.values?.name ?? tier.name,
+    actionData?.values?.name ?? rule.name,
   );
   const [scope, setScope] = useState<TierScope>(
-    (actionData?.values?.scope as TierScope) ?? (tier.scope as TierScope),
+    (actionData?.values?.scope as TierScope) ?? (rule.scope as TierScope),
   );
-  // Selected targets list. After a validation error round-trip we only
-  // have ids, so titles re-blank until the picker is re-opened; on
-  // first render we use the loader-fetched titles + images.
   const [scopeItems, setScopeItems] = useState<ScopeItem[]>(
     actionData?.values?.scopeIds
       ? actionData.values.scopeIds.map((id) => ({ id, title: "" }))
       : initialScopeItems,
   );
-  const [minQty, setMinQty] = useState<string>(
-    actionData?.values?.minQtyStr ?? String(tier.minQty),
-  );
-  const [discountType, setDiscountType] = useState<TierDiscountType>(
-    (actionData?.values?.discountType as TierDiscountType) ??
-      ((tier.discountType as TierDiscountType | null) ?? "percentage"),
-  );
-  const [discountPct, setDiscountPct] = useState<string>(
-    actionData?.values?.discountPctStr ?? String(tier.discountPct ?? ""),
-  );
-  const [discountAmount, setDiscountAmount] = useState<string>(
-    actionData?.values?.discountAmountStr ??
-      (tier.discountAmount != null ? String(tier.discountAmount) : ""),
+  // Multi-band Discount Range. On a validation-error replay use the
+  // numeric bands we POSTed; otherwise hydrate from the rule's DB rows.
+  const [bands, setBands] = useState<Band[]>(() =>
+    actionData?.values?.bands && actionData.values.bands.length > 0
+      ? actionData.values.bands.map(rawBandToEditorBand)
+      : rule.bands.map(tierRowToEditorBand),
   );
   const [aggregation, setAggregation] = useState<TierAggregation>(
     (actionData?.values?.aggregation as TierAggregation) ??
-      (tier.aggregation as TierAggregation),
+      (rule.aggregation as TierAggregation),
   );
   const [customerEligibility, setCustomerEligibility] =
     useState<TierCustomerEligibility>(
       (actionData?.values?.customerEligibility as TierCustomerEligibility) ??
-        ((tier.customerEligibility as TierCustomerEligibility | null) ??
+        ((rule.customerEligibility as TierCustomerEligibility | null) ??
           "wholesale_tagged"),
     );
   const [marketEligibility, setMarketEligibility] =
     useState<TierMarketEligibility>(
       (actionData?.values?.marketEligibility as TierMarketEligibility) ??
-        ((tier.marketEligibility as TierMarketEligibility | null) ??
+        ((rule.marketEligibility as TierMarketEligibility | null) ??
           "all_markets"),
     );
   const [active, setActive] = useState<boolean>(
-    actionData?.values?.active ?? tier.active,
+    actionData?.values?.active ?? rule.active,
   );
 
   const errors = actionData?.errors ?? {};
 
   /* ----- SaveBar (App Bridge, sticky top) ----- */
-  // Initial scopeIds = those on the persisted tier. Used both for
-  // Discard (restore to the original selection) and for isDirty
-  // comparison (so re-opening the picker without changes doesn't
-  // flag the form as dirty).
-  const initialScopeIds =
-    tier.scopeIds && tier.scopeIds.length > 0
-      ? tier.scopeIds
-      : tier.scopeId
-        ? [tier.scopeId]
-        : [];
+  const initialScopeIds = rule.scopeIds ?? [];
+  const initialBandsPayload = JSON.stringify(
+    rule.bands.map(tierRowToEditorBand).map(editorBandToRawBand),
+  );
   const initial = {
-    name: tier.name,
-    scope: tier.scope as TierScope,
+    name: rule.name,
+    scope: rule.scope as TierScope,
     scopeIds: initialScopeIds,
-    minQty: String(tier.minQty),
-    discountType: ((tier.discountType as TierDiscountType | null) ??
-      "percentage") as TierDiscountType,
-    discountPct: String(tier.discountPct ?? ""),
-    discountAmount:
-      tier.discountAmount != null ? String(tier.discountAmount) : "",
-    aggregation: tier.aggregation as TierAggregation,
+    aggregation: rule.aggregation as TierAggregation,
     customerEligibility:
-      ((tier.customerEligibility as TierCustomerEligibility | null) ??
+      ((rule.customerEligibility as TierCustomerEligibility | null) ??
         "wholesale_tagged") as TierCustomerEligibility,
     marketEligibility:
-      ((tier.marketEligibility as TierMarketEligibility | null) ??
+      ((rule.marketEligibility as TierMarketEligibility | null) ??
         "all_markets") as TierMarketEligibility,
-    active: tier.active,
+    active: rule.active,
   };
+  const bandsPayload = JSON.stringify(bands.map(editorBandToRawBand));
   const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
     name !== initial.name ||
     scope !== initial.scope ||
     !sameIdSet(currentScopeIds, initial.scopeIds) ||
-    minQty !== initial.minQty ||
-    discountType !== initial.discountType ||
-    discountPct !== initial.discountPct ||
-    discountAmount !== initial.discountAmount ||
+    bandsPayload !== initialBandsPayload ||
     aggregation !== initial.aggregation ||
     customerEligibility !== initial.customerEligibility ||
     marketEligibility !== initial.marketEligibility ||
@@ -612,10 +612,7 @@ export default function EditPricing() {
     setName(initial.name);
     setScope(initial.scope);
     setScopeItems(initialScopeItems);
-    setMinQty(initial.minQty);
-    setDiscountType(initial.discountType);
-    setDiscountPct(initial.discountPct);
-    setDiscountAmount(initial.discountAmount);
+    setBands(rule.bands.map(tierRowToEditorBand));
     setAggregation(initial.aggregation);
     setCustomerEligibility(initial.customerEligibility);
     setMarketEligibility(initial.marketEligibility);
@@ -645,7 +642,7 @@ export default function EditPricing() {
   const handleDelete = () => {
     if (
       !confirm(
-        `Permanently delete "${tier.name}"?\n\nThis cannot be undone. To keep history, toggle the rule inactive instead.`,
+        `Permanently delete "${rule.name}"?\n\nThis cannot be undone. To keep history, toggle the rule inactive instead.`,
       )
     )
       return;
@@ -654,17 +651,23 @@ export default function EditPricing() {
     deleteFetcher.submit(fd, { method: "POST" });
   };
 
-  /* ----- preview math ----- */
+  /* ----- preview math (deepest / last band on a €100 unit) ----- */
   const previewRetail = 100;
   const baselineFactor = 1 - baselinePct / 100;
-  const tierPct = Number(discountPct) || 0;
-  const tierAmount = Number(discountAmount) || 0;
-  const tierFactor = discountType === "percentage" ? 1 - tierPct / 100 : 1;
-  const fixedDeduction = discountType === "fixed_amount" ? tierAmount : 0;
-  const previewWholesale = Math.max(
-    0,
-    previewRetail * baselineFactor * tierFactor - fixedDeduction,
-  );
+  const previewBand = bands[bands.length - 1];
+  const pType = previewBand?.discountType ?? "percentage";
+  const pValue = Number(previewBand?.discountValue) || 0;
+  let previewWholesale: number;
+  if (pType === "fixed_price") {
+    previewWholesale = Math.min(previewRetail, pValue);
+  } else if (pType === "fixed_amount") {
+    previewWholesale = Math.max(0, previewRetail * baselineFactor - pValue);
+  } else {
+    previewWholesale = Math.max(
+      0,
+      previewRetail * baselineFactor * (1 - pValue / 100),
+    );
+  }
   const previewSavings = previewRetail - previewWholesale;
 
   const scopeOption = SCOPE_OPTIONS.find((s) => s.value === scope)!;
@@ -681,22 +684,29 @@ export default function EditPricing() {
         ? `${scopeOption.title} (none selected)`
         : `${scopeItems.length} ${scopeNoun}`;
 
-  const triggerSummary = minQty
-    ? `${minQty} units · ${aggregation === "per_line" ? "per line" : "cart total"}`
-    : "—";
+  const aggLabel =
+    aggregation === "per_line"
+      ? "per line"
+      : aggregation === "mix_variants"
+        ? "mix variants"
+        : "cart total";
+  const triggerSummary = `${bands.length} ${bands.length === 1 ? "range" : "ranges"} · ${aggLabel}`;
 
   const discountSummary =
-    discountType === "fixed_amount"
-      ? tierAmount
-        ? `€${tierAmount} off per unit`
-        : "—"
-      : tierPct
-        ? `${tierPct}% off`
-        : "—";
+    bands.length === 0
+      ? "—"
+      : bands
+          .map((b) => {
+            const v = Number(b.discountValue) || 0;
+            if (b.discountType === "fixed_price") return `€${v}/unit`;
+            if (b.discountType === "fixed_amount") return `−€${v}`;
+            return `${v}%`;
+          })
+          .join(" · ");
 
   return (
     <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
-      <TitleBar title={`Edit: ${tier.name}`} />
+      <TitleBar title={`Edit: ${rule.name}`} />
       <SaveBar id={SAVE_BAR_ID}>
         <button
           variant="primary"
@@ -711,7 +721,7 @@ export default function EditPricing() {
         <input type="hidden" name="intent" value="update" />
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="aggregation" value={aggregation} />
-        <input type="hidden" name="discountType" value={discountType} />
+        <input type="hidden" name="bands" value={bandsPayload} />
         <input
           type="hidden"
           name="customerEligibility"
@@ -915,15 +925,15 @@ export default function EditPricing() {
                 </BlockStack>
               </Card>
 
-              {/* ----- Trigger ----- */}
+              {/* ----- How quantities are counted (aggregation) ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      Trigger
+                      How quantities are counted
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      When does this rule kick in?
+                      Applies to every range below.
                     </Text>
                   </BlockStack>
 
@@ -956,87 +966,29 @@ export default function EditPricing() {
                       <p>{errors.aggregation}</p>
                     </Banner>
                   )}
-
-                  <TextField
-                    label="Minimum quantity to activate the rule"
-                    name="minQty"
-                    type="number"
-                    min={1}
-                    autoComplete="off"
-                    value={minQty}
-                    onChange={setMinQty}
-                    error={errors.minQty}
-                    suffix="units"
-                    helpText={
-                      aggregation === "per_line"
-                        ? "Each cart line must reach this quantity on its own."
-                        : "Sum of all in-scope cart lines must reach this quantity."
-                    }
-                    requiredIndicator
-                  />
                 </BlockStack>
               </Card>
 
-              {/* ----- Discount ----- */}
+              {/* ----- Discount Range (multi-band) ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      Discount
+                      Discount Range
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      Both options compose with the shop&apos;s wholesale
-                      baseline — the Preview panel shows the live math.
+                      The more they buy, the bigger the discount. Add one row
+                      per quantity band. Leave the last &quot;Quantity to&quot;
+                      blank for &quot;and above&quot;.
                     </Text>
                   </BlockStack>
 
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                    <ChoiceCard
-                      selected={discountType === "percentage"}
-                      onSelect={() => setDiscountType("percentage")}
-                      title="Percentage discount"
-                      description="Example: 10% off the line price."
-                    />
-                    <ChoiceCard
-                      selected={discountType === "fixed_amount"}
-                      onSelect={() => setDiscountType("fixed_amount")}
-                      title="Fixed amount discount"
-                      description="Example: €10 off each unit."
-                    />
-                  </InlineGrid>
+                  <BandRangeTable bands={bands} onChange={setBands} currency="€" />
 
-                  {discountType === "percentage" ? (
-                    <TextField
-                      label="Discount percent"
-                      name="discountPct"
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      autoComplete="off"
-                      value={discountPct}
-                      onChange={setDiscountPct}
-                      error={errors.discountPct}
-                      suffix="%"
-                      helpText="Between 0 and 100. Composes multiplicatively on top of the baseline."
-                      requiredIndicator
-                    />
-                  ) : (
-                    <TextField
-                      label="Amount off per unit"
-                      name="discountAmount"
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      autoComplete="off"
-                      value={discountAmount}
-                      onChange={setDiscountAmount}
-                      error={errors.discountAmount}
-                      prefix="€"
-                      helpText="Flat amount subtracted from each unit AFTER the baseline applies."
-                      placeholder="10.00"
-                      requiredIndicator
-                    />
+                  {errors.bands && (
+                    <Banner tone="critical">
+                      <p>{errors.bands}</p>
+                    </Banner>
                   )}
                 </BlockStack>
               </Card>
@@ -1136,19 +1088,28 @@ export default function EditPricing() {
                   />
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
-                    value={`× ${baselineFactor.toFixed(2)}`}
+                    value={
+                      pType === "fixed_price"
+                        ? "ignored (fixed price)"
+                        : `× ${baselineFactor.toFixed(2)}`
+                    }
                   />
-                  {discountType === "percentage" ? (
-                    <SummaryRow
-                      label={`This rule (${tierPct}%)`}
-                      value={`× ${tierFactor.toFixed(2)}`}
-                    />
-                  ) : (
-                    <SummaryRow
-                      label={`This rule (flat)`}
-                      value={`− €${tierAmount.toFixed(2)}`}
-                    />
-                  )}
+                  <SummaryRow
+                    label={
+                      pType === "fixed_price"
+                        ? "This range (fixed price)"
+                        : pType === "fixed_amount"
+                          ? "This range (flat)"
+                          : `This range (${pValue}%)`
+                    }
+                    value={
+                      pType === "fixed_price"
+                        ? `€${pValue.toFixed(2)}`
+                        : pType === "fixed_amount"
+                          ? `− €${pValue.toFixed(2)}`
+                          : `× ${(1 - pValue / 100).toFixed(2)}`
+                    }
+                  />
                   <Divider />
                   <SummaryRow
                     label="Wholesale price"

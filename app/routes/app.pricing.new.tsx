@@ -49,13 +49,22 @@ import {
 } from "@shopify/polaris";
 import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+
+import {
+  BandRangeTable,
+  defaultBand,
+  defaultBandRaw,
+  editorBandToRawBand,
+  rawBandToEditorBand,
+  type Band,
+} from "../components/pricing/band-range-table";
 import { useEffect, useRef, useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
-  createTier,
+  createRule,
   type TierAggregation,
   type TierCustomerEligibility,
   type TierDiscountType,
@@ -104,16 +113,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         .filter(Boolean),
     ),
   );
-  const minQtyStr = (form.get("minQty") ?? "").toString();
-  const discountType = (form.get("discountType") ?? "percentage")
-    .toString() as TierDiscountType;
-  const discountPctStr = (form.get("discountPct") ?? "").toString();
-  const discountAmountStr = (form.get("discountAmount") ?? "").toString();
   const aggregation = (form.get("aggregation") ?? "per_line").toString() as TierAggregation;
   const customerEligibility = (form.get("customerEligibility") ?? "wholesale_tagged")
     .toString() as TierCustomerEligibility;
   const marketEligibility = (form.get("marketEligibility") ?? "all_markets")
     .toString() as TierMarketEligibility;
+
+  // Multi-band (ADR-012): the Discount Range table serializes its rows
+  // into one hidden "bands" input as JSON. Each row carries minQty,
+  // quantityTo (null = open-ended), discountType, and a single
+  // discountValue that maps to pct / amount / fixedPrice by type.
+  type RawBand = {
+    minQty: number;
+    quantityTo: number | null;
+    discountType: TierDiscountType;
+    discountValue: number;
+  };
+  let rawBands: RawBand[] = [];
+  try {
+    rawBands = JSON.parse((form.get("bands") ?? "[]").toString()) as RawBand[];
+  } catch {
+    rawBands = [];
+  }
 
   const errors: Record<string, string> = {};
   if (!name) errors.name = "Name is required";
@@ -148,59 +169,84 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       "Mix variants aggregation cannot be combined with variant scope.";
   }
 
-  const minQty = Number(minQtyStr);
-  if (!Number.isInteger(minQty) || minQty < 1)
-    errors.minQty = "Minimum quantity must be a positive integer";
-
-  if (!["percentage", "fixed_amount"].includes(discountType))
-    errors.discountType = "Invalid discount type";
-
-  // Branch validation by type. The value field is always one of
-  // discountPct (for percentage) or discountAmount (for fixed_amount).
-  let discountPct = 0;
-  let discountAmount: number | null = null;
-  if (discountType === "percentage") {
-    discountPct = Number(discountPctStr);
-    if (Number.isNaN(discountPct) || discountPct < 0 || discountPct > 100)
-      errors.discountPct = "Discount must be between 0 and 100";
+  // Per-band validation. The Discount Range table guarantees at least
+  // one row client-side, but we re-validate here defensively.
+  if (!Array.isArray(rawBands) || rawBands.length === 0) {
+    errors.bands = "Add at least one quantity range";
   } else {
-    discountAmount = Number(discountAmountStr);
-    if (Number.isNaN(discountAmount) || discountAmount <= 0)
-      errors.discountAmount =
-        "Amount must be a positive number (in shop currency)";
+    rawBands.forEach((b, i) => {
+      const n = i + 1;
+      if (!Number.isInteger(b.minQty) || b.minQty < 1)
+        errors.bands = `Range ${n}: "Quantity from" must be a positive whole number`;
+      else if (
+        b.quantityTo != null &&
+        (!Number.isInteger(b.quantityTo) || b.quantityTo < b.minQty)
+      )
+        errors.bands = `Range ${n}: "Quantity to" must be ≥ "Quantity from" (leave blank for "and above")`;
+      else if (!["percentage", "fixed_amount", "fixed_price"].includes(b.discountType))
+        errors.bands = `Range ${n}: invalid discount type`;
+      else if (
+        b.discountType === "percentage" &&
+        (Number.isNaN(b.discountValue) || b.discountValue < 0 || b.discountValue > 100)
+      )
+        errors.bands = `Range ${n}: percentage must be between 0 and 100`;
+      else if (
+        b.discountType !== "percentage" &&
+        (Number.isNaN(b.discountValue) || b.discountValue <= 0)
+      )
+        errors.bands = `Range ${n}: amount must be greater than 0`;
+    });
   }
 
-  if (Object.keys(errors).length > 0) {
-    return json({
-      errors,
+  // Single failure shape so the action's return union stays uniform
+  // (TypeScript otherwise widens `values` to the union of every json
+  // return and can't narrow it in the component).
+  const fail = (errs: Record<string, string>) =>
+    json({
+      errors: errs,
       values: {
         name,
         scope,
         scopeIds,
-        minQtyStr,
-        discountType,
-        discountPctStr,
-        discountAmountStr,
         aggregation,
         customerEligibility,
         marketEligibility,
+        bands: rawBands,
       },
     });
+
+  if (Object.keys(errors).length > 0) {
+    return fail(errors);
   }
 
-  await createTier({
-    shopId: shop.id,
-    name,
-    scope,
-    scopeIds,
-    minQty,
-    discountPct,
-    discountType,
-    discountAmount,
-    aggregation,
-    customerEligibility,
-    marketEligibility,
-  });
+  // Map raw rows → BandInput (split discountValue by type).
+  const bands = rawBands.map((b) => ({
+    minQty: b.minQty,
+    quantityTo: b.quantityTo,
+    discountType: b.discountType,
+    discountPct: b.discountType === "percentage" ? b.discountValue : 0,
+    discountAmount: b.discountType === "fixed_amount" ? b.discountValue : null,
+    discountFixedPrice: b.discountType === "fixed_price" ? b.discountValue : null,
+  }));
+
+  try {
+    await createRule({
+      shopId: shop.id,
+      name,
+      scope,
+      scopeIds,
+      aggregation,
+      customerEligibility,
+      marketEligibility,
+      bands,
+    });
+  } catch (e) {
+    // createRule.validateBands throws human-readable messages on
+    // overlapping / non-ascending / multiple-open-ended bands.
+    return fail({
+      bands: e instanceof Error ? e.message : "Invalid quantity ranges",
+    });
+  }
 
   // Sync to the Shopify Discount Function so checkout enforces it.
   try {
@@ -345,17 +391,14 @@ export default function NewTier() {
   const [scopeItems, setScopeItems] = useState<ScopeItem[]>(
     (actionData?.values?.scopeIds ?? []).map((id) => ({ id, title: "" })),
   );
-  const [minQty, setMinQty] = useState<string>(
-    actionData?.values?.minQtyStr ?? "10",
-  );
-  const [discountType, setDiscountType] = useState<TierDiscountType>(
-    (actionData?.values?.discountType as TierDiscountType) ?? "percentage",
-  );
-  const [discountPct, setDiscountPct] = useState<string>(
-    actionData?.values?.discountPctStr ?? "10",
-  );
-  const [discountAmount, setDiscountAmount] = useState<string>(
-    actionData?.values?.discountAmountStr ?? "",
+  // Multi-band Discount Range table. Each row is one quantity band.
+  // On a validation-error replay, actionData.values.bands holds the
+  // numeric RawBand[] we POSTed — rehydrate it back into string-based
+  // editor rows. Otherwise start with one sensible default band.
+  const [bands, setBands] = useState<Band[]>(() =>
+    actionData?.values?.bands && actionData.values.bands.length > 0
+      ? actionData.values.bands.map(rawBandToEditorBand)
+      : [defaultBand()],
   );
   const [aggregation, setAggregation] = useState<TierAggregation>(
     (actionData?.values?.aggregation as TierAggregation) ?? "per_line",
@@ -386,12 +429,6 @@ export default function NewTier() {
     name: actionData?.values?.name ?? "",
     scope: (actionData?.values?.scope as TierScope) ?? ("all" as TierScope),
     scopeIds: actionData?.values?.scopeIds ?? ([] as string[]),
-    minQty: actionData?.values?.minQtyStr ?? "10",
-    discountType:
-      (actionData?.values?.discountType as TierDiscountType) ??
-      ("percentage" as TierDiscountType),
-    discountPct: actionData?.values?.discountPctStr ?? "10",
-    discountAmount: actionData?.values?.discountAmountStr ?? "",
     aggregation:
       (actionData?.values?.aggregation as TierAggregation) ??
       ("per_line" as TierAggregation),
@@ -402,15 +439,26 @@ export default function NewTier() {
       (actionData?.values?.marketEligibility as TierMarketEligibility) ??
       ("all_markets" as TierMarketEligibility),
   };
+  // Serialize bands for the hidden input + dirty check. One default
+  // band = "pristine"; any edit/add/remove flips dirty.
+  const bandsPayload = JSON.stringify(bands.map(editorBandToRawBand));
+  const initialBandsPayload = JSON.stringify(
+    (actionData?.values?.bands ?? [defaultBandRaw()]).map((b) => ({
+      minQty: Number(b.minQty),
+      quantityTo:
+        b.quantityTo === null || b.quantityTo === undefined
+          ? null
+          : Number(b.quantityTo),
+      discountType: b.discountType,
+      discountValue: Number(b.discountValue),
+    })),
+  );
   const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
     name !== initial.name ||
     scope !== initial.scope ||
     !sameIdSet(currentScopeIds, initial.scopeIds) ||
-    minQty !== initial.minQty ||
-    discountType !== initial.discountType ||
-    discountPct !== initial.discountPct ||
-    discountAmount !== initial.discountAmount ||
+    bandsPayload !== initialBandsPayload ||
     aggregation !== initial.aggregation ||
     customerEligibility !== initial.customerEligibility ||
     marketEligibility !== initial.marketEligibility;
@@ -435,10 +483,11 @@ export default function NewTier() {
     setName(initial.name);
     setScope(initial.scope);
     setScopeItems(initial.scopeIds.map((id) => ({ id, title: "" })));
-    setMinQty(initial.minQty);
-    setDiscountType(initial.discountType);
-    setDiscountPct(initial.discountPct);
-    setDiscountAmount(initial.discountAmount);
+    setBands(
+      actionData?.values?.bands && actionData.values.bands.length > 0
+        ? actionData.values.bands.map(rawBandToEditorBand)
+        : [defaultBand()],
+    );
     setAggregation(initial.aggregation);
     setCustomerEligibility(initial.customerEligibility);
     setMarketEligibility(initial.marketEligibility);
@@ -475,17 +524,25 @@ export default function NewTier() {
    *  assumes qty=1 on a €100 retail unit so the merchant can read
    *  the impact at a glance.
    */
+  // Preview uses the HIGHEST band (last row) — the deepest discount the
+  // customer can unlock — on a €100 retail unit.
   const previewRetail = 100;
   const baselineFactor = 1 - baselinePct / 100;
-  const tierPct = Number(discountPct) || 0;
-  const tierAmount = Number(discountAmount) || 0;
-  const tierFactor =
-    discountType === "percentage" ? 1 - tierPct / 100 : 1;
-  const fixedDeduction = discountType === "fixed_amount" ? tierAmount : 0;
-  const previewWholesale = Math.max(
-    0,
-    previewRetail * baselineFactor * tierFactor - fixedDeduction,
-  );
+  const previewBand = bands[bands.length - 1];
+  const pType = previewBand?.discountType ?? "percentage";
+  const pValue = Number(previewBand?.discountValue) || 0;
+  let previewWholesale: number;
+  if (pType === "fixed_price") {
+    // Final per-unit price overrides retail entirely (baseline ignored).
+    previewWholesale = Math.min(previewRetail, pValue);
+  } else if (pType === "fixed_amount") {
+    previewWholesale = Math.max(0, previewRetail * baselineFactor - pValue);
+  } else {
+    previewWholesale = Math.max(
+      0,
+      previewRetail * baselineFactor * (1 - pValue / 100),
+    );
+  }
   const previewSavings = previewRetail - previewWholesale;
 
   /* ----- summary derived strings ----- */
@@ -503,18 +560,25 @@ export default function NewTier() {
         ? `${scopeOption.title} (none selected)`
         : `${scopeItems.length} ${scopeNoun}`;
 
-  const triggerSummary = minQty
-    ? `${minQty} units · ${aggregation === "per_line" ? "per line" : aggregation === "mix_variants" ? "mix variants" : "cart total"}`
-    : "—";
+  const aggLabel =
+    aggregation === "per_line"
+      ? "per line"
+      : aggregation === "mix_variants"
+        ? "mix variants"
+        : "cart total";
+  const triggerSummary = `${bands.length} ${bands.length === 1 ? "range" : "ranges"} · ${aggLabel}`;
 
   const discountSummary =
-    discountType === "fixed_amount"
-      ? tierAmount
-        ? `€${tierAmount} off per unit`
-        : "—"
-      : tierPct
-        ? `${tierPct}% off`
-        : "—";
+    bands.length === 0
+      ? "—"
+      : bands
+          .map((b) => {
+            const v = Number(b.discountValue) || 0;
+            if (b.discountType === "fixed_price") return `€${v}/unit`;
+            if (b.discountType === "fixed_amount") return `−€${v}`;
+            return `${v}%`;
+          })
+          .join(" · ");
 
   return (
     <Page backAction={{ content: "Wholesale pricing", url: "/app/pricing" }}>
@@ -545,7 +609,7 @@ export default function NewTier() {
          */}
         <input type="hidden" name="scope" value={scope} />
         <input type="hidden" name="aggregation" value={aggregation} />
-        <input type="hidden" name="discountType" value={discountType} />
+        <input type="hidden" name="bands" value={bandsPayload} />
         <input
           type="hidden"
           name="customerEligibility"
@@ -748,16 +812,16 @@ export default function NewTier() {
                 </BlockStack>
               </Card>
 
-              {/* ----- Trigger ----- */}
+              {/* ----- How quantities are counted (aggregation) ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      Trigger
+                      How quantities are counted
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      When does this tier kick in? Choose how the minimum
-                      quantity is counted.
+                      Applies to every range below. Choose how the cart
+                      quantity is measured against each range&apos;s minimum.
                     </Text>
                   </BlockStack>
 
@@ -790,95 +854,33 @@ export default function NewTier() {
                       <p>{errors.aggregation}</p>
                     </Banner>
                   )}
-
-                  <TextField
-                    label="Minimum quantity to activate the tier"
-                    name="minQty"
-                    type="number"
-                    min={1}
-                    autoComplete="off"
-                    value={minQty}
-                    onChange={setMinQty}
-                    error={errors.minQty}
-                    suffix="units"
-                    helpText={
-                      aggregation === "per_line"
-                        ? "Each cart line must reach this quantity on its own."
-                        : "Sum of all in-scope cart lines must reach this quantity."
-                    }
-                    requiredIndicator
-                  />
                 </BlockStack>
               </Card>
 
-              {/* ----- Discount ----- */}
+              {/* ----- Discount Range (multi-band) ----- */}
               <Card>
                 <BlockStack gap="400">
                   <BlockStack gap="100">
                     <Text variant="headingMd" as="h2">
-                      Discount
+                      Discount Range
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      How is the wholesale price calculated? Both options
-                      compose with the shop&apos;s wholesale baseline — the
-                      Preview panel on the right shows the live math.
+                      The more they buy, the bigger the discount. Add one row
+                      per quantity band. Leave the last &quot;Quantity to&quot;
+                      blank for &quot;and above&quot;.
                     </Text>
                   </BlockStack>
 
-                  {/*
-                    2-card grid (Sami pattern). Only two types ship in v1:
-                    Percentage and Fixed amount. "Fixed wholesale price"
-                    and "Custom price list" deferred — those overlap with
-                    the Per-customer overrides card on the Pricing hub
-                    (Coming soon) and weren't worth scaffolding as fakes.
-                   */}
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
-                    <ChoiceCard
-                      selected={discountType === "percentage"}
-                      onSelect={() => setDiscountType("percentage")}
-                      title="Percentage discount"
-                      description="Example: 10% off the line price."
-                    />
-                    <ChoiceCard
-                      selected={discountType === "fixed_amount"}
-                      onSelect={() => setDiscountType("fixed_amount")}
-                      title="Fixed amount discount"
-                      description="Example: €10 off each unit."
-                    />
-                  </InlineGrid>
+                  <BandRangeTable
+                    bands={bands}
+                    onChange={setBands}
+                    currency="€"
+                  />
 
-                  {discountType === "percentage" ? (
-                    <TextField
-                      label="Discount percent"
-                      name="discountPct"
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      autoComplete="off"
-                      value={discountPct}
-                      onChange={setDiscountPct}
-                      error={errors.discountPct}
-                      suffix="%"
-                      helpText="Between 0 and 100. Composes multiplicatively on top of the baseline."
-                      requiredIndicator
-                    />
-                  ) : (
-                    <TextField
-                      label="Amount off per unit"
-                      name="discountAmount"
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      autoComplete="off"
-                      value={discountAmount}
-                      onChange={setDiscountAmount}
-                      error={errors.discountAmount}
-                      prefix="€"
-                      helpText="Flat amount subtracted from each unit AFTER the baseline applies. Use shop-currency value."
-                      placeholder="10.00"
-                      requiredIndicator
-                    />
+                  {errors.bands && (
+                    <Banner tone="critical">
+                      <p>{errors.bands}</p>
+                    </Banner>
                   )}
                 </BlockStack>
               </Card>
@@ -947,8 +949,9 @@ export default function NewTier() {
                       Preview
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      On a €100 retail product, what a qualifying customer
-                      pays at checkout:
+                      On a €100 retail product at the deepest range
+                      ({bands.length === 1 ? "the only range" : `range ${bands.length}`}),
+                      what a qualifying customer pays at checkout:
                     </Text>
                   </BlockStack>
                   <Divider />
@@ -958,19 +961,28 @@ export default function NewTier() {
                   />
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
-                    value={`× ${baselineFactor.toFixed(2)}`}
+                    value={
+                      pType === "fixed_price"
+                        ? "ignored (fixed price)"
+                        : `× ${baselineFactor.toFixed(2)}`
+                    }
                   />
-                  {discountType === "percentage" ? (
-                    <SummaryRow
-                      label={`This rule (${tierPct}%)`}
-                      value={`× ${tierFactor.toFixed(2)}`}
-                    />
-                  ) : (
-                    <SummaryRow
-                      label={`This rule (flat)`}
-                      value={`− €${tierAmount.toFixed(2)}`}
-                    />
-                  )}
+                  <SummaryRow
+                    label={
+                      pType === "fixed_price"
+                        ? "This range (fixed price)"
+                        : pType === "fixed_amount"
+                          ? "This range (flat)"
+                          : `This range (${pValue}%)`
+                    }
+                    value={
+                      pType === "fixed_price"
+                        ? `€${pValue.toFixed(2)}`
+                        : pType === "fixed_amount"
+                          ? `− €${pValue.toFixed(2)}`
+                          : `× ${(1 - pValue / 100).toFixed(2)}`
+                    }
+                  />
                   <Divider />
                   <SummaryRow
                     label="Wholesale price"
