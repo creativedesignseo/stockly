@@ -684,12 +684,27 @@ export default function EditWholesalePricing() {
       <SaveBar id={SAVE_BAR_ID}>
         <button
           variant="primary"
-          onClick={() => formRef.current?.requestSubmit()}
+          onClick={() => {
+            // Dismiss the bar BEFORE the form's redirect navigation so
+            // App Bridge's leave-confirmation doesn't fire and the bar
+            // doesn't leak onto the list page. On a validation error the
+            // action returns json (no redirect) and the isDirty effect
+            // re-shows the bar. See plan: SaveBar persistence fix.
+            shopify.saveBar.hide(SAVE_BAR_ID);
+            formRef.current?.requestSubmit();
+          }}
           loading={submitting ? "" : undefined}
         >
           Save
         </button>
-        <button onClick={handleDiscard}>Discard</button>
+        <button
+          onClick={() => {
+            shopify.saveBar.hide(SAVE_BAR_ID);
+            handleDiscard();
+          }}
+        >
+          Discard
+        </button>
       </SaveBar>
       <Form method="post" ref={formRef}>
         <input type="hidden" name="intent" value="update" />

@@ -700,12 +700,24 @@ export default function EditVolumePricing() {
       <SaveBar id={SAVE_BAR_ID}>
         <button
           variant="primary"
-          onClick={() => formRef.current?.requestSubmit()}
+          onClick={() => {
+            // Dismiss before the redirect so App Bridge's leave-
+            // confirmation doesn't fire / leak the bar to the list.
+            shopify.saveBar.hide(SAVE_BAR_ID);
+            formRef.current?.requestSubmit();
+          }}
           loading={submitting ? "" : undefined}
         >
           Save
         </button>
-        <button onClick={handleDiscard}>Discard</button>
+        <button
+          onClick={() => {
+            shopify.saveBar.hide(SAVE_BAR_ID);
+            handleDiscard();
+          }}
+        >
+          Discard
+        </button>
       </SaveBar>
       <Form method="post" ref={formRef}>
         <input type="hidden" name="intent" value="update" />
