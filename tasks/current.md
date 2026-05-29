@@ -4,7 +4,21 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-05-26 (PM session)
+**Last updated:** 2026-05-29 (Registration Form multi-form sprint shipped)
+
+---
+
+## Just shipped (2026-05-29) — Registration Form multi-form
+
+LIVE on Fly v62 + Shopify stockly-26. N forms per shop; admin LIST →
+editor (`/app/registration-form` list, `/app/registration-form/$id`
+editor); storefront `form_shortcode` block setting with dual-serve
+back-compat. Full detail in `progress/2026-05-29-multi-form-sprint.md`
+and the "Registration Form multi-form" block in HANDOFF.md. Open
+follow-ups from the reviewer: SHOULD-2 (`proxy.apply.tsx` validates
+non-default forms against the default definition — log-only noise, fix
+before the Phase 1F validator cutover) and trimming `registration-form.js`
+below the 10 KB app-block threshold.
 
 ---
 

@@ -3,12 +3,12 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-29 — SaveBar validation-failure fix LIVE (pricing editors)
-**Last commit:** `6bb3b1f` — fix(pricing): keep SaveBar visible on validation failure + show errors
+**Last updated:** 2026-05-29 — Registration Form multi-form sprint LIVE (list→editor + storefront shortcode)
+**Last commit:** `ba6ae0c` — feat(registration-form): list→editor split + storefront shortcode
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v60` (manual deploy 2026-05-29 — SaveBar fix: saving a rule with an empty name no longer silently appears to succeed; the 4 pricing editors keep the bar + list errors)
-**Shopify app version:** `stockly-25` (storefront registration-form.css polish; ⚠️ deploy warned `registration-form.js` is 12.9 KB > 10 KB app-block threshold — non-blocking, trim later)
+**Fly version:** `v62` (manual deploy 2026-05-29 — Registration Form is now N-forms: admin LIST → editor; see "Registration Form multi-form" below). v61 failed on the `prisma db push` release_command (Prisma demands `--accept-data-loss` to ADD a UNIQUE; resolved by pre-creating `RegistrationForm_shortCode_key` + pre-filling shortCode on the single prod row, then v62 deployed clean).
+**Shopify app version:** `stockly-26` (storefront `registration-form` block gains optional `form_shortcode` setting; dual-serve — no shortcode resolves the active default so theme blocks already placed keep working. ⚠️ `registration-form.js` still 12.9 KB > 10 KB app-block threshold — non-blocking, trim later)
 **Earlier 2026-05-29:** Fly v58 shipped the SaveBar fix `865e35d` (its 2026-05-28 push-deploy had failed on a release_command timeout); deploy is now gated to manual `workflow_dispatch`
 **Deploy is now MANUAL:** `.github/workflows/fly-deploy.yml` is `workflow_dispatch` only. Push to main no longer ships to prod. Deploy with `gh workflow run fly-deploy.yml --ref main`. Storefront extension ships separately via `npx shopify app deploy`.
 
@@ -23,6 +23,32 @@
 **Public legal URLs (LIVE, DRAFT):**
   - https://stockly-lustrous-forest-4364.fly.dev/legal/privacy
   - https://stockly-lustrous-forest-4364.fly.dev/legal/terms
+
+**Registration Form multi-form (LIVE 2026-05-29, Fly v62 / stockly-26):**
+  - Model is now **N forms per shop** (was 1/shop). `RegistrationForm`:
+    `shopId` no longer `@unique` (→ `@@index`); added `name`,
+    `shortCode @unique` (cuid), `isDefault`.
+  - **Admin**: `/app/registration-form` is now a LIST (IndexTable: Id /
+    Name / Short Code chip / Status toggle / Created; All/Active/Draft
+    tabs; "Add new" → TemplatePickerModal → creates a DRAFT → opens the
+    editor). The editor moved to `/app/registration-form/$id`. Default
+    form cannot be deleted (server + UI guard).
+  - **Storefront**: the `registration-form` theme block gained an
+    optional `form_shortcode` setting. With a shortcode it serves that
+    form; without one it serves the shop's active default (dual-serve,
+    back-compat). Cross-shop isolation verified: `resolveStorefrontForm`
+    filters by `shopId` AND `shortCode` (reviewer PASS + tests).
+  - **Prod DB**: 1 existing row promoted in place — `name='Registration
+    form'`, `shortCode='rfmpqd344201poil'`, `isDefault=true`,
+    `status='draft'` (it was already draft pre-sprint; flip to active in
+    the editor when you want the storefront to serve it).
+  - Design system doc added: `docs/design-system.md` (canonical
+    admin/storefront tokens + list→editor pattern).
+  - **Pending validation by Jonatan (with your eyes):** open the admin
+    list, create a 2nd form from a template, confirm it appears, edit it,
+    then on the dev store paste its Short Code into a theme block and
+    confirm the storefront renders THAT form (and a block with no
+    shortcode still serves the default).
 
 ---
 
