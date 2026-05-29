@@ -4,7 +4,22 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-05-29 (Registration Form multi-form sprint shipped)
+**Last updated:** 2026-05-29 (rescue deep-read + interview in progress)
+
+---
+
+## In progress (2026-05-29) — Rescue audit + interview
+
+Read-only deep audit of the whole project to produce a rescue plan
+without scope creep. Round 1 of the interview (10 questions) is asked;
+awaiting Jonatan's answers, then Round 2, then a consolidated rescue
+document. Full technical radiography + open questions in
+`progress/2026-05-29-rescue-deep-read-and-interview.md`. NO code is to be
+touched until the interview closes. Key findings to act on after:
+Volume Pricing multi-band has no admin UI (storage-only); the Discount
+Function's 7 fixtures have never run (broken extension test runner);
+no Billing (B0-2); `orders/paid` still gated on B0-5; ADR-014 referenced
+but missing.
 
 ---
 
