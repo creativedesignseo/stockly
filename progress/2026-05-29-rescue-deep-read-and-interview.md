@@ -90,10 +90,43 @@ freeze; what he'd do if rebuilding from scratch.
   paying path on ONE real store, fix the revenue-path test runner so the
   pricing engine is trustworthy, decide billing model.
 
-## Next step
+## Update (later 2026-05-29) — interview round 2 + user direction
 
-Jonatan answers Round 1 → Round 2 → write the consolidated rescue
-document. NO implementation until the interview closes.
+Jonatan did not answer Round 1 verbatim but gave direction that reframes
+the rescue:
+
+- **New top concern: DESIGN.** He said "falta diseño" (design is missing)
+  and "necesito reconfigurar todo" (I need to reconfigure everything).
+  OPEN: is this *maquillaje* (a visual pass over the existing app) or
+  *cirugía* (re-architecting structure/flows)? Must clarify before any
+  plan — they are very different efforts. Round 2 asked him to split
+  "falta diseño" into: (a) admin look&feel, (b) storefront, (c) product
+  structure/navigation, (d) positioning.
+- **North star confirmed (his words):** Stockly = bring Shopify's
+  powerful B2B capability — normally locked to Plus ($2,300/mo) — down to
+  Basic/Grow, with a premium face. He framed it as "la capacidad potente
+  de B2B [de] Shopify". Validate the exact one-liner with him.
+- **Reference aesthetic:** repo says "premium luxury brand"; asked him to
+  confirm or give a concrete visual reference (Sami / a Figma / shots).
+- **He wants to continue this project in the Claude Code DESKTOP app.**
+  This closure exists so the desktop session resumes with full context.
+
+Round 2 questions asked (awaiting answers): (1) what exactly "falta
+diseño" means (a/b/c/d), (2) maquillaje vs cirugía, (3) concrete visual
+reference, (4) his one-line "why pay for Stockly vs BSS / native B2B",
+(5) nearest goal (paying pilot / App Store / sellable demo) + is Piro
+committed.
+
+## Next step (resume in desktop)
+
+1. Get Jonatan's answers to the Round 2 design questions — especially
+   maquillaje vs cirugía, because that decides the whole plan shape.
+2. Then Round 3 (acceptable vs blocking tech debt, missing accesses to
+   verify on Shopify/Fly/GitHub, what to freeze, rebuild-from-scratch).
+3. Then write the consolidated rescue document (radiography, planning
+   diagnosis, real feature list, blockers, 24h/72h/7d plan, DoD per
+   phase, what to freeze, what not to touch, what to verify in Shopify).
+NO implementation until the interview closes.
 
 ## Note
 

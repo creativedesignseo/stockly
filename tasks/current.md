@@ -11,9 +11,11 @@
 ## In progress (2026-05-29) — Rescue audit + interview
 
 Read-only deep audit of the whole project to produce a rescue plan
-without scope creep. Round 1 of the interview (10 questions) is asked;
-awaiting Jonatan's answers, then Round 2, then a consolidated rescue
-document. Full technical radiography + open questions in
+without scope creep. Interview rounds 1+2 asked; awaiting Jonatan's
+answers. **New top concern from Jonatan: DESIGN** ("falta diseño /
+necesito reconfigurar todo") — OPEN whether that means a visual pass
+(maquillaje) or re-architecture (cirugía); that decision shapes the
+whole plan. **Continuing in the Claude Code desktop app.** Full technical radiography + open questions in
 `progress/2026-05-29-rescue-deep-read-and-interview.md`. NO code is to be
 touched until the interview closes. Key findings to act on after:
 Volume Pricing multi-band has no admin UI (storage-only); the Discount
