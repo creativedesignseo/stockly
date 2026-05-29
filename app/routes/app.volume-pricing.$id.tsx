@@ -701,9 +701,10 @@ export default function EditVolumePricing() {
         <button
           variant="primary"
           onClick={() => {
-            // Dismiss before the redirect so App Bridge's leave-
-            // confirmation doesn't fire / leak the bar to the list.
-            shopify.saveBar.hide(SAVE_BAR_ID);
+            // Don't hide optimistically — on validation failure the
+            // action returns json (no redirect) and the bar must stay
+            // visible so the merchant knows it wasn't saved. On success
+            // the redirect unmounts this route and the cleanup hides it.
             formRef.current?.requestSubmit();
           }}
           loading={submitting ? "" : undefined}
@@ -750,7 +751,13 @@ export default function EditVolumePricing() {
           <Layout.Section>
             <BlockStack gap="400">
               {Object.keys(errors).length > 0 && (
-                <Banner tone="critical" title="Please fix the errors below" />
+                <Banner tone="critical" title="Couldn’t save — please fix these:">
+                  <ul style={{ margin: 0, paddingInlineStart: "1.25rem" }}>
+                    {Object.values(errors).map((msg, i) => (
+                      <li key={i}>{msg}</li>
+                    ))}
+                  </ul>
+                </Banner>
               )}
 
               {/* ----- Pricing rule information ----- */}

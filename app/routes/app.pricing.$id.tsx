@@ -685,12 +685,12 @@ export default function EditWholesalePricing() {
         <button
           variant="primary"
           onClick={() => {
-            // Dismiss the bar BEFORE the form's redirect navigation so
-            // App Bridge's leave-confirmation doesn't fire and the bar
-            // doesn't leak onto the list page. On a validation error the
-            // action returns json (no redirect) and the isDirty effect
-            // re-shows the bar. See plan: SaveBar persistence fix.
-            shopify.saveBar.hide(SAVE_BAR_ID);
+            // Don't hide optimistically. On a validation error the
+            // action returns json (no redirect) and isDirty does NOT
+            // change, so the [isDirty] effect won't re-show a manually
+            // hidden bar — that was the silent "looks saved but wasn't"
+            // bug. On success the redirect unmounts this route and the
+            // useEffect cleanup hides the bar.
             formRef.current?.requestSubmit();
           }}
           loading={submitting ? "" : undefined}
@@ -735,7 +735,13 @@ export default function EditWholesalePricing() {
           <Layout.Section>
             <BlockStack gap="400">
               {Object.keys(errors).length > 0 && (
-                <Banner tone="critical" title="Please fix the errors below" />
+                <Banner tone="critical" title="Couldn’t save — please fix these:">
+                  <ul style={{ margin: 0, paddingInlineStart: "1.25rem" }}>
+                    {Object.values(errors).map((msg, i) => (
+                      <li key={i}>{msg}</li>
+                    ))}
+                  </ul>
+                </Banner>
               )}
 
               {rule.bandCount > 1 && (
