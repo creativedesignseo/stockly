@@ -103,10 +103,11 @@ model Shop {
   applications         WholesaleApplication[]
   onboardingResponses  OnboardingResponse[]
 
-  /// Singleton — one editable Registration Form per shop (RF Phase 1A,
-  /// ADR-013). Created lazily by `ensureDefaultRegistrationForm` on
-  /// first install or on first storefront fetch.
-  registrationForm     RegistrationForm?
+  /// Registration Forms for this shop (RF Phase 1 — N-forms, ADR-013).
+  /// One row is flagged `isDefault` and serves as the storefront
+  /// fallback when no shortcode is supplied. Seeded lazily by
+  /// `ensureDefaultRegistrationForm` on first install or storefront fetch.
+  registrationForms    RegistrationForm[]
   /// Generic submission table that replaces WholesaleApplication.
   /// Both tables coexist during the soak window (Phase 1A–1F); the
   /// legacy table is dropped in Phase 1G.
@@ -333,8 +334,22 @@ model WholesaleApplication {
 ///     SQL joins needed at request time.
 model RegistrationForm {
   id          String   @id @default(cuid())
-  shopId      String   @unique
+  shopId      String
   shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  /// Merchant-facing label shown in the admin list (Phase 1 N-forms).
+  /// Defaulted so existing single-row shops backfill safely.
+  name        String   @default("Registration form")
+
+  /// Public embed handle. The storefront block passes this as
+  /// `?shortcode=` to resolve a specific form; absent → the shop's
+  /// `isDefault` active form (dual-serve back-compat). Globally unique.
+  shortCode   String   @unique @default(cuid())
+
+  /// Exactly one row per shop is the default; the storefront serves it
+  /// when no shortcode is supplied. The back-compat seed marks itself
+  /// default so legacy single-row shops keep working.
+  isDefault   Boolean  @default(false)
 
   /// 'active' is served by the storefront block; 'draft' falls back to
   /// the seeded default form so the storefront never breaks.
@@ -366,6 +381,8 @@ model RegistrationForm {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([shopId])
 }
 
 /// Generic form submission. Replaces `WholesaleApplication`. The full

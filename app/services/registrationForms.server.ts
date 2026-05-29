@@ -1,17 +1,35 @@
 /**
- * Registration Form service (ADR-013, Phase 1B).
+ * Registration Form service (ADR-013, Phase 1 — N-forms).
  *
- * CRUD for the per-shop singleton `RegistrationForm` row + seed
- * helpers. Routes (admin + storefront proxy) MUST go through this
- * file rather than touching `prisma.registrationForm` directly so the
- * back-compat default seeding stays consistent.
+ * Manages the per-shop COLLECTION of `RegistrationForm` rows + seed
+ * helpers. Routes (admin + storefront proxy) MUST go through this file
+ * rather than touching `prisma.registrationForm` directly so the
+ * default-form invariant (exactly one `isDefault` row per shop) and the
+ * back-compat seeding stay consistent.
  *
- * Exports:
- *   - `getRegistrationForm(shopId)` — read.
- *   - `ensureDefaultRegistrationForm(shopId)` — idempotent create.
- *   - `upsertRegistrationForm(shopId, patch)` — admin save path.
- *   - `TEMPLATES` / `TEMPLATE_META` — re-exported from `lib/seeds.ts`.
- *   - `DEFAULT_FORM_DEFINITION` / `DEFAULT_APPEARANCE` / `DEFAULT_SETTINGS`.
+ * Multi-form model (Phase 1):
+ *   - A shop can have many forms. One is flagged `isDefault`.
+ *   - The storefront resolves a form by `shortCode`; absent → the
+ *     `isDefault` active form (dual-serve back-compat for theme blocks
+ *     placed before shortcodes existed).
+ *
+ * Collection API:
+ *   - `listRegistrationForms(shopId)`
+ *   - `getRegistrationFormById(id, shopId)`
+ *   - `createRegistrationFormFromTemplate(shopId, templateId, name?)`
+ *   - `updateRegistrationForm(id, shopId, patch)`
+ *   - `deleteRegistrationForm(id, shopId)`
+ *   - `setStatus(id, shopId, status)`
+ *   - `resolveStorefrontForm(shopId, shortCode?)`
+ *
+ * Back-compat API (load-bearing — singleton callers depend on these):
+ *   - `getRegistrationForm(shopId)` — returns the shop's default form.
+ *   - `ensureDefaultRegistrationForm(shopId)` — idempotent default seed.
+ *   - `upsertRegistrationForm(shopId, patch)` — saves the default form.
+ *
+ * Helpers / re-exports:
+ *   - `parseDefinition` / `parseAppearance` / `parseSettings`.
+ *   - `TEMPLATES` / `TEMPLATE_META` / `DEFAULT_*` — from `lib/seeds.ts`.
  */
 import type { Prisma, RegistrationForm } from "@prisma/client";
 import prisma from "../db.server";
@@ -26,6 +44,7 @@ import type {
   FormAppearance,
   FormSettings,
   RegistrationFormDefinition,
+  SeedTemplateId,
 } from "../lib/registrationForm/types";
 
 export {
@@ -36,48 +55,255 @@ export {
   TEMPLATE_META,
 };
 
-/**
- * Read the singleton form for a shop. Returns null if not yet seeded
- * (callers that need the form to always exist should use
- * `ensureDefaultRegistrationForm` instead).
- */
-export async function getRegistrationForm(
-  shopId: string,
-): Promise<RegistrationForm | null> {
-  return prisma.registrationForm.findUnique({ where: { shopId } });
-}
+/* -------------------------------------------------------------------------- */
+/*                              Collection reads                              */
+/* -------------------------------------------------------------------------- */
 
 /**
- * Idempotent: creates the back-compat default form if none exists for
- * the shop, returns the (existing or fresh) row. Safe to call from
- * `getOrCreateShop` and from the App Proxy GET endpoint as a defensive
- * fallback for shops installed before Phase 1A landed.
- *
- * Uses Prisma `upsert` so concurrent first-render races don't throw
- * P2002 on the unique `shopId` constraint.
+ * List every form for a shop, default first then newest first. Powers
+ * the admin list screen (Phase 3).
  */
-export async function ensureDefaultRegistrationForm(
+export async function listRegistrationForms(
   shopId: string,
-): Promise<RegistrationForm> {
-  return prisma.registrationForm.upsert({
+): Promise<RegistrationForm[]> {
+  return prisma.registrationForm.findMany({
     where: { shopId },
-    create: {
-      shopId,
-      status: "active",
-      definition: DEFAULT_FORM_DEFINITION as unknown as Prisma.InputJsonValue,
-      appearance: DEFAULT_APPEARANCE as unknown as Prisma.InputJsonValue,
-      settings: DEFAULT_SETTINGS as unknown as Prisma.InputJsonValue,
-      version: 1,
-    },
-    // Nothing to update — we only want the existing row when present.
-    update: {},
+    orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
   });
 }
 
 /**
- * Patch shape accepted by the admin save action. All four slices are
- * optional so the route can save just one panel at a time if it wants;
- * Phase 1's admin UI saves the whole state at once via ContextualSaveBar.
+ * Read a single form scoped to its shop. Returns null when the id does
+ * not exist OR belongs to another shop (the `shopId` guard prevents a
+ * tenant from loading another tenant's form by guessing the cuid).
+ */
+export async function getRegistrationFormById(
+  id: string,
+  shopId: string,
+): Promise<RegistrationForm | null> {
+  return prisma.registrationForm.findFirst({ where: { id, shopId } });
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            Collection mutations                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Create a brand-new form for a shop, seeded from a template's field
+ * definition. Appearance + settings start from the shared defaults.
+ * The new form is NOT the default and starts `draft` so it never
+ * silently replaces the live default form. `shortCode` is generated by
+ * the DB default (cuid).
+ */
+export async function createRegistrationFormFromTemplate(
+  shopId: string,
+  templateId: SeedTemplateId,
+  name?: string,
+): Promise<RegistrationForm> {
+  const definition = TEMPLATES[templateId] ?? DEFAULT_FORM_DEFINITION;
+  const meta = TEMPLATE_META.find((t) => t.id === templateId);
+  return prisma.registrationForm.create({
+    data: {
+      shopId,
+      name: name?.trim() || meta?.name || "Registration form",
+      isDefault: false,
+      status: "draft",
+      definition: definition as unknown as Prisma.InputJsonValue,
+      appearance: DEFAULT_APPEARANCE as unknown as Prisma.InputJsonValue,
+      settings: DEFAULT_SETTINGS as unknown as Prisma.InputJsonValue,
+      version: 1,
+    },
+  });
+}
+
+/**
+ * Patch shape accepted by the per-form save action. Every slice is
+ * optional so the route can save just one panel at a time; the admin UI
+ * saves the whole state at once via the ContextualSaveBar.
+ */
+export interface UpdateRegistrationFormInput {
+  name?: string;
+  status?: "active" | "draft";
+  definition?: RegistrationFormDefinition;
+  appearance?: FormAppearance;
+  settings?: FormSettings;
+}
+
+/**
+ * Update a form by id (shop-scoped). Bumps `version` on every call so
+ * the storefront GET (Cache-Control: no-cache) refetches. Throws if the
+ * id does not belong to the shop.
+ */
+export async function updateRegistrationForm(
+  id: string,
+  shopId: string,
+  patch: UpdateRegistrationFormInput,
+): Promise<RegistrationForm> {
+  const existing = await getRegistrationFormById(id, shopId);
+  if (!existing) {
+    throw new Error(`RegistrationForm ${id} not found for shop ${shopId}`);
+  }
+  return prisma.registrationForm.update({
+    where: { id: existing.id },
+    data: buildUpdateData(existing, patch),
+  });
+}
+
+/**
+ * Delete a form by id (shop-scoped). The default form cannot be deleted
+ * (it is the storefront fallback); callers must promote another form
+ * first. Returns true when a row was deleted.
+ */
+export async function deleteRegistrationForm(
+  id: string,
+  shopId: string,
+): Promise<boolean> {
+  const existing = await getRegistrationFormById(id, shopId);
+  if (!existing) return false;
+  if (existing.isDefault) {
+    throw new Error("Cannot delete the default registration form");
+  }
+  await prisma.registrationForm.delete({ where: { id: existing.id } });
+  return true;
+}
+
+/**
+ * Flip a form's active/draft status (shop-scoped). Bumps `version`.
+ */
+export async function setStatus(
+  id: string,
+  shopId: string,
+  status: "active" | "draft",
+): Promise<RegistrationForm> {
+  const existing = await getRegistrationFormById(id, shopId);
+  if (!existing) {
+    throw new Error(`RegistrationForm ${id} not found for shop ${shopId}`);
+  }
+  return prisma.registrationForm.update({
+    where: { id: existing.id },
+    data: { status, version: { increment: 1 } },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            Storefront resolver                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Resolve the form the storefront should render.
+ *
+ *   1. If `shortCode` is supplied, return that exact form (scoped to the
+ *      shop). If it doesn't resolve, fall through to the default so a
+ *      stale/typo shortcode never breaks the page.
+ *   2. Otherwise return the shop's default form (`getRegistrationForm`),
+ *      seeding the back-compat default if the shop has none yet.
+ *
+ * Dual-serve: theme blocks placed before shortcodes existed send no
+ * shortcode and keep getting the default form unchanged.
+ */
+export async function resolveStorefrontForm(
+  shopId: string,
+  shortCode?: string | null,
+): Promise<RegistrationForm> {
+  if (shortCode) {
+    const byCode = await prisma.registrationForm.findFirst({
+      where: { shopId, shortCode },
+    });
+    if (byCode) return byCode;
+  }
+  return ensureDefaultRegistrationForm(shopId);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Back-compat (load-bearing)                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Read the shop's DEFAULT form. Returns null if the shop has none yet
+ * (callers that need the form to always exist should use
+ * `ensureDefaultRegistrationForm` / `resolveStorefrontForm`).
+ *
+ * Back-compat note: replaces the old `findUnique({ shopId })` now that
+ * `shopId` is no longer unique. Prefers the `isDefault` row; falls back
+ * to the oldest row for the shop so a shop whose default flag was never
+ * set (shouldn't happen post-seed, but defensive) still resolves.
+ */
+export async function getRegistrationForm(
+  shopId: string,
+): Promise<RegistrationForm | null> {
+  const byDefault = await prisma.registrationForm.findFirst({
+    where: { shopId, isDefault: true },
+  });
+  if (byDefault) return byDefault;
+  return prisma.registrationForm.findFirst({
+    where: { shopId },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/**
+ * Idempotent: ensures the shop has a default form, returning it. Used by
+ * `getOrCreateShop` and the App Proxy GET as a defensive fallback for
+ * shops installed before Phase 1.
+ *
+ * Race-tolerant without an `upsert` (we can no longer upsert on `shopId`
+ * since it dropped its unique constraint): findFirst → create, and on a
+ * concurrent P2002 (the globally-unique `shortCode` colliding is
+ * vanishingly unlikely; the real race is two creators) we re-read.
+ *
+ * Backfill behaviour: if the shop already has a form but none is flagged
+ * default (a legacy single-row shop from before Phase 1), promote the
+ * oldest row to default in-place rather than creating a second one.
+ */
+export async function ensureDefaultRegistrationForm(
+  shopId: string,
+): Promise<RegistrationForm> {
+  const existingDefault = await prisma.registrationForm.findFirst({
+    where: { shopId, isDefault: true },
+  });
+  if (existingDefault) return existingDefault;
+
+  // Legacy backfill: a pre-Phase-1 shop has exactly one row with
+  // isDefault=false (the column default). Promote it instead of adding
+  // a duplicate default.
+  const legacy = await prisma.registrationForm.findFirst({
+    where: { shopId },
+    orderBy: { createdAt: "asc" },
+  });
+  if (legacy) {
+    return prisma.registrationForm.update({
+      where: { id: legacy.id },
+      data: { isDefault: true },
+    });
+  }
+
+  try {
+    return await prisma.registrationForm.create({
+      data: {
+        shopId,
+        name: "Registration form",
+        isDefault: true,
+        status: "active",
+        definition: DEFAULT_FORM_DEFINITION as unknown as Prisma.InputJsonValue,
+        appearance: DEFAULT_APPEARANCE as unknown as Prisma.InputJsonValue,
+        settings: DEFAULT_SETTINGS as unknown as Prisma.InputJsonValue,
+        version: 1,
+      },
+    });
+  } catch (err) {
+    // Concurrent creator won the race — re-read the now-existing default.
+    const raced = await prisma.registrationForm.findFirst({
+      where: { shopId, isDefault: true },
+    });
+    if (raced) return raced;
+    throw err;
+  }
+}
+
+/**
+ * Patch shape accepted by the legacy singleton save path. Kept as a
+ * distinct name from `UpdateRegistrationFormInput` for the back-compat
+ * callers (`app.registration-form.tsx`, `shops.server.ts`).
  */
 export interface UpsertRegistrationFormInput {
   status?: "active" | "draft";
@@ -87,49 +313,51 @@ export interface UpsertRegistrationFormInput {
 }
 
 /**
- * Upsert the form for a shop. Bumps `version` on every call (the
- * storefront uses it as a cache-busting hint). Creates the row with
- * the back-compat default fallback if it doesn't exist yet.
+ * Save the shop's DEFAULT form (back-compat singleton save path). Seeds
+ * the default first if the shop has none, then updates it. Bumps
+ * `version`. Existing callers keep this exact signature.
  */
 export async function upsertRegistrationForm(
   shopId: string,
   patch: UpsertRegistrationFormInput,
 ): Promise<RegistrationForm> {
-  const existing = await prisma.registrationForm.findUnique({
-    where: { shopId },
+  const target = await ensureDefaultRegistrationForm(shopId);
+  return prisma.registrationForm.update({
+    where: { id: target.id },
+    data: buildUpdateData(target, patch),
   });
+}
 
-  const definition = (patch.definition ?? existing?.definition ?? DEFAULT_FORM_DEFINITION) as
-    unknown as Prisma.InputJsonValue;
-  const appearance = (patch.appearance ?? existing?.appearance ?? DEFAULT_APPEARANCE) as
-    unknown as Prisma.InputJsonValue;
-  const settings = (patch.settings ?? existing?.settings ?? DEFAULT_SETTINGS) as
-    unknown as Prisma.InputJsonValue;
-  const status = patch.status ?? existing?.status ?? "active";
+/* -------------------------------------------------------------------------- */
+/*                                  Helpers                                   */
+/* -------------------------------------------------------------------------- */
 
-  if (existing) {
-    return prisma.registrationForm.update({
-      where: { shopId },
-      data: {
-        status,
-        definition,
-        appearance,
-        settings,
-        version: { increment: 1 },
-      },
-    });
+/**
+ * Build the Prisma `data` for an update, falling back to the existing
+ * row's slices when the patch omits them, and always incrementing
+ * `version`. Shared by `updateRegistrationForm` and the back-compat
+ * `upsertRegistrationForm`.
+ */
+function buildUpdateData(
+  existing: RegistrationForm,
+  patch: UpdateRegistrationFormInput,
+): Prisma.RegistrationFormUpdateInput {
+  const definition = (patch.definition ?? existing.definition) as unknown as Prisma.InputJsonValue;
+  const appearance = (patch.appearance ?? existing.appearance) as unknown as Prisma.InputJsonValue;
+  const settings = (patch.settings ?? existing.settings) as unknown as Prisma.InputJsonValue;
+  const status = patch.status ?? existing.status;
+
+  const data: Prisma.RegistrationFormUpdateInput = {
+    status,
+    definition,
+    appearance,
+    settings,
+    version: { increment: 1 },
+  };
+  if (patch.name !== undefined) {
+    data.name = patch.name;
   }
-
-  return prisma.registrationForm.create({
-    data: {
-      shopId,
-      status,
-      definition,
-      appearance,
-      settings,
-      version: 1,
-    },
-  });
+  return data;
 }
 
 /**
