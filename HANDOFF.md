@@ -3,8 +3,8 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-29 — Registration Form multi-form sprint LIVE (list→editor + storefront shortcode)
-**Last commit:** `ba6ae0c` — feat(registration-form): list→editor split + storefront shortcode
+**Last updated:** 2026-05-29 — RF multi-form LIVE + read-only RESCUE AUDIT in progress (see `tasks/current.md` + `progress/2026-05-29-rescue-deep-read-and-interview.md`)
+**Last commit:** `05e8b9b` (docs/cierre) — last production-affecting commit: `ba6ae0c` feat(registration-form): list→editor split + storefront shortcode. Commits after `ba6ae0c` are docs-only and do not change production.
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
 **Fly version:** `v62` (manual deploy 2026-05-29 — Registration Form is now N-forms: admin LIST → editor; see "Registration Form multi-form" below). v61 failed on the `prisma db push` release_command (Prisma demands `--accept-data-loss` to ADD a UNIQUE; resolved by pre-creating `RegistrationForm_shortCode_key` + pre-filling shortCode on the single prod row, then v62 deployed clean).
@@ -57,7 +57,7 @@
 **Stockly is LIVE in production on Fly.io.**
 - App: `stockly-lustrous-forest-4364` (region `iad`, us-east)
 - DB: Fly Managed Postgres `stockly-db` (region `iad`)
-- Shopify app version: `stockly-18` published, active (Protected Customer Data level_1 live)
+- Shopify app version: `stockly-26` published, active (Protected Customer Data level_1 live). Backend on Fly `v62`.
 - Installed and functional on `desarrollo-adspubli.myshopify.com`
 - Onboarding wizard verified loading
 - Form de wholesale verified end-to-end (201 created in Postgres)
@@ -103,7 +103,7 @@
                               ↑
                               │ App Proxy + iframe + webhooks
                     ┌─────────────────────────┐
-                    │ Shopify (stockly-15)    │
+                    │ Shopify (stockly-26)    │
                     │ desarrollo-adspubli     │
                     └─────────────────────────┘
 ```
