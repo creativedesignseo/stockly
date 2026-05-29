@@ -42,6 +42,7 @@
   class="stockly-reg"
   data-action-url="/apps/stockly/apply"
   data-fetch-url="/apps/stockly/registration-form"
+  data-form-shortcode="{{ block.settings.form_shortcode | escape }}"
   data-already-wholesale="{{ already_wholesale }}"
   data-shop="{{ shop.permanent_domain }}"
   data-customer-email="{{ customer_email | escape }}"
@@ -107,6 +108,12 @@
     {
       "type": "paragraph",
       "content": "Form fields, colors, layout and validation messages are managed in the Stockly admin under Registration Form. The settings below are fallback copy used only when the dynamic form fails to load."
+    },
+    {
+      "type": "text",
+      "id": "form_shortcode",
+      "label": "Form short code",
+      "info": "Paste the Short Code from the form (admin → Registration Form). Leave empty to use the default form."
     },
     {
       "type": "text",

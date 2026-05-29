@@ -193,6 +193,10 @@
       this.actionUrl = this.dataset.actionUrl || '/apps/stockly/apply';
       this.fetchUrl = this.dataset.fetchUrl || '/apps/stockly/registration-form';
       this.shopDomain = this.dataset.shop || '';
+      // Optional short code identifying WHICH form to render. Empty →
+      // the proxy serves the shop's default form (dual-serve back-compat
+      // for theme blocks placed before short codes existed).
+      this.formShortcode = this.dataset.formShortcode || '';
       this.alreadyWholesale = this.dataset.alreadyWholesale === 'true';
       this.customerEmail = this.dataset.customerEmail || '';
       this.customerFirstName = this.dataset.customerFirstName || '';
@@ -225,7 +229,11 @@
 
     async _loadAndRender() {
       try {
-        const url = this.fetchUrl + (this.shopDomain ? `?shop=${encodeURIComponent(this.shopDomain)}` : '');
+        const params = new URLSearchParams();
+        if (this.shopDomain) params.set('shop', this.shopDomain);
+        if (this.formShortcode) params.set('shortcode', this.formShortcode);
+        const qs = params.toString();
+        const url = this.fetchUrl + (qs ? `?${qs}` : '');
         const res = await fetch(url, {
           method: 'GET',
           credentials: 'same-origin',

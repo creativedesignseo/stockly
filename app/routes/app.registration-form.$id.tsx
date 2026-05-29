@@ -1,9 +1,14 @@
 /**
- * Admin route: Registration Form Builder.
+ * Admin route: Registration Form Builder (per-form editor).
  *
- * URL: /app/registration-form
+ * URL: /app/registration-form/:id
  *
- * Single form per shop (decision 1 in the Phase 1 plan). 3-pane UI:
+ * Phase 3 (N-forms): the editor now loads and saves ONE form of the
+ * shop's collection, addressed by `params.id`. The list lives at
+ * /app/registration-form (app.registration-form._index.tsx); clicking a
+ * row navigates here.
+ *
+ * 3-pane UI (unchanged from the singleton editor):
  *
  *   ┌──────────────────────────────────────────────────────────────┐
  *   │ Top toolbar — title, status, save bar                        │
@@ -13,14 +18,10 @@
  *   │      │   Settings)            │                              │
  *   └──────┴────────────────────────┴──────────────────────────────┘
  *
- * Mocks `getRegistrationForm` / `upsertRegistrationForm` —
- * to integrate after Foundation PR lands. The TODOs below point to
- * the integration seams.
- *
- * State management: a single `useState<RegistrationForm>` holds the
- * whole editor state. Children receive the relevant slice + an
- * update callback. Save is via App Bridge SaveBar (same pattern as
- * `app/routes/app.pricing.new.tsx`).
+ * State management: a single `useState<EditorState>` holds the whole
+ * editor state. Children receive the relevant slice + an update
+ * callback. Save is via App Bridge SaveBar with dirty-tracking against
+ * the last saved snapshot.
  */
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
@@ -54,15 +55,10 @@ import type {
   RegistrationFormDefinition,
   SeedTemplateId,
 } from "../lib/registrationForm/types";
+import { TEMPLATES } from "../lib/registrationForm/seeds";
 import {
-  DEFAULT_APPEARANCE,
-  DEFAULT_FORM_DEFINITION,
-  DEFAULT_SETTINGS,
-  TEMPLATES,
-} from "../lib/registrationForm/seeds";
-import {
-  getRegistrationForm,
-  upsertRegistrationForm,
+  getRegistrationFormById,
+  updateRegistrationForm,
 } from "../services/registrationForms.server";
 
 import { LeftRail, type LeftRailSection } from "../components/registration-form/LeftRail";
@@ -76,12 +72,13 @@ import { TemplatePickerModal } from "../components/registration-form/TemplatePic
 
 /**
  * Editor state — exactly what the builder manipulates and POSTs back.
- * Server-side metadata (id, version, shopId, createdAt) lives on the
- * Prisma row and is NEVER mutated by the editor. The action passes
- * this shape straight to upsertRegistrationForm; the loader builds it
- * from the row or from Foundation's DEFAULT_* constants on first visit.
+ * Server-side metadata (id, version, shopId, createdAt, shortCode,
+ * isDefault) lives on the Prisma row and is NEVER mutated by the editor.
+ * The action passes this shape straight to updateRegistrationForm; the
+ * loader builds it from the row.
  */
 type EditorState = {
+  name: string;
   status: "active" | "draft";
   definition: RegistrationFormDefinition;
   appearance: FormAppearance;
@@ -92,34 +89,29 @@ type EditorState = {
 /*                                  LOADER                                    */
 /* -------------------------------------------------------------------------- */
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
+  const id = params.id;
+  if (!id) throw new Response("Form id is required", { status: 400 });
 
-  // Real service call from Foundation. Returns null if the shop has no
-  // form row yet (first-time visit) — fall back to Foundation's
-  // DEFAULT_* constants so the builder is immediately usable. The first
-  // save persists the merchant's customization via upsertRegistrationForm.
-  //
+  // Shop-scoped read: getRegistrationFormById returns null if the id
+  // doesn't exist OR belongs to another shop (tenant isolation).
+  const row = await getRegistrationFormById(id, shop.id);
+  if (!row) throw new Response("Registration form not found", { status: 404 });
+
   // Prisma JSON columns are typed as `Prisma.JsonValue` — narrow via a
-  // single `as unknown as <Foundation type>` cast at the boundary.
-  // Runtime shape is guaranteed identical because the same Foundation
-  // types are what `upsertRegistrationForm` accepted on write.
-  const row = await getRegistrationForm(shop.id);
-  const form: EditorState = row
-    ? {
-        status: row.status as "active" | "draft",
-        definition: row.definition as unknown as RegistrationFormDefinition,
-        appearance: row.appearance as unknown as FormAppearance,
-        settings: row.settings as unknown as FormSettings,
-      }
-    : {
-        status: "active",
-        definition: DEFAULT_FORM_DEFINITION,
-        appearance: DEFAULT_APPEARANCE,
-        settings: DEFAULT_SETTINGS,
-      };
+  // single `as unknown as <type>` cast at the boundary. Runtime shape is
+  // guaranteed identical because the same types are what
+  // updateRegistrationForm accepted on write.
+  const form: EditorState = {
+    name: row.name,
+    status: row.status as "active" | "draft",
+    definition: row.definition as unknown as RegistrationFormDefinition,
+    appearance: row.appearance as unknown as FormAppearance,
+    settings: row.settings as unknown as FormSettings,
+  };
 
-  return json({ form });
+  return json({ form, shortCode: row.shortCode, isDefault: row.isDefault });
 };
 
 /* -------------------------------------------------------------------------- */
@@ -130,8 +122,12 @@ type SaveResult =
   | { ok: true; savedAt: string }
   | { ok: false; error: string };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+export const action = async ({ params, request }: ActionFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
+  const id = params.id;
+  if (!id) {
+    return json<SaveResult>({ ok: false, error: "Missing form id" }, { status: 400 });
+  }
 
   const fd = await request.formData();
   const payloadRaw = fd.get("payload");
@@ -146,11 +142,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json<SaveResult>({ ok: false, error: "Invalid JSON payload" }, { status: 400 });
   }
 
-  // EditorState matches upsertRegistrationForm's input verbatim — no
-  // cast needed. Foundation auto-bumps `version` so the storefront's
-  // GET (Cache-Control: no-cache, per ADR-013) refetches on next load.
+  // EditorState matches updateRegistrationForm's input verbatim. The
+  // service auto-bumps `version` so the storefront's GET (Cache-Control:
+  // no-cache, per ADR-013) refetches on next load.
   try {
-    await upsertRegistrationForm(shop.id, {
+    await updateRegistrationForm(id, shop.id, {
+      name: parsed.name,
       status: parsed.status,
       definition: parsed.definition,
       appearance: parsed.appearance,
@@ -158,7 +155,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("[app.registration-form] upsert failed:", err);
+    console.error("[app.registration-form.$id] update failed:", err);
     return json<SaveResult>(
       { ok: false, error: "Save failed — check server logs" },
       { status: 500 },
@@ -222,7 +219,10 @@ export default function RegistrationFormBuilder() {
   }, [isDirty, shopify]);
 
   // After a successful save, advance savedSnapshot so the SaveBar
-  // hides. The action returns { ok: true, savedAt } on success.
+  // hides. The action returns { ok: true, savedAt } on success. On a
+  // failure the fetcher data carries { ok: false } and isDirty stays
+  // true, so the SaveBar stays visible (don't regress the validation-
+  // failure fix from commit 6bb3b1f).
   useEffect(() => {
     const data = fetcher.data;
     if (data && "ok" in data && data.ok) {
@@ -334,7 +334,10 @@ export default function RegistrationFormBuilder() {
       : undefined;
 
   return (
-    <Page fullWidth>
+    <Page
+      fullWidth
+      backAction={{ content: "Registration forms", url: "/app/registration-form" }}
+    >
       <TitleBar title="Registration form">
         <button onClick={() => setTemplatePickerOpen(true)}>
           Reset to template
@@ -363,19 +366,13 @@ export default function RegistrationFormBuilder() {
           >
             <Box minWidth="320px">
               <TextField
-                label="Form title"
+                label="Form name"
                 labelHidden
-                value={form.settings.titleEn}
-                onChange={(v) =>
-                  updateField("settings", {
-                    ...form.settings,
-                    titleEn: v.slice(0, 50),
-                  })
-                }
-                maxLength={50}
-                showCharacterCount
+                value={form.name}
+                onChange={(v) => updateField("name", v.slice(0, 80))}
+                maxLength={80}
                 autoComplete="off"
-                placeholder="Form title"
+                placeholder="Form name"
               />
             </Box>
             <InlineStack gap="300" blockAlign="center" wrap={false}>

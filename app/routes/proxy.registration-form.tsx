@@ -51,10 +51,10 @@ import { json } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import {
-  ensureDefaultRegistrationForm,
   parseAppearance,
   parseDefinition,
   parseSettings,
+  resolveStorefrontForm,
 } from "../services/registrationForms.server";
 import type { RegistrationFormPayload } from "../lib/registrationForm/types";
 
@@ -73,9 +73,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     );
   }
 
-  // Lazily seed: any shop that predates Phase 1A acquires a working
-  // back-compat form here. Idempotent — re-reads the row if present.
-  const row = await ensureDefaultRegistrationForm(shopDomain);
+  // Resolve WHICH form to serve. A `shortcode` query param (set by the
+  // theme block when the merchant pasted a Short Code) picks a specific
+  // form; absent → the shop's default form. `resolveStorefrontForm`
+  // also lazily seeds the back-compat default so a shop that predates
+  // Phase 1A never sees a 404, and a stale/typo shortcode falls back to
+  // the default rather than breaking the page.
+  const shortcode = url.searchParams.get("shortcode");
+  const row = await resolveStorefrontForm(shopDomain, shortcode);
 
   // If the merchant flipped status=draft we still serve a form so the
   // storefront never breaks. Phase 1's chosen semantics: draft ==
