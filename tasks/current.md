@@ -25,6 +25,28 @@ but missing.
 
 ---
 
+## Just shipped (2026-05-30) — Schema-driven storefront validation
+
+The storefront wholesale form rejected valid submissions with "Company
+name is required" even when the form had no company field, because
+`proxy.apply.tsx` gated on the legacy `validateApplication` (company +
+email hardcoded). **Cut over to schema-driven validation as
+authoritative** (commit `ffc9781`, Fly v65 + Shopify stockly-27): the
+storefront POSTs the form's `__shortcode`; the server resolves that exact
+form (`resolveStorefrontForm`) and validates against its definition
+(`validateResponses`). A field absent from the form is never required; a
+required field IS enforced. `validateApplication` no longer hardcodes
+company. **Needed both `fly deploy` AND `shopify app deploy`** (touches
+`extensions/`).
+
+**Validate in prod (Jonatan):** on the dev store storefront, submit the
+default form (First/Last/Email/Password) → should succeed (no company
+error) and appear in `/app/customers/applications`. Optional: add a
+required custom field in the admin, use its shortcode, submit empty →
+that field should now be required.
+
+---
+
 ## Just shipped (2026-05-30) — RF editor in a max modal
 
 The Registration Form editor now opens in an App Bridge `variant="max"`
