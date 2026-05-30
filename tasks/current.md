@@ -41,21 +41,20 @@ data model + logic were fine; only the container changed).
 **Validated in prod (Jonatan, 2026-05-30):** editor opens full-screen —
 visual goal achieved. 🎉
 
-**KNOWN BUG (max modal, to fix in the design/functionality pass):** the
-per-field edit dialog (`FieldEditModal`) does nothing when clicked inside
-the max modal. Root cause: it's a Polaris `<Modal>` that portals to
-`document.body`; the App Bridge max modal overlay has a higher stacking
-context, so the dialog opens but is hidden behind it. Same will affect
-`TypePickerModal` / `TemplatePickerModal` / the delete-confirm. **Fix
-(per `docs/patterns/shopify-app-bridge-max-modal-editor.md` gotcha #1):**
-convert these sub-dialogs from floating Polaris modals to INLINE panels
-inside the editor canvas (swap the middle pane), like Sami. Nested App
-Bridge modals are NOT a fix (they close the max modal). Pattern + full
-how-to documented for reuse in future apps:
-`docs/patterns/shopify-app-bridge-max-modal-editor.md`.
+**FIXED 2026-05-30 (Fly v64, commit `233d6df`).** The per-field
+edit/delete/add controls did nothing inside the max modal — they were
+floating Polaris modals that portal to `document.body`, which renders
+BEHIND the max-modal overlay. Replaced all four (FieldEditModal,
+TypePickerModal, TemplatePickerModal, delete-confirm) with INLINE panels
+that swap the editor's middle pane (new `FieldEditForm` + inline
+type/template/delete panels in `RegistrationFormEditor`). `FieldEditModal`
++ `TypePickerModal` deleted as orphans. Pattern doc gotcha #1 updated with
+the implemented solution.
 
-Jonatan will send a fuller list of design/functionality retouches; batch
-this fix with those.
+**Still open on this screen (next pass):** the **Live preview** pane
+renders empty inside the max modal — likely a height/width issue in
+`FormPreview` within the modal context; not yet investigated. Batch with
+Jonatan's coming list of design/functionality retouches.
 
 ---
 

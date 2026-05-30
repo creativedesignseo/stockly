@@ -148,14 +148,18 @@ fetcher that loads one form's state on open.
 1. **Polaris sub-dialogs render BEHIND the max modal.** ⚠️ This is the big one.
    A Polaris `<Modal>` portals to `document.body`; the App Bridge max modal is an
    overlay with a higher stacking context, so the Polaris dialog opens but is
-   hidden behind it — it looks like the button "does nothing". (Live bug in
-   Stockly's editor as of v63: the per-field edit dialog.)
-   **Fix options, cleanest first:**
-   - **Inline panels instead of dialogs** — when editing a field, show its config
-     as a panel *inside* the editor canvas (e.g. swap the middle pane), not a
-     floating modal. This is what Sami does and it sidesteps portals entirely.
+   hidden behind it — it looks like the button "does nothing". (Hit in Stockly
+   v63: edit/delete/add field all dead; **fixed in v64**.)
+   **Solution we shipped (and recommend): inline panels.** Give the editor's
+   middle pane a `mode` (`list | type | edit | delete | template`) and swap its
+   content instead of opening a floating modal. The field editor becomes a plain
+   inline form (`FieldEditForm`) with its own Save/Cancel buttons; type/template
+   pickers and delete-confirm are inline too. No portals → works inside the max
+   modal, and it unifies both chromes (page + modal). This is what Sami does.
    - Nested App Bridge modals are NOT a fix — opening a second App Bridge modal
      inside a `variant="max"` one is documented to close the max modal.
+   - Polaris modals that live OUTSIDE the max modal (e.g. a list's own dialogs)
+     are fine — the problem is only modals rendered *inside* the max overlay.
 2. **Two `<TitleBar>`s coexist** — the page's own TitleBar and the modal's. App
    Bridge scopes the inner one to the modal. Works, but verify in the live admin.
 3. **The new row isn't in `editors` until the loader reruns.** After
