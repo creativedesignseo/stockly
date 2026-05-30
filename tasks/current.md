@@ -38,10 +38,24 @@ of the design-rescue direction Jonatan asked for — it also answers the
 "maquillaje vs cirugía" question for this screen: **maquillaje** (the
 data model + logic were fine; only the container changed).
 
-**Validate in prod (Jonatan):** open RF list → click a row → editor
-opens full-screen; confirm Save/Discard work, sub-modals (add/edit
-field, reset-to-template, delete) stack ABOVE the max modal without
-closing it, and "Add new" opens the new form directly in the modal.
+**Validated in prod (Jonatan, 2026-05-30):** editor opens full-screen —
+visual goal achieved. 🎉
+
+**KNOWN BUG (max modal, to fix in the design/functionality pass):** the
+per-field edit dialog (`FieldEditModal`) does nothing when clicked inside
+the max modal. Root cause: it's a Polaris `<Modal>` that portals to
+`document.body`; the App Bridge max modal overlay has a higher stacking
+context, so the dialog opens but is hidden behind it. Same will affect
+`TypePickerModal` / `TemplatePickerModal` / the delete-confirm. **Fix
+(per `docs/patterns/shopify-app-bridge-max-modal-editor.md` gotcha #1):**
+convert these sub-dialogs from floating Polaris modals to INLINE panels
+inside the editor canvas (swap the middle pane), like Sami. Nested App
+Bridge modals are NOT a fix (they close the max modal). Pattern + full
+how-to documented for reuse in future apps:
+`docs/patterns/shopify-app-bridge-max-modal-editor.md`.
+
+Jonatan will send a fuller list of design/functionality retouches; batch
+this fix with those.
 
 ---
 
