@@ -10,21 +10,13 @@
  *     list opens. Renders only the editor content (no `<Page>`, no global
  *     SaveBar); the parent owns the modal's `<ui-title-bar>` Save/Discard
  *     buttons and calls into this component through the imperative ref.
- *     This is the Sami-style full-canvas editor.
  *
- * Both chromes save the SAME way: a fetcher POSTs the whole EditorState to
- * `/app/registration-form/:id` (the route action). The editor never talks
- * to Prisma directly.
- *
- * Layout (unchanged from the original singleton builder):
- *
- *   ┌──────────────────────────────────────────────────────────────┐
- *   │ Top toolbar — name, status toggle, (modal: reset-to-template) │
- *   ├──────┬────────────────────────┬──────────────────────────────┤
- *   │ Left │  Middle panel          │  Right canvas — live preview │
- *   │ rail │  (Elements/Appearance/ │                              │
- *   │      │   Settings)            │                              │
- *   └──────┴────────────────────────┴──────────────────────────────┘
+ * Sub-editors (add type / edit field / delete confirm / reset template)
+ * are INLINE PANELS that swap the middle pane, NOT floating Polaris
+ * modals. A Polaris modal portals to `document.body`, which renders
+ * BEHIND the App Bridge max-modal overlay — so it opened invisibly and
+ * looked dead. See `docs/patterns/shopify-app-bridge-max-modal-editor.md`
+ * gotcha #1.
  */
 import { useFetcher } from "@remix-run/react";
 import {
@@ -36,9 +28,10 @@ import {
   Button,
   BlockStack,
   InlineStack,
+  InlineGrid,
+  Icon,
   Text,
   Box,
-  Modal as PolarisModal,
 } from "@shopify/polaris";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import {
@@ -55,18 +48,38 @@ import type {
   FormField,
   SeedTemplateId,
 } from "../../lib/registrationForm/types";
-import { TEMPLATES } from "../../lib/registrationForm/seeds";
+import {
+  TEMPLATES,
+  TEMPLATE_META,
+} from "../../lib/registrationForm/seeds";
+import { FIELD_ICON, FIELD_TYPE_LABEL } from "./field-icons";
 
 import { LeftRail, type LeftRailSection } from "./LeftRail";
 import { FieldList } from "./FieldList";
-import { FieldEditModal } from "./FieldEditModal";
-import { TypePickerModal } from "./TypePickerModal";
+import { FieldEditForm } from "./FieldEditForm";
 import { AppearancePanel } from "./AppearancePanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { FormPreview } from "./FormPreview";
-import { TemplatePickerModal } from "./TemplatePickerModal";
 
 const SAVE_BAR_ID = "registration-form-save-bar";
+
+const PICKER_TYPES: FieldType[] = [
+  "text",
+  "email",
+  "password",
+  "phone",
+  "select",
+  "country",
+  "textarea",
+];
+
+/** Middle-pane mode for the "elements" section. */
+type Panel =
+  | { kind: "list" }
+  | { kind: "type" }
+  | { kind: "edit"; field: FormField | null; type: FieldType }
+  | { kind: "delete"; field: FormField }
+  | { kind: "template" };
 
 /** Imperative handle the modal chrome uses to drive Save/Discard. */
 export interface RegistrationFormEditorHandle {
@@ -100,24 +113,12 @@ export const RegistrationFormEditor = forwardRef<
   const shopify = useAppBridge();
   const isModal = chrome === "modal";
 
-  // The entire editor state is one object that mirrors what we POST back.
   const [form, setForm] = useState<EditorState>(() =>
     structuredClone(initialForm),
   );
-  const [pendingDeleteFieldId, setPendingDeleteFieldId] = useState<
-    string | null
-  >(null);
   const [section, setSection] = useState<LeftRailSection>("elements");
+  const [panel, setPanel] = useState<Panel>({ kind: "list" });
 
-  const [editing, setEditing] = useState<{
-    field: FormField | null;
-    type: FieldType;
-    open: boolean;
-  }>({ field: null, type: "text", open: false });
-  const [typePickerOpen, setTypePickerOpen] = useState(false);
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-
-  // Track the last saved snapshot so dirty tracks "dirty since last save".
   const [savedSnapshot, setSavedSnapshot] = useState<string>(() =>
     JSON.stringify(initialForm),
   );
@@ -136,14 +137,12 @@ export const RegistrationFormEditor = forwardRef<
 
   const handleDiscard = () => {
     setForm(structuredClone(JSON.parse(savedSnapshot)));
+    setPanel({ kind: "list" });
   };
 
-  // Expose Save/Discard to the modal chrome (its title-bar buttons).
   useImperativeHandle(ref, () => ({ save: handleSave, discard: handleDiscard }));
 
-  // Page chrome only: drive the global App Bridge SaveBar. In modal chrome
-  // the parent owns the title-bar buttons, so we don't show the SaveBar
-  // (it would sit behind the max modal).
+  // Page chrome only: drive the global App Bridge SaveBar.
   useEffect(() => {
     if (isModal) return;
     if (isDirty) shopify.saveBar.show(SAVE_BAR_ID);
@@ -153,14 +152,10 @@ export const RegistrationFormEditor = forwardRef<
     };
   }, [isDirty, isModal, shopify]);
 
-  // Report dirty changes upward (modal chrome enables/disables Save).
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
-  // After a successful save, advance the snapshot (hides SaveBar / clears
-  // dirty) and notify the parent. On failure isDirty stays true so the
-  // SaveBar / Save button stays available.
   useEffect(() => {
     const data = fetcher.data;
     if (data && "ok" in data && data.ok) {
@@ -170,7 +165,7 @@ export const RegistrationFormEditor = forwardRef<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data]);
 
-  /* ---- field handlers ---- */
+  /* ---- field mutations ---- */
 
   const updateField = <K extends keyof EditorState>(
     key: K,
@@ -185,44 +180,26 @@ export const RegistrationFormEditor = forwardRef<
     });
   };
 
-  const handleEditField = (id: string) => {
-    const target = form.definition.steps[0].fields.find((f) => f.id === id);
-    if (!target) return;
-    setEditing({ field: target, type: target.type, open: true });
-  };
-
-  const handleDeleteField = (id: string) => setPendingDeleteFieldId(id);
-
-  const confirmDeleteField = () => {
-    if (!pendingDeleteFieldId) return;
-    setForm((prev) => {
-      const cloned = structuredClone(prev);
-      cloned.definition.steps[0].fields =
-        cloned.definition.steps[0].fields.filter(
-          (f) => f.id !== pendingDeleteFieldId,
-        );
-      return cloned;
-    });
-    setPendingDeleteFieldId(null);
-  };
-
-  const handleAddField = () => setTypePickerOpen(true);
-
-  const handlePickType = (type: FieldType) => {
-    setTypePickerOpen(false);
-    setEditing({ field: null, type, open: true });
-  };
-
   const handleSaveField = (next: FormField) => {
     setForm((prev) => {
       const cloned = structuredClone(prev);
       const fields = cloned.definition.steps[0].fields;
-      const existingIdx = fields.findIndex((f) => f.id === editing.field?.id);
+      const existingIdx = fields.findIndex((f) => f.id === next.id);
       if (existingIdx >= 0) fields[existingIdx] = next;
       else fields.push(next);
       return cloned;
     });
-    setEditing({ field: null, type: "text", open: false });
+    setPanel({ kind: "list" });
+  };
+
+  const confirmDeleteField = (id: string) => {
+    setForm((prev) => {
+      const cloned = structuredClone(prev);
+      cloned.definition.steps[0].fields =
+        cloned.definition.steps[0].fields.filter((f) => f.id !== id);
+      return cloned;
+    });
+    setPanel({ kind: "list" });
   };
 
   const handlePickTemplate = (id: SeedTemplateId) => {
@@ -230,13 +207,78 @@ export const RegistrationFormEditor = forwardRef<
       ...prev,
       definition: structuredClone(TEMPLATES[id]),
     }));
-    setTemplatePickerOpen(false);
+    setPanel({ kind: "list" });
   };
 
-  const pendingDeleteField = pendingDeleteFieldId
-    ? form.definition.steps[0].fields.find((f) => f.id === pendingDeleteFieldId)
-    : null;
+  // Switching rail sections always returns the middle pane to its list.
+  const handleSelectSection = (next: LeftRailSection) => {
+    setSection(next);
+    setPanel({ kind: "list" });
+  };
+
+  const openTemplatePicker = () => {
+    setSection("elements");
+    setPanel({ kind: "template" });
+  };
+
   const existingKeys = form.definition.steps[0].fields.map((f) => f.key);
+
+  /* ---- middle pane ---- */
+
+  const elementsPane = (() => {
+    switch (panel.kind) {
+      case "type":
+        return (
+          <FieldTypePicker
+            onPick={(type) => setPanel({ kind: "edit", field: null, type })}
+            onCancel={() => setPanel({ kind: "list" })}
+          />
+        );
+      case "edit":
+        return (
+          <FieldEditForm
+            key={panel.field?.id ?? "new-field"}
+            field={panel.field}
+            initialType={panel.type}
+            existingKeys={existingKeys}
+            onSave={handleSaveField}
+            onCancel={() => setPanel({ kind: "list" })}
+          />
+        );
+      case "delete":
+        return (
+          <DeleteConfirm
+            label={panel.field.label}
+            onConfirm={() => confirmDeleteField(panel.field.id)}
+            onCancel={() => setPanel({ kind: "list" })}
+          />
+        );
+      case "template":
+        return (
+          <TemplatePicker
+            onPick={handlePickTemplate}
+            onCancel={() => setPanel({ kind: "list" })}
+          />
+        );
+      case "list":
+      default:
+        return (
+          <FieldList
+            fields={form.definition.steps[0].fields}
+            onReorder={handleReorderFields}
+            onEdit={(id) => {
+              const f = form.definition.steps[0].fields.find((x) => x.id === id);
+              if (f) setPanel({ kind: "edit", field: f, type: f.type });
+            }}
+            onDelete={(id) => {
+              const f = form.definition.steps[0].fields.find((x) => x.id === id);
+              if (f) setPanel({ kind: "delete", field: f });
+            }}
+            onAdd={() => setPanel({ kind: "type" })}
+          />
+        );
+    }
+  })();
 
   /* ---- shared body (identical in both chromes) ---- */
 
@@ -247,8 +289,6 @@ export const RegistrationFormEditor = forwardRef<
 
   const body = (
     <>
-      {/* Top toolbar — name + status, plus reset-to-template in modal
-          chrome (page chrome puts that in the App Bridge TitleBar). */}
       <Box paddingBlockEnd="400">
         <Card>
           <InlineStack
@@ -270,9 +310,7 @@ export const RegistrationFormEditor = forwardRef<
             </Box>
             <InlineStack gap="300" blockAlign="center" wrap={false}>
               {isModal && (
-                <Button onClick={() => setTemplatePickerOpen(true)}>
-                  Reset to template
-                </Button>
+                <Button onClick={openTemplatePicker}>Reset to template</Button>
               )}
               <Badge tone={form.status === "active" ? "success" : undefined}>
                 {form.status === "active" ? "Active" : "Draft"}
@@ -302,23 +340,14 @@ export const RegistrationFormEditor = forwardRef<
         </Box>
       )}
 
-      {/* 3-pane layout */}
       <Layout>
         <Layout.Section variant="oneThird">
           <InlineStack gap="0" wrap={false} blockAlign="stretch">
-            <LeftRail active={section} onSelect={setSection} />
+            <LeftRail active={section} onSelect={handleSelectSection} />
             <Box paddingInlineStart="400" minWidth="0" width="100%">
               <Card>
                 {section === "elements" && (
-                  <BlockStack gap="400">
-                    <FieldList
-                      fields={form.definition.steps[0].fields}
-                      onReorder={handleReorderFields}
-                      onEdit={handleEditField}
-                      onDelete={handleDeleteField}
-                      onAdd={handleAddField}
-                    />
-                  </BlockStack>
+                  <BlockStack gap="400">{elementsPane}</BlockStack>
                 )}
                 {section === "appearance" && (
                   <AppearancePanel
@@ -345,57 +374,13 @@ export const RegistrationFormEditor = forwardRef<
           />
         </Layout.Section>
       </Layout>
-
-      {/* Sub-modals (Polaris — render in the app iframe, above the max
-          modal by z-index). */}
-      <TypePickerModal
-        open={typePickerOpen}
-        onClose={() => setTypePickerOpen(false)}
-        onPick={handlePickType}
-      />
-      <FieldEditModal
-        open={editing.open}
-        field={editing.field}
-        initialType={editing.type}
-        existingKeys={existingKeys}
-        onClose={() => setEditing({ field: null, type: "text", open: false })}
-        onSave={handleSaveField}
-      />
-      <TemplatePickerModal
-        open={templatePickerOpen}
-        onClose={() => setTemplatePickerOpen(false)}
-        onPick={handlePickTemplate}
-      />
-      <PolarisModal
-        open={pendingDeleteFieldId !== null}
-        onClose={() => setPendingDeleteFieldId(null)}
-        title="Delete field?"
-        primaryAction={{
-          content: "Delete",
-          destructive: true,
-          onAction: confirmDeleteField,
-        }}
-        secondaryActions={[
-          { content: "Cancel", onAction: () => setPendingDeleteFieldId(null) },
-        ]}
-      >
-        <PolarisModal.Section>
-          <Text as="p" variant="bodyMd">
-            Delete field
-            {pendingDeleteField ? ` "${pendingDeleteField.label}"` : ""}? This
-            cannot be undone.
-          </Text>
-        </PolarisModal.Section>
-      </PolarisModal>
     </>
   );
 
-  /* ---- modal chrome: content only, parent owns the title bar ---- */
   if (isModal) {
     return <Box padding="400">{body}</Box>;
   }
 
-  /* ---- page chrome: Page wrapper + App Bridge TitleBar + SaveBar ---- */
   return (
     <Page
       fullWidth
@@ -405,9 +390,7 @@ export const RegistrationFormEditor = forwardRef<
       }}
     >
       <TitleBar title="Registration form">
-        <button onClick={() => setTemplatePickerOpen(true)}>
-          Reset to template
-        </button>
+        <button onClick={openTemplatePicker}>Reset to template</button>
       </TitleBar>
 
       <SaveBar id={SAVE_BAR_ID}>
@@ -425,3 +408,153 @@ export const RegistrationFormEditor = forwardRef<
     </Page>
   );
 });
+
+/* -------------------------------------------------------------------------- */
+/*                          Inline middle-pane panels                         */
+/* -------------------------------------------------------------------------- */
+
+/** Field-type chooser — inline replacement for TypePickerModal. */
+function FieldTypePicker({
+  onPick,
+  onCancel,
+}: {
+  onPick: (type: FieldType) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <BlockStack gap="400">
+      <InlineStack align="space-between" blockAlign="center">
+        <Text as="h2" variant="headingMd">
+          Choose a field type
+        </Text>
+        <Button variant="tertiary" onClick={onCancel}>
+          Back
+        </Button>
+      </InlineStack>
+      <InlineGrid columns={{ xs: 1, sm: 2 }} gap="300">
+        {PICKER_TYPES.map((t) => {
+          const IconComp = FIELD_ICON[t];
+          return (
+            <button
+              key={t}
+              type="button"
+              onClick={() => onPick(t)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                border: "1px solid var(--p-color-border)",
+                borderRadius: "var(--p-border-radius-200)",
+                background: "var(--p-color-bg-surface)",
+                padding: "var(--p-space-300)",
+                cursor: "pointer",
+              }}
+            >
+              <BlockStack gap="200">
+                <Box>
+                  <Icon source={IconComp} tone="primary" />
+                </Box>
+                <Text as="span" variant="bodyMd" fontWeight="medium">
+                  {FIELD_TYPE_LABEL[t]}
+                </Text>
+              </BlockStack>
+            </button>
+          );
+        })}
+      </InlineGrid>
+    </BlockStack>
+  );
+}
+
+/** Reset-to-template chooser — inline replacement for TemplatePickerModal. */
+function TemplatePicker({
+  onPick,
+  onCancel,
+}: {
+  onPick: (id: SeedTemplateId) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <BlockStack gap="400">
+      <InlineStack align="space-between" blockAlign="center">
+        <Text as="h2" variant="headingMd">
+          Pick a starting template
+        </Text>
+        <Button variant="tertiary" onClick={onCancel}>
+          Back
+        </Button>
+      </InlineStack>
+      <Text as="p" variant="bodySm" tone="subdued">
+        Replaces the current draft&apos;s fields. You can still tweak any field
+        afterwards.
+      </Text>
+      <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
+        {TEMPLATE_META.map((meta) => {
+          const tmpl = TEMPLATES[meta.id];
+          const count = tmpl.steps[0]?.fields.length ?? 0;
+          return (
+            <button
+              key={meta.id}
+              type="button"
+              onClick={() => onPick(meta.id)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "left",
+                border: "1px solid var(--p-color-border)",
+                borderRadius: "var(--p-border-radius-200)",
+                background: "var(--p-color-bg-surface)",
+                padding: "var(--p-space-400)",
+                cursor: "pointer",
+              }}
+            >
+              <BlockStack gap="200">
+                <Text as="h3" variant="headingSm">
+                  {meta.name}
+                </Text>
+                <Text as="p" variant="bodySm" tone="subdued">
+                  {meta.description}
+                </Text>
+                <Box paddingBlockStart="100">
+                  <Text as="p" variant="bodySm">
+                    {count} field{count === 1 ? "" : "s"}
+                  </Text>
+                </Box>
+              </BlockStack>
+            </button>
+          );
+        })}
+      </InlineGrid>
+    </BlockStack>
+  );
+}
+
+/** Inline delete confirmation — replaces the floating Polaris confirm. */
+function DeleteConfirm({
+  label,
+  onConfirm,
+  onCancel,
+}: {
+  label: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <BlockStack gap="400">
+      <Text as="h2" variant="headingMd">
+        Delete field?
+      </Text>
+      <Box padding="300" background="bg-surface-critical" borderRadius="200">
+        <Text as="p" variant="bodyMd">
+          Delete field &quot;{label}&quot;? This cannot be undone.
+        </Text>
+      </Box>
+      <InlineStack gap="300">
+        <Button variant="primary" tone="critical" onClick={onConfirm}>
+          Delete field
+        </Button>
+        <Button onClick={onCancel}>Cancel</Button>
+      </InlineStack>
+    </BlockStack>
+  );
+}
