@@ -25,6 +25,22 @@ but missing.
 
 ---
 
+## Just shipped (2026-05-30) — Storefront form font sizes (theme-proof)
+
+Form labels rendered at 8.5px on the dev store because our storefront CSS
+sized text in `rem`, inheriting the theme's 10px root (`font-size: 62.5%`).
+Anchored the component's own base (`font-size: 16px` on the host) and moved
+all text sizes to absolute px (label 14, heading 24, hint 12…). Legible on
+any theme now. Commit `f8225a0`, Shopify stockly-28 (CSS-only → `shopify
+app deploy`, no `fly deploy`).
+
+**Decided with Jonatan:** ship a good DEFAULT now; a merchant-adjustable
+text-size control ("perilla") in the Appearance panel is a FOLLOW-UP
+feature (would touch editor + storefront + preview, like the other
+multi-layer changes). Not started.
+
+---
+
 ## Just shipped (2026-05-30) — Schema-driven storefront validation
 
 The storefront wholesale form rejected valid submissions with "Company
