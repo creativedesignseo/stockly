@@ -60,8 +60,32 @@ git revert 8b8edb1                                  # undo the cli bump that bro
 - Inline approach chosen over `src` (nested iframe) deliberately; if Shopify
   pushes the `src` path harder, revisit (see pattern doc §3).
 
+## Same-day follow-ups (live testing → more fixes)
+
+Jonatan tested in the dev store; three more things surfaced and shipped the
+same day:
+
+1. **Live preview was NOT actually broken** — his fresh v64 screenshot showed
+   it rendering fine. The earlier "empty" was pre-v64. No fix needed.
+2. **Storefront validation rejected valid submissions** ("Company name is
+   required" on a form without that field). Root cause: `proxy.apply.tsx`
+   gated on the legacy `validateApplication` (company+email hardcoded). Cut
+   over to schema-driven `validateResponses` against the form the customer
+   saw (resolved by a new `__shortcode` the storefront now POSTs). Storefront
+   no longer hardcodes company. Commit `ffc9781`, Fly v65 + Shopify
+   stockly-27 (touched `extensions/` → needed BOTH deploys). Plan file:
+   `~/.claude/plans/vale-perfecto-error-aqu-gleaming-narwhal.md`.
+3. **Form text rendered at 8.5px** on the dev store theme. Our CSS sized text
+   in `rem`, inheriting the theme's 10px root (`font-size: 62.5%`). Anchored
+   the host to `font-size: 16px` + absolute-px text sizes. Commit `f8225a0`,
+   Shopify stockly-28 (CSS-only → `shopify app deploy`).
+
+Also a NON-issue: a small empty box appearing on text selection turned out to
+be a Chrome extension (absent in Safari) — not Stockly.
+
 ## Next step
 
-Wait for Jonatan's list of design/functionality retouches; first item is the
-empty Live preview. Then continue applying the max-modal pattern to other
-admin screens (the rescue direction).
+Wait for Jonatan's list of design/functionality retouches. Known follow-ups:
+the merchant-adjustable **text-size control** in the Appearance panel
+(decided to ship a good default first); keep applying the max-modal pattern
+to other admin screens (the rescue direction).
