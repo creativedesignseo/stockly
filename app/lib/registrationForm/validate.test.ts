@@ -16,6 +16,33 @@ describe("validateResponses", () => {
     expect(errs.some((e) => /Company name: This field is required/.test(e))).toBe(true);
   });
 
+  it("does not require a field the form omits (the company-less bug)", () => {
+    // A form whose definition has NO company field must never demand one —
+    // this is the exact storefront bug: the server rejected with "Company
+    // name is required" though the form didn't ask for it.
+    const def: RegistrationFormDefinition = {
+      steps: [
+        {
+          id: "s1",
+          titleEn: "Apply for wholesale",
+          fields: [
+            { id: "f1", key: "email", type: "email", label: "Email", required: true, width: "full" },
+            { id: "f2", key: "first_name", type: "text", label: "First name", required: true, width: "half" },
+            { id: "f3", key: "last_name", type: "text", label: "Last name", required: true, width: "half" },
+            { id: "f4", key: "password", type: "password", label: "Password", required: true, width: "full" },
+          ],
+        },
+      ],
+    };
+    const errs = validateResponses(def, {
+      email: "buyer@acme.com",
+      first_name: "Ada",
+      last_name: "Lovelace",
+      password: "longenough",
+    });
+    expect(errs).toEqual([]);
+  });
+
   it("rejects malformed emails with the email-specific message", () => {
     const errs = validateResponses(DEFAULT_FORM_DEFINITION, {
       email: "not-an-email",

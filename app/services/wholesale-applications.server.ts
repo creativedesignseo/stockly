@@ -49,10 +49,12 @@ export function validateApplication(
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     errors.push("Email looks invalid.");
 
+  // Company is NOT required at this layer. Whether a field is required is
+  // decided by the form definition and enforced in proxy.apply.tsx via
+  // validateResponses(). Here we only guard the length when a value is
+  // present, so a form without a company field can still submit.
   const company = (input.companyName ?? "").trim();
-  if (!company) errors.push("Company name is required.");
-  else if (company.length > 200)
-    errors.push("Company name is too long.");
+  if (company.length > 200) errors.push("Company name is too long.");
 
   if (input.notes && input.notes.length > 2000) {
     errors.push("Notes are too long (2000 char max).");

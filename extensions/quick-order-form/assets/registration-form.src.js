@@ -612,6 +612,10 @@
 
       try {
         const formData = new FormData();
+        // Tell the server which form this was, under a reserved key, so it
+        // validates against the EXACT definition the customer saw (resolved
+        // by shortcode) rather than just the shop's default form.
+        if (this.formShortcode) formData.append('__shortcode', this.formShortcode);
         for (const r of this.renderedFields) {
           // Drop password-confirm sibling — server only needs the
           // primary value once we've verified they match client-side.

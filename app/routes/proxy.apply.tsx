@@ -22,16 +22,14 @@ import { json } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import { getOrCreateShop } from "../services/shops.server";
+import { submitApplication } from "../services/wholesale-applications.server";
+// RF Phase 1D — schema-driven validation is now AUTHORITATIVE. We resolve
+// the exact form the customer saw (by shortcode, default fallback) and
+// validate the submission against ITS definition, so validation follows
+// the merchant's form instead of a hardcoded field list. Still dual-writes
+// the legacy WholesaleApplication + the new Application row during the soak.
 import {
-  submitApplication,
-  validateApplication,
-} from "../services/wholesale-applications.server";
-// RF Phase 1C — dual-write path. Validates against the shop's
-// active form definition and persists a row in the new Application
-// table alongside the legacy WholesaleApplication. Both tables
-// receive writes during the soak; legacy is dropped in Phase 1G.
-import {
-  getRegistrationForm,
+  resolveStorefrontForm,
   parseDefinition,
   parseSettings,
 } from "../services/registrationForms.server";
@@ -71,6 +69,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     body = Object.fromEntries(form.entries()) as Record<string, string>;
   }
 
+  // Reserved key: which form the customer actually saw. Strip it so it is
+  // never treated as a field response, validated, or stored.
+  const shortCode = body.__shortcode || undefined;
+  delete body.__shortcode;
+
   const loggedInCustomerId =
     url.searchParams.get("logged_in_customer_id") || undefined;
 
@@ -88,65 +91,52 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     shopifyCustomerId: loggedInCustomerId,
   };
 
-  // Authoritative validation: the legacy validator gates the response
-  // (back-compat — same error strings the storefront block already
-  // surfaces). Phase 1C-7 (proxy rewrite in 1D) will swap this for
-  // `validateResponses` once the storefront block ships the dynamic
-  // renderer. Until then we keep the legacy gate AND mirror the
-  // schema-driven validator in dev to surface drift early.
-  const errors = validateApplication(input);
+  // Authoritative, schema-driven validation. Resolve the EXACT form the
+  // customer saw (by shortcode; falls back to the shop default, and is
+  // tenant-isolated by shopId) and validate the submission against ITS
+  // definition. A field absent from the form is never required; a field
+  // the merchant marked required IS enforced. This replaces the old
+  // hardcoded legacy gate (which always required company name + email).
+  const form = await resolveStorefrontForm(shopRow.id, shortCode);
+  const definition = parseDefinition(form);
+  const settings = parseSettings(form);
+
+  // Scope responses to the form's field keys (ignore honeypot/intent keys).
+  const responses: Record<string, string> = {};
+  for (const step of definition.steps) {
+    for (const field of step.fields) {
+      if (body[field.key] !== undefined) {
+        responses[field.key] = body[field.key];
+      }
+    }
+  }
+
+  const errors = validateResponses(
+    definition,
+    responses,
+    settings.errorMessages,
+  );
+
+  // Email safeguard: the WholesaleApplication row and the pending-coalesce
+  // logic key on email, so it must always be present + well-formed. When
+  // the form has an email field, validateResponses already covers it; only
+  // add the guard when the form omits one (defensive — the seed templates
+  // all include a required email field).
+  const hasEmailField = definition.steps.some((s) =>
+    s.fields.some((f) => f.type === "email"),
+  );
+  if (!hasEmailField) {
+    const emailVal = (body.email ?? "").trim();
+    if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+      errors.push("Email is required.");
+    }
+  }
+
   if (errors.length > 0) {
     return json(
       { ok: false, errors },
       { status: 422, headers: corsHeaders() },
     );
-  }
-
-  // Schema-driven mirror: run the new validator against the shop's
-  // active form definition, log any divergence. Non-blocking — the
-  // legacy validator is still authoritative during the soak. When the
-  // logs show zero divergence we cut over.
-  //
-  // SHOULD-3: getOrCreateShop above already calls ensureDefaultRegistrationForm,
-  // so we just read here (one fewer DB hit on the hot path).
-  // SHOULD-1: build a `responses` object scoped to the form's field
-  // keys before validating. Passing raw `body` would treat honeypot/
-  // intent fields as form responses and report spurious divergence.
-  // SHOULD-4: structured log keys ([rf.validation.diverged]) so we can
-  // grep `fly logs` for the soak monitoring.
-  try {
-    const form = await getRegistrationForm(shopRow.id);
-    if (form) {
-      const definition = parseDefinition(form);
-      const settings = parseSettings(form);
-      const responses: Record<string, string> = {};
-      for (const step of definition.steps) {
-        for (const field of step.fields) {
-          if (body[field.key] !== undefined) {
-            responses[field.key] = body[field.key];
-          }
-        }
-      }
-      const newErrors = validateResponses(
-        definition,
-        responses,
-        settings.errorMessages,
-      );
-      if (newErrors.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn("[rf.validation.diverged]", {
-          shop: shopRow.id,
-          formVersion: form.version,
-          errors: newErrors,
-        });
-      }
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn("[rf.validation.error]", {
-      shop: shopRow.id,
-      error: err instanceof Error ? err.message : String(err),
-    });
   }
 
   try {
