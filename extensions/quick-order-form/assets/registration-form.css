@@ -50,6 +50,12 @@ stockly-registration {
   font-family: var(--stockly-font, inherit);
   color: inherit;
   margin: 1.5rem 0;
+  /* Anchor our OWN base font-size. Without this the form inherits the
+     theme's root size — and many Shopify themes set the root to 10px via
+     `font-size: 62.5%`, which shrank every rem-based size below (labels
+     rendered at 8.5px). Text sizes below are absolute px for the same
+     reason; inputs use `font: inherit` so they pick up this 16px base. */
+  font-size: 16px;
 }
 
 /* Restore [hidden] semantics — block-level display rules below
@@ -81,7 +87,7 @@ stockly-registration.stockly-reg--layout-default .stockly-reg__inner {
 
 stockly-registration .stockly-reg__heading {
   margin: 0 0 0.5rem;
-  font-size: 1.5rem;
+  font-size: 24px;
   font-weight: 600;
   color: var(--rf-color-heading);
 }
@@ -90,7 +96,7 @@ stockly-registration .stockly-reg__intro {
   margin: 0 0 1.5rem;
   color: var(--rf-color-paragraph);
   background: var(--rf-color-paragraph-bg);
-  font-size: 0.95rem;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -115,7 +121,7 @@ stockly-registration .stockly-reg__field--half {
 }
 
 stockly-registration .stockly-reg__label {
-  font-size: 0.85rem;
+  font-size: 14px;
   font-weight: 600;
   letter-spacing: 0;
   color: var(--rf-color-label);
@@ -158,13 +164,13 @@ stockly-registration .stockly-reg__field select.is-invalid {
 stockly-registration .stockly-reg__hint {
   display: block;
   margin-top: 0.25rem;
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--rf-color-description);
 }
 
 stockly-registration .stockly-reg__field-error {
   margin-top: 0.25rem;
-  font-size: 0.8rem;
+  font-size: 13px;
   color: var(--rf-color-error);
 }
 
@@ -184,7 +190,7 @@ stockly-registration .stockly-reg__errors {
 
 stockly-registration .stockly-reg__error {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -204,7 +210,7 @@ stockly-registration .stockly-reg__submit {
   padding: 0.85rem 1.75rem;
   font: inherit;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 15px;
   letter-spacing: 0.01em;
   border-radius: 8px;
   cursor: pointer;
@@ -233,7 +239,7 @@ stockly-registration .stockly-reg__already {
 
 stockly-registration .stockly-reg__success-heading {
   margin: 0 0 0.4rem;
-  font-size: 1.15rem;
+  font-size: 18px;
   font-weight: 600;
 }
 
