@@ -12,10 +12,10 @@
 import {
   useFetcher,
   useLoaderData,
-  useNavigate,
+  useRevalidator,
   useSearchParams,
 } from "@remix-run/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Page,
   Card,
@@ -32,10 +32,17 @@ import {
   useIndexResourceState,
 } from "@shopify/polaris";
 import { ClipboardIcon, DeleteIcon } from "@shopify/polaris-icons";
-import { TitleBar } from "@shopify/app-bridge-react";
+import { Modal as AppBridgeModal, TitleBar } from "@shopify/app-bridge-react";
 
 import { TemplatePickerModal } from "./TemplatePickerModal";
-import type { SeedTemplateId } from "../../lib/registrationForm/types";
+import {
+  RegistrationFormEditor,
+  type RegistrationFormEditorHandle,
+} from "./RegistrationFormEditor";
+import type {
+  EditorState,
+  SeedTemplateId,
+} from "../../lib/registrationForm/types";
 
 export interface RegistrationFormListItem {
   id: string;
@@ -47,21 +54,50 @@ export interface RegistrationFormListItem {
   createdAt: string;
 }
 
-type LoaderShape = { forms: RegistrationFormListItem[] };
+type LoaderShape = {
+  forms: RegistrationFormListItem[];
+  /** Full editor state per form id — fed to the inline modal editor. */
+  editors: Record<string, EditorState>;
+};
+
+const EDITOR_MODAL_ID = "rf-editor-modal";
 
 type TabId = "all" | "active" | "draft";
 
 export function RegistrationFormList() {
-  const { forms } = useLoaderData<LoaderShape>();
+  const { forms, editors } = useLoaderData<LoaderShape>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const revalidator = useRevalidator();
 
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
+  /* ----- max-modal editor state -----
+   * Clicking a row (or creating a form) opens the editor inside an App
+   * Bridge variant="max" modal, rendered inline in this same app context
+   * (no nested iframe). The parent owns the modal's title-bar Save /
+   * Discard buttons and drives the editor through an imperative ref.
+   */
+  const [editingFormId, setEditingFormId] = useState<string | null>(null);
+  const [editorDirty, setEditorDirty] = useState(false);
+  const editorRef = useRef<RegistrationFormEditorHandle>(null);
+
+  const editingForm = editingFormId ? editors[editingFormId] : null;
+  const editingMeta = editingFormId
+    ? forms.find((f) => f.id === editingFormId)
+    : null;
+
+  const handleCloseEditor = () => {
+    setEditingFormId(null);
+    setEditorDirty(false);
+    // Refresh the list so name/status edits made in the editor show.
+    revalidator.revalidate();
+  };
+
   /* ----- create-from-template fetcher -----
    * Submits intent=create; the action returns the new form's id. On
-   * success we navigate into the editor. A fetcher (not useSubmit) so
-   * the in-flight state can disable the modal button.
+   * success we revalidate (so the new form's EditorState lands in
+   * `editors`) and open it in the modal. A fetcher (not useSubmit) so the
+   * in-flight state can disable the modal button.
    */
   const createFetcher = useFetcher<
     | { ok: true; intent: "create"; id: string }
@@ -73,9 +109,13 @@ export function RegistrationFormList() {
   useEffect(() => {
     const data = createFetcher.data;
     if (data && data.ok && "intent" in data && data.intent === "create") {
-      navigate(`/app/registration-form/${data.id}`);
+      // The new form isn't in `editors` until the loader reruns. Mark it
+      // pending; the modal opens once revalidation brings its state in.
+      setEditingFormId(data.id);
+      revalidator.revalidate();
     }
-  }, [createFetcher.data, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createFetcher.data]);
 
   const handlePickTemplate = (templateId: SeedTemplateId) => {
     setTemplatePickerOpen(false);
@@ -241,7 +281,7 @@ export function RegistrationFormList() {
                 key={form.id}
                 position={index}
                 selected={selectedResources.includes(form.id)}
-                onClick={() => navigate(`/app/registration-form/${form.id}`)}
+                onClick={() => setEditingFormId(form.id)}
               >
                 <IndexTable.Cell>
                   <Text as="span" variant="bodySm" tone="subdued">
@@ -285,6 +325,49 @@ export function RegistrationFormList() {
         onClose={() => setTemplatePickerOpen(false)}
         onPick={handlePickTemplate}
       />
+
+      {/* ----- Full-canvas editor (App Bridge max modal) -----
+          Opens over the whole admin (no nav rail, X to close), matching
+          the Sami-style editor. The editor renders inline (same app
+          context) so its sub-modals + dirty tracking work normally; the
+          modal's title bar owns Save / Discard. */}
+      <AppBridgeModal
+        id={EDITOR_MODAL_ID}
+        variant="max"
+        open={editingForm !== null}
+        onHide={handleCloseEditor}
+      >
+        <TitleBar
+          title={
+            editingMeta ? `Edit · ${editingMeta.name}` : "Edit registration form"
+          }
+        >
+          <button
+            variant="primary"
+            disabled={!editorDirty}
+            onClick={() => editorRef.current?.save()}
+          >
+            Save
+          </button>
+          <button
+            disabled={!editorDirty}
+            onClick={() => editorRef.current?.discard()}
+          >
+            Discard
+          </button>
+        </TitleBar>
+        {editingForm && editingFormId && (
+          <RegistrationFormEditor
+            key={editingFormId}
+            ref={editorRef}
+            chrome="modal"
+            formId={editingFormId}
+            initialForm={editingForm}
+            onDirtyChange={setEditorDirty}
+            onSaved={() => revalidator.revalidate()}
+          />
+        )}
+      </AppBridgeModal>
     </Page>
   );
 }

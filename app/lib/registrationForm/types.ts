@@ -154,3 +154,22 @@ export interface RegistrationFormPayload {
 
 /** Identifier for the 3 hardcoded templates exported by the service. */
 export type SeedTemplateId = "standard" | "modern" | "samitaB2B";
+
+/**
+ * The mutable editor state — exactly what the builder UI manipulates and
+ * POSTs back to the per-form save action (`app.registration-form.$id`).
+ * Server-side metadata (id, version, shopId, createdAt, shortCode,
+ * isDefault) lives on the Prisma row and is NEVER part of this shape.
+ *
+ * Shared so the editor can render in two chromes from one component:
+ *   - `chrome="page"` — the standalone deep-link route (back-compat).
+ *   - `chrome="modal"` — inside the App Bridge `variant="max"` modal that
+ *     the list opens (Sami-style full-canvas editor).
+ */
+export interface EditorState {
+  name: string;
+  status: "active" | "draft";
+  definition: RegistrationFormDefinition;
+  appearance: FormAppearance;
+  settings: FormSettings;
+}

@@ -30,7 +30,13 @@ import {
   listRegistrationForms,
   setStatus,
 } from "../services/registrationForms.server";
-import type { SeedTemplateId } from "../lib/registrationForm/types";
+import type {
+  EditorState,
+  FormAppearance,
+  FormSettings,
+  RegistrationFormDefinition,
+  SeedTemplateId,
+} from "../lib/registrationForm/types";
 import {
   RegistrationFormList,
   type RegistrationFormListItem,
@@ -43,15 +49,31 @@ import {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { shop } = await authenticateAdmin(request);
   const forms = await listRegistrationForms(shop.id);
-  const items: RegistrationFormListItem[] = forms.map((f) => ({
-    id: f.id,
-    name: f.name,
-    shortCode: f.shortCode,
-    status: f.status as "active" | "draft",
-    isDefault: f.isDefault,
-    createdAt: f.createdAt.toISOString(),
-  }));
-  return json({ forms: items });
+
+  // The list opens the editor inside an App Bridge max modal, rendered
+  // inline (same app context — no nested iframe). So the loader ships the
+  // full EditorState per form keyed by id; the modal reads `editors[id]`
+  // when a row is opened. Shops have a handful of forms, so the payload
+  // stays small.
+  const editors: Record<string, EditorState> = {};
+  const items: RegistrationFormListItem[] = forms.map((f) => {
+    editors[f.id] = {
+      name: f.name,
+      status: f.status as "active" | "draft",
+      definition: f.definition as unknown as RegistrationFormDefinition,
+      appearance: f.appearance as unknown as FormAppearance,
+      settings: f.settings as unknown as FormSettings,
+    };
+    return {
+      id: f.id,
+      name: f.name,
+      shortCode: f.shortCode,
+      status: f.status as "active" | "draft",
+      isDefault: f.isDefault,
+      createdAt: f.createdAt.toISOString(),
+    };
+  });
+  return json({ forms: items, editors });
 };
 
 /* -------------------------------------------------------------------------- */
