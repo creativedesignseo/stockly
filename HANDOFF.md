@@ -3,11 +3,11 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-**Last updated:** 2026-05-29 — RF multi-form LIVE + read-only RESCUE AUDIT in progress (see `tasks/current.md` + `progress/2026-05-29-rescue-deep-read-and-interview.md`)
-**Last commit:** `05e8b9b` (docs/cierre) — last production-affecting commit: `ba6ae0c` feat(registration-form): list→editor split + storefront shortcode. Commits after `ba6ae0c` are docs-only and do not change production.
+**Last updated:** 2026-05-30 — RF editor now opens in a full-canvas App Bridge **max modal** (LIVE, Fly v63). Read-only RESCUE AUDIT still open (see `tasks/current.md` + `progress/2026-05-29-rescue-deep-read-and-interview.md`)
+**Last commit:** `e22c3b7` feat(registration-form): open editor in App Bridge max modal — this is the last production-affecting commit (deployed as Fly v63).
 **GitHub:** https://github.com/creativedesignseo/stockly
 **Production URL:** https://stockly-lustrous-forest-4364.fly.dev
-**Fly version:** `v62` (manual deploy 2026-05-29 — Registration Form is now N-forms: admin LIST → editor; see "Registration Form multi-form" below). v61 failed on the `prisma db push` release_command (Prisma demands `--accept-data-loss` to ADD a UNIQUE; resolved by pre-creating `RegistrationForm_shortCode_key` + pre-filling shortCode on the single prod row, then v62 deployed clean).
+**Fly version:** `v63` (manual `fly deploy` 2026-05-30 — RF editor opens in an App Bridge `variant="max"` modal instead of a cramped embedded page; Sami-style full canvas. Pure admin-UI change, no schema/extension/config touched, so `fly deploy` only — no `shopify app deploy`). Prior: `v62` (2026-05-29 — N-forms: admin LIST → editor; v61 had failed on the `prisma db push` release_command demanding `--accept-data-loss` to ADD a UNIQUE, resolved by pre-creating `RegistrationForm_shortCode_key` + pre-filling shortCode, then v62 deployed clean).
 **Shopify app version:** `stockly-26` (storefront `registration-form` block gains optional `form_shortcode` setting; dual-serve — no shortcode resolves the active default so theme blocks already placed keep working. ⚠️ `registration-form.js` still 12.9 KB > 10 KB app-block threshold — non-blocking, trim later)
 **Earlier 2026-05-29:** Fly v58 shipped the SaveBar fix `865e35d` (its 2026-05-28 push-deploy had failed on a release_command timeout); deploy is now gated to manual `workflow_dispatch`
 **Deploy is now MANUAL:** `.github/workflows/fly-deploy.yml` is `workflow_dispatch` only. Push to main no longer ships to prod. Deploy with `gh workflow run fly-deploy.yml --ref main`. Storefront extension ships separately via `npx shopify app deploy`.
@@ -31,8 +31,17 @@
   - **Admin**: `/app/registration-form` is now a LIST (IndexTable: Id /
     Name / Short Code chip / Status toggle / Created; All/Active/Draft
     tabs; "Add new" → TemplatePickerModal → creates a DRAFT → opens the
-    editor). The editor moved to `/app/registration-form/$id`. Default
-    form cannot be deleted (server + UI guard).
+    editor). Default form cannot be deleted (server + UI guard).
+  - **Editor opens in an App Bridge `variant="max"` modal (Fly v63,
+    2026-05-30)** — full canvas, no admin nav rail, X to close; the
+    modal's title bar owns Save/Discard. Rendered INLINE (same app
+    context, not a nested `src` iframe) so the SaveBar, sub-modals and
+    dirty tracking keep working. Editor body extracted to
+    `app/components/registration-form/RegistrationFormEditor.tsx` with two
+    chromes: `chrome="modal"` (the list opens it) and `chrome="page"` (the
+    standalone deep-link route `/app/registration-form/$id`, back-compat).
+    The list loader ships full `EditorState` per form so the modal renders
+    with no round-trip.
   - **Storefront**: the `registration-form` theme block gained an
     optional `form_shortcode` setting. With a shortcode it serves that
     form; without one it serves the shop's active default (dual-serve,
@@ -232,7 +241,7 @@ fly secrets set SHOPIFY_API_KEY="value" --app stockly-lustrous-forest-4364
 printf "value" | fly secrets set KEY=- --app stockly-lustrous-forest-4364
 
 # Push Shopify app config (URLs in shopify.app.toml)
-npx --yes shopify app deploy --force --message "What changed"
+npx --yes shopify app deploy --allow-updates --message "What changed"
 ```
 
 ---

@@ -25,6 +25,26 @@ but missing.
 
 ---
 
+## Just shipped (2026-05-30) — RF editor in a max modal
+
+The Registration Form editor now opens in an App Bridge `variant="max"`
+modal (full canvas, no admin nav rail, X to close) instead of a cramped
+embedded page — matching the Sami competitor's editor. **LIVE on Fly
+v63** (commit `e22c3b7`, `fly deploy` only — pure admin-UI change, no
+schema/extension/config). Implemented inline (no nested `src` iframe);
+editor body extracted to a reusable `RegistrationFormEditor` component
+with `chrome="modal"` / `chrome="page"`. This is the FIRST concrete step
+of the design-rescue direction Jonatan asked for — it also answers the
+"maquillaje vs cirugía" question for this screen: **maquillaje** (the
+data model + logic were fine; only the container changed).
+
+**Validate in prod (Jonatan):** open RF list → click a row → editor
+opens full-screen; confirm Save/Discard work, sub-modals (add/edit
+field, reset-to-template, delete) stack ABOVE the max modal without
+closing it, and "Add new" opens the new form directly in the modal.
+
+---
+
 ## Just shipped (2026-05-29) — Registration Form multi-form
 
 LIVE on Fly v62 + Shopify stockly-26. N forms per shop; admin LIST →
