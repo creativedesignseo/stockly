@@ -4,7 +4,7 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-05-29 (rescue deep-read + interview in progress)
+**Last updated:** 2026-06-01 (RF live-preview max-modal fix shipped, Fly v66)
 
 ---
 
@@ -89,10 +89,15 @@ type/template/delete panels in `RegistrationFormEditor`). `FieldEditModal`
 + `TypePickerModal` deleted as orphans. Pattern doc gotcha #1 updated with
 the implemented solution.
 
-**Still open on this screen (next pass):** the **Live preview** pane
-renders empty inside the max modal — likely a height/width issue in
-`FormPreview` within the modal context; not yet investigated. Batch with
-Jonatan's coming list of design/functionality retouches.
+**Live preview in the max modal — FIXED 2026-06-01 (Fly v66, commit
+`165766d`).** It rendered blank because, inside the max-modal overlay
+(no `<Page>`), Polaris `<Layout>`'s viewport-media-query wrap dropped the
+preview section out of the modal's scrollable area. `chrome="modal"` now
+uses an explicit 2-col CSS grid (fixed tracks, no media query);
+`chrome="page"` byte-for-byte unchanged. `FormPreview` itself was never
+broken. Admin-UI only (`fly deploy`, no `shopify app deploy`).
+**⏳ Pending visual validation by Jonatan:** open the RF editor in the max
+modal and confirm the preview shows on the right.
 
 ---
 
