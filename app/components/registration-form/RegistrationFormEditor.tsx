@@ -287,6 +287,69 @@ export const RegistrationFormEditor = forwardRef<
       ? fetcher.data.error
       : undefined;
 
+  /* ---- two-column split (editor | live preview) ---- */
+
+  const editorColumn = (
+    <InlineStack gap="0" wrap={false} blockAlign="stretch">
+      <LeftRail active={section} onSelect={handleSelectSection} />
+      <Box paddingInlineStart="400" minWidth="0" width="100%">
+        <Card>
+          {section === "elements" && (
+            <BlockStack gap="400">{elementsPane}</BlockStack>
+          )}
+          {section === "appearance" && (
+            <AppearancePanel
+              appearance={form.appearance}
+              onChange={(next) => updateField("appearance", next)}
+            />
+          )}
+          {section === "settings" && (
+            <SettingsPanel
+              settings={form.settings}
+              onChange={(next) => updateField("settings", next)}
+            />
+          )}
+        </Card>
+      </Box>
+    </InlineStack>
+  );
+
+  const previewPane = (
+    <FormPreview
+      definition={form.definition}
+      appearance={form.appearance}
+      settings={form.settings}
+    />
+  );
+
+  // The editor | preview split.
+  // Page chrome: Polaris <Layout> works because it lives inside a <Page>,
+  // which gives it width + the viewport-based responsive context.
+  // Modal chrome: there is NO <Page> — the body sits in a bare <Box>
+  // inside the App Bridge max-modal overlay. There, <Layout>'s
+  // viewport-media-query wrap dropped the preview section out of the
+  // modal's scrollable area, so it rendered blank. Use an explicit CSS
+  // grid instead: fixed track sizes, no viewport media query, so the
+  // preview always sits to the right and stays visible.
+  const splitLayout = isModal ? (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "minmax(320px, 1fr) minmax(0, 2fr)",
+        gap: "var(--p-space-500)",
+        alignItems: "start",
+      }}
+    >
+      {editorColumn}
+      {previewPane}
+    </div>
+  ) : (
+    <Layout>
+      <Layout.Section variant="oneThird">{editorColumn}</Layout.Section>
+      <Layout.Section>{previewPane}</Layout.Section>
+    </Layout>
+  );
+
   const body = (
     <>
       <Box paddingBlockEnd="400">
@@ -340,40 +403,7 @@ export const RegistrationFormEditor = forwardRef<
         </Box>
       )}
 
-      <Layout>
-        <Layout.Section variant="oneThird">
-          <InlineStack gap="0" wrap={false} blockAlign="stretch">
-            <LeftRail active={section} onSelect={handleSelectSection} />
-            <Box paddingInlineStart="400" minWidth="0" width="100%">
-              <Card>
-                {section === "elements" && (
-                  <BlockStack gap="400">{elementsPane}</BlockStack>
-                )}
-                {section === "appearance" && (
-                  <AppearancePanel
-                    appearance={form.appearance}
-                    onChange={(next) => updateField("appearance", next)}
-                  />
-                )}
-                {section === "settings" && (
-                  <SettingsPanel
-                    settings={form.settings}
-                    onChange={(next) => updateField("settings", next)}
-                  />
-                )}
-              </Card>
-            </Box>
-          </InlineStack>
-        </Layout.Section>
-
-        <Layout.Section>
-          <FormPreview
-            definition={form.definition}
-            appearance={form.appearance}
-            settings={form.settings}
-          />
-        </Layout.Section>
-      </Layout>
+      {splitLayout}
     </>
   );
 
