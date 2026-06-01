@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stockly — Quick Order Form (premium prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* =========================================================================
+   STOCKLY DESIGN TOKENS — premium, opinionated, theme-independent.
+   One set for ALL storefront blocks (supersedes the QOF's old --stockly-*
+   and unifies with the registration form's --rf-* metrics).
+   The merchant only ever changes --sk-accent (+ optional density / scheme).
+   ========================================================================= */
+:root{
+  /* — Brand / accent (THE knob the merchant controls) — */
+  --sk-accent: #9a6b34;            /* refined bronze/amber — "deluxe" */
+  --sk-accent-strong: #7c5326;
+  --sk-accent-tint: color-mix(in srgb, var(--sk-accent) 12%, transparent);
+
+  /* — Ink scale (Stockly's own, NOT inherited from the theme) — */
+  --sk-ink: #17150f;               /* near-black, warm */
+  --sk-ink-2: #4b463c;             /* secondary text */
+  --sk-ink-3: #8a8479;             /* subdued / hints */
+  --sk-line: rgba(23,21,15,.10);   /* hairline borders */
+  --sk-line-2: rgba(23,21,15,.06);
+  --sk-surface: #ffffff;
+  --sk-surface-2: #faf8f4;         /* warm off-white wash */
+  --sk-row-hover: rgba(154,107,52,.045);
+
+  /* — Type — Stockly ships its own family, falls back gracefully — */
+  --sk-font: "Inter", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+  --sk-fs-display: 28px;
+  --sk-fs-h2: 19px;
+  --sk-fs-body: 15px;
+  --sk-fs-sm: 13px;
+  --sk-fs-xs: 11.5px;
+
+  /* — Shape & elevation (from design-system §2.2, generalized) — */
+  --sk-radius-card: 16px;
+  --sk-radius-ctrl: 10px;
+  --sk-radius-pill: 999px;
+  --sk-shadow-card: 0 1px 2px rgba(23,21,15,.04), 0 8px 24px -12px rgba(23,21,15,.14);
+  --sk-shadow-ctrl: 0 1px 2px rgba(23,21,15,.05);
+  --sk-shadow-cta: 0 6px 16px -6px color-mix(in srgb, var(--sk-accent) 55%, transparent);
+
+  /* — Spacing rhythm — */
+  --sk-gap: 16px;
+  --sk-pad-card: 28px;
+}
+
+/* Demo page chrome only (NOT part of the block) */
+body{
+  margin:0; background:#eceae5; color:var(--sk-ink);
+  font-family:var(--sk-font); -webkit-font-smoothing:antialiased;
+  padding:48px 24px;
+}
+.demo-wrap{max-width:980px;margin:0 auto;}
+.demo-note{
+  font-size:12px;color:#8a8479;text-align:center;margin:0 0 28px;
+  letter-spacing:.02em;text-transform:uppercase;font-weight:600;
+}
+
+/* =========================================================================
+   THE BLOCK
+   ========================================================================= */
+.sk-qo{
+  background:var(--sk-surface);
+  border:1px solid var(--sk-line);
+  border-radius:var(--sk-radius-card);
+  box-shadow:var(--sk-shadow-card);
+  padding:var(--sk-pad-card);
+  font-family:var(--sk-font);
+  color:var(--sk-ink);
+}
+
+/* Header */
+.sk-qo__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;}
+.sk-qo__title{font-size:var(--sk-fs-display);font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1;}
+.sk-qo__sub{font-size:var(--sk-fs-sm);color:var(--sk-ink-3);margin:6px 0 0;}
+.sk-qo__badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:var(--sk-fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--sk-accent-strong);background:var(--sk-accent-tint);
+  padding:6px 12px;border-radius:var(--sk-radius-pill);white-space:nowrap;
+}
+.sk-qo__badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--sk-accent);}
+
+/* Volume pricing ladder */
+.sk-qo__ladder{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  background:var(--sk-surface-2);border:1px solid var(--sk-line-2);
+  border-radius:var(--sk-radius-ctrl);padding:12px 14px;margin-bottom:22px;
+}
+.sk-qo__ladder-label{font-size:var(--sk-fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--sk-ink-3);margin-right:4px;}
+.sk-qo__tier{
+  font-size:var(--sk-fs-sm);font-weight:600;color:var(--sk-ink);
+  background:var(--sk-surface);border:1px solid var(--sk-line);
+  padding:7px 12px;border-radius:var(--sk-radius-pill);
+}
+.sk-qo__tier b{color:var(--sk-accent-strong);}
+
+/* Table — desktop */
+.sk-qo__table{width:100%;border-collapse:collapse;}
+.sk-qo__table thead th{
+  font-size:var(--sk-fs-xs);font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--sk-ink-3);text-align:left;padding:0 14px 12px;border-bottom:1px solid var(--sk-line);
+}
+.sk-qo__table thead th.num{text-align:right;}
+.sk-qo__row td{padding:16px 14px;border-bottom:1px solid var(--sk-line-2);vertical-align:middle;}
+.sk-qo__row:hover{background:var(--sk-row-hover);}
+.sk-qo__thumb{
+  width:52px;height:52px;border-radius:var(--sk-radius-ctrl);object-fit:cover;
+  background:linear-gradient(135deg,#efe9df,#e2dacd);border:1px solid var(--sk-line);
+  display:flex;align-items:center;justify-content:center;color:var(--sk-ink-3);font-size:18px;
+}
+.sk-qo__name{font-size:var(--sk-fs-body);font-weight:600;color:var(--sk-ink);}
+.sk-qo__sku{font-size:var(--sk-fs-xs);color:var(--sk-ink-3);margin-top:3px;letter-spacing:.03em;}
+.sk-qo__price{text-align:right;font-variant-numeric:tabular-nums;}
+.sk-qo__price-retail{font-size:var(--sk-fs-xs);color:var(--sk-ink-3);text-decoration:line-through;}
+.sk-qo__price-wh{font-size:var(--sk-fs-body);font-weight:600;color:var(--sk-accent-strong);}
+
+/* Qty stepper */
+.sk-qo__stepper{display:inline-flex;align-items:center;border:1px solid var(--sk-line);border-radius:var(--sk-radius-ctrl);box-shadow:var(--sk-shadow-ctrl);overflow:hidden;background:var(--sk-surface);}
+.sk-qo__stepper button{width:34px;height:38px;border:0;background:transparent;font-size:17px;color:var(--sk-ink-2);cursor:pointer;line-height:1;transition:background .12s;}
+.sk-qo__stepper button:hover{background:var(--sk-surface-2);color:var(--sk-ink);}
+.sk-qo__stepper input{width:42px;height:38px;border:0;border-left:1px solid var(--sk-line);border-right:1px solid var(--sk-line);text-align:center;font-family:inherit;font-size:var(--sk-fs-sm);font-weight:600;color:var(--sk-ink);-moz-appearance:textfield;}
+.sk-qo__stepper input::-webkit-outer-spin-button,.sk-qo__stepper input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.sk-qo__stepper:focus-within{border-color:var(--sk-accent);box-shadow:0 0 0 3px var(--sk-accent-tint);}
+.sk-qo__line{text-align:right;font-size:var(--sk-fs-body);font-weight:600;font-variant-numeric:tabular-nums;color:var(--sk-ink);}
+
+/* Footer */
+.sk-qo__foot{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:24px;padding-top:22px;border-top:1.5px solid var(--sk-line);}
+.sk-qo__total-label{font-size:var(--sk-fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--sk-ink-3);}
+.sk-qo__total-value{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--sk-ink);margin-top:2px;}
+.sk-qo__total-save{font-size:var(--sk-fs-xs);font-weight:600;color:var(--sk-accent-strong);margin-top:4px;}
+.sk-qo__cta{
+  font-family:inherit;font-size:var(--sk-fs-body);font-weight:600;color:#fff;
+  background:var(--sk-ink);border:0;border-radius:var(--sk-radius-ctrl);
+  padding:15px 28px;cursor:pointer;box-shadow:var(--sk-shadow-ctrl);
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.sk-qo__cta:hover{transform:translateY(-1px);background:var(--sk-accent-strong);box-shadow:var(--sk-shadow-cta);}
+
+/* Mobile labels hidden on desktop */
+.sk-qo__mlabel{display:none;}
+
+/* =========================================================================
+   RESPONSIVE — real card layout under 640px (not "shrink the table")
+   ========================================================================= */
+@media (max-width:640px){
+  body{padding:20px 12px;}
+  .sk-qo{padding:18px;border-radius:var(--sk-radius-ctrl);}
+  .sk-qo__head{flex-direction:column;align-items:flex-start;gap:10px;}
+  .sk-qo__title{font-size:23px;}
+  .sk-qo__table thead{display:none;}
+  .sk-qo__table,.sk-qo__table tbody,.sk-qo__row,.sk-qo__row td{display:block;width:100%;}
+  .sk-qo__row{
+    border:1px solid var(--sk-line);border-radius:var(--sk-radius-ctrl);
+    padding:14px;margin-bottom:12px;box-shadow:var(--sk-shadow-ctrl);
+    display:grid;grid-template-columns:auto 1fr;grid-template-areas:"thumb name" "qty price";
+    gap:12px 14px;align-items:center;
+  }
+  .sk-qo__row td{padding:0;border:0;}
+  .sk-qo__row td[data-area="thumb"]{grid-area:thumb;}
+  .sk-qo__row td[data-area="name"]{grid-area:name;}
+  .sk-qo__row td[data-area="qty"]{grid-area:qty;}
+  .sk-qo__row td[data-area="price"]{grid-area:price;}
+  .sk-qo__price{text-align:left;}
+  .sk-qo__line{display:none;} /* line total folds into footer math on mobile */
+  .sk-qo__mlabel{display:block;font-size:var(--sk-fs-xs);color:var(--sk-ink-3);margin-bottom:4px;}
+  .sk-qo__foot{flex-direction:column;align-items:stretch;gap:14px;}
+  .sk-qo__cta{width:100%;}
+}
+</style>
+</head>
+<body>
+<div class="demo-wrap">
+  <p class="demo-note">Prototipo — Quick Order Form premium · no es producción</p>
+
+  <div class="sk-qo">
+    <div class="sk-qo__head">
+      <div>
+        <h2 class="sk-qo__title">Wholesale order</h2>
+        <p class="sk-qo__sub">Precios mayoristas aplicados en tu carrito al finalizar.</p>
+      </div>
+      <span class="sk-qo__badge">Wholesale 55%</span>
+    </div>
+
+    <div class="sk-qo__ladder">
+      <span class="sk-qo__ladder-label">Volume pricing</span>
+      <span class="sk-qo__tier">10+ uds · <b>−10%</b></span>
+      <span class="sk-qo__tier">20+ uds · <b>−20%</b></span>
+      <span class="sk-qo__tier">30+ uds · <b>−30%</b></span>
+    </div>
+
+    <table class="sk-qo__table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Producto</th>
+          <th class="num">Precio</th>
+          <th>Cantidad</th>
+          <th class="num">Subtotal</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="sk-qo__row">
+          <td data-area="thumb"><div class="sk-qo__thumb">◆</div></td>
+          <td data-area="name"><div class="sk-qo__name">Italian Leather Belt</div><div class="sk-qo__sku">BELT-001</div></td>
+          <td data-area="price" class="sk-qo__price"><span class="sk-qo__mlabel">Precio</span><span class="sk-qo__price-retail">€65,00</span><br><span class="sk-qo__price-wh">€29,25</span></td>
+          <td data-area="qty"><span class="sk-qo__mlabel">Cantidad</span><span class="sk-qo__stepper"><button>−</button><input value="12"><button>+</button></span></td>
+          <td class="sk-qo__line">€351,00</td>
+        </tr>
+        <tr class="sk-qo__row">
+          <td data-area="thumb"><div class="sk-qo__thumb">◆</div></td>
+          <td data-area="name"><div class="sk-qo__name">Cashmere Scarf</div><div class="sk-qo__sku">SCARF-001</div></td>
+          <td data-area="price" class="sk-qo__price"><span class="sk-qo__mlabel">Precio</span><span class="sk-qo__price-retail">€85,00</span><br><span class="sk-qo__price-wh">€38,25</span></td>
+          <td data-area="qty"><span class="sk-qo__mlabel">Cantidad</span><span class="sk-qo__stepper"><button>−</button><input value="8"><button>+</button></span></td>
+          <td class="sk-qo__line">€306,00</td>
+        </tr>
+        <tr class="sk-qo__row">
+          <td data-area="thumb"><div class="sk-qo__thumb">◆</div></td>
+          <td data-area="name"><div class="sk-qo__name">Sterling Silver Necklace</div><div class="sk-qo__sku">NECKLACE-001</div></td>
+          <td data-area="price" class="sk-qo__price"><span class="sk-qo__mlabel">Precio</span><span class="sk-qo__price-retail">€120,00</span><br><span class="sk-qo__price-wh">€54,00</span></td>
+          <td data-area="qty"><span class="sk-qo__mlabel">Cantidad</span><span class="sk-qo__stepper"><button>−</button><input value="0"><button>+</button></span></td>
+          <td class="sk-qo__line">€0,00</td>
+        </tr>
+        <tr class="sk-qo__row">
+          <td data-area="thumb"><div class="sk-qo__thumb">◆</div></td>
+          <td data-area="name"><div class="sk-qo__name">Premium Leather Wallet</div><div class="sk-qo__sku">WALLET-001</div></td>
+          <td data-area="price" class="sk-qo__price"><span class="sk-qo__mlabel">Precio</span><span class="sk-qo__price-retail">€45,00</span><br><span class="sk-qo__price-wh">€20,25</span></td>
+          <td data-area="qty"><span class="sk-qo__mlabel">Cantidad</span><span class="sk-qo__stepper"><button>−</button><input value="24"><button>+</button></span></td>
+          <td class="sk-qo__line">€486,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="sk-qo__foot">
+      <div>
+        <div class="sk-qo__total-label">Total del pedido</div>
+        <div class="sk-qo__total-value">€1.143,00</div>
+        <div class="sk-qo__total-save">Ahorras €1.397,00 frente a retail</div>
+      </div>
+      <button class="sk-qo__cta">Añadir todo al carrito</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

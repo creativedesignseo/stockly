@@ -124,9 +124,9 @@
                   <span class="stockly-qo__variant">{{ variant.title }}</span>
                 {%- endunless -%}
               </td>
-              <td class="stockly-qo__cell stockly-qo__cell--sku">{{ variant.sku }}</td>
-              <td class="stockly-qo__cell stockly-qo__cell--price">{{ variant.price | money }}</td>
-              <td class="stockly-qo__cell stockly-qo__cell--qty">
+              <td class="stockly-qo__cell stockly-qo__cell--sku" data-label="{{ 'qof.col.sku' | t }}">{{ variant.sku }}</td>
+              <td class="stockly-qo__cell stockly-qo__cell--price" data-label="{{ 'qof.col.price' | t }}">{{ variant.price | money }}</td>
+              <td class="stockly-qo__cell stockly-qo__cell--qty" data-label="{{ 'qof.col.qty' | t }}">
                 <input
                   type="number"
                   min="0"
@@ -139,7 +139,7 @@
                   disabled
                 >
               </td>
-              <td class="stockly-qo__cell stockly-qo__cell--total">
+              <td class="stockly-qo__cell stockly-qo__cell--total" data-label="{{ 'qof.col.total' | t }}">
                 <span data-stockly-line-total>{{ 0 | money }}</span>
                 <span class="stockly-qo__nudge" data-stockly-row-nudge hidden></span>
               </td>

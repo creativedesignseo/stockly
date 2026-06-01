@@ -4,7 +4,39 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-01 (RF live-preview max-modal fix shipped, Fly v66)
+**Last updated:** 2026-06-01 (QOF premium re-skin LIVE, Shopify stockly-29)
+
+---
+
+## Just shipped (2026-06-01) — Quick Order Form premium re-skin
+
+**LIVE on Shopify `stockly-29`** (ADR-015). First step of the
+premium-opinionated storefront design direction decided with Jonatan
+(deluxe Stockly identity, NOT theme-inherited; few merchant knobs).
+
+The QOF storefront block (`extensions/quick-order-form/`) moved to the
+canonical `--sk-*` token set: Stockly's own type scale, warm-ink palette,
+bronze accent, soft shadows, larger radii — and a **real mobile card
+layout** (each product becomes a labelled card; was just a shrinking
+table). Implemented as a **pure re-skin**: every `.stockly-qo__*` class
+and `data-stockly-*` JS hook preserved; only `quick-order-form.css`
+rewritten + three `data-label` attrs added to `quick-order-form.liquid`
+for the mobile labels. Pricing/cart JS untouched → revenue path safe.
+Validated visually on real block markup (desktop 1100px + mobile 390px)
+with Playwright before deploy; fixed two CSS specificity bugs (SKU cell +
+meta-row flex losing to `td{display:block}`) and a mobile overflow.
+CSS+liquid only → `shopify app deploy`, no `fly deploy`. `verify.sh` green.
+
+Prototype + final captures: `docs/design/prototypes/`. Plan for the rest:
+`docs/design/storefront-premium-plan.md` (Phase 1 shared `stockly-base.css`,
+Phase 3 admin Appearance panel = the merchant knobs, Phase 4 propagate to
+the other 3 blocks, Phase 5 conditional nav visibility by tag).
+
+**⏳ Validate in prod (Jonatan):** open the wholesale-order page on the dev
+store as the `Test Wholesale` customer — confirm the new premium look on
+desktop, then on a phone confirm the card layout. The accent follows the
+merchant brand color if set (App Proxy branding → `--sk-accent`), else a
+refined bronze.
 
 ---
 

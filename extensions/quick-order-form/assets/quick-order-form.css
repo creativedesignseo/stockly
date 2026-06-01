@@ -1,234 +1,295 @@
 /*
  * Stockly — Quick Order Form styles.
  *
- * Theme-native by default: inherits the host theme's font and the page's
- * neutral palette. CSS variables --stockly-primary / --stockly-accent are
- * set from the App Proxy `branding` response when the customer has them
- * configured in admin; otherwise they fall back to safe defaults.
+ * PREMIUM, OPINIONATED, theme-independent (ADR-015). The block ships its
+ * own identity (type scale, palette, spacing, radii, shadows) instead of
+ * inheriting the host theme's font/palette. The merchant only adjusts a
+ * few high-level knobs — primarily the accent — which arrive as
+ * --stockly-primary from the App Proxy `branding` response and are mapped
+ * onto --sk-accent below (falls back to a refined bronze).
  *
- * Mobile-card layout under 600px is a follow-up commit (Sprint 1 todo);
- * v1 reduces type size + image dimensions so the table still works.
+ * Token set is --sk-* (canonical, shared design language — see
+ * docs/design/storefront-premium-plan.md). The block's JS contract is
+ * untouched: every .stockly-qo__* class and data-stockly-* hook is
+ * preserved; this is a pure re-skin + a real mobile card layout.
  */
 
 stockly-quick-order {
+  /* — Accent: the merchant knob (App Proxy branding) → premium fallback — */
+  --sk-accent: var(--stockly-primary, #9a6b34);
+  --sk-accent-strong: color-mix(in srgb, var(--sk-accent) 78%, #000);
+  --sk-accent-tint: color-mix(in srgb, var(--sk-accent) 12%, transparent);
+
+  /* — Ink scale (Stockly's own, NOT inherited from the theme) — */
+  --sk-ink: #17150f;
+  --sk-ink-2: #4b463c;
+  --sk-ink-3: #8a8479;
+  --sk-line: rgba(23, 21, 15, 0.10);
+  --sk-line-2: rgba(23, 21, 15, 0.06);
+  --sk-surface: #ffffff;
+  --sk-surface-2: #faf8f4;
+  --sk-row-hover: color-mix(in srgb, var(--sk-accent) 4.5%, transparent);
+
+  /* — Type: Stockly's own system stack (independent of the theme font) — */
+  --sk-font: var(--stockly-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+
+  /* — Shape & elevation — */
+  --sk-radius-card: 16px;
+  --sk-radius-ctrl: 10px;
+  --sk-radius-pill: 999px;
+  --sk-shadow-card: 0 1px 2px rgba(23, 21, 15, 0.04), 0 8px 24px -12px rgba(23, 21, 15, 0.14);
+  --sk-shadow-ctrl: 0 1px 2px rgba(23, 21, 15, 0.05);
+
   display: block;
-  --stockly-primary: #111;
-  --stockly-accent: #555;
-  --stockly-border: rgba(0, 0, 0, 0.08);
-  --stockly-row-hover: rgba(0, 0, 0, 0.02);
-  font-family: var(--stockly-font, inherit);
-  color: inherit;
   margin: 1.5rem 0;
+  padding: 28px;
+  background: var(--sk-surface);
+  border: 1px solid var(--sk-line);
+  border-radius: var(--sk-radius-card);
+  box-shadow: var(--sk-shadow-card);
+  font-family: var(--sk-font);
+  color: var(--sk-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 /*
- * The block-level rules below (e.g. .stockly-qo__ladder { display: flex })
- * are more specific than the user-agent [hidden] { display: none } default
- * and were pinning ladder / fpq banner / footer visible even when JS set
- * the hidden attribute. This forces the hidden contract back. Apply with
- * a strong selector so it wins over any merchant-overridden CSS too.
+ * Hidden contract: the block-level display rules below are more specific
+ * than the UA [hidden]{display:none}, so re-assert it with a strong
+ * selector that also wins over merchant-overridden CSS.
  */
 stockly-quick-order [hidden],
 stockly-quick-order [hidden] * {
   display: none !important;
 }
 
+/* — Heading — */
 stockly-quick-order .stockly-qo__heading {
-  margin: 0 0 1rem;
-  font-size: 1.5rem;
-  font-weight: 600;
+  margin: 0 0 20px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--sk-ink);
 }
 
+/* — States (loading / empty / not-eligible / error) — */
 stockly-quick-order .stockly-qo__states {
-  padding: 2.5rem 1rem;
+  padding: 2.75rem 1rem;
   text-align: center;
-  color: var(--stockly-accent);
+  color: var(--sk-ink-3);
 }
 
+stockly-quick-order .stockly-qo__state {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* — FPQ progress banner — */
 stockly-quick-order .stockly-qo__fpq-banner {
   display: flex;
   align-items: center;
   gap: 0.625rem;
-  margin: 0 0 1rem;
+  margin: 0 0 18px;
   padding: 0.875rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  border-radius: var(--sk-radius-ctrl);
+  font-size: 14px;
   line-height: 1.4;
-  background: rgba(201, 169, 97, 0.08);
-  border: 1px solid rgba(201, 169, 97, 0.25);
-  color: var(--stockly-primary);
+  background: var(--sk-accent-tint);
+  border: 1px solid color-mix(in srgb, var(--sk-accent) 28%, transparent);
+  color: var(--sk-ink);
 }
 
 stockly-quick-order .stockly-qo__fpq-banner[data-fpq-state="met"] {
-  background: rgba(34, 139, 87, 0.08);
-  border-color: rgba(34, 139, 87, 0.35);
+  background: rgba(28, 110, 70, 0.08);
+  border-color: rgba(28, 110, 70, 0.32);
 }
 
 stockly-quick-order .stockly-qo__fpq-banner-icon {
   flex-shrink: 0;
   font-size: 1.1rem;
-  color: var(--stockly-accent);
+  color: var(--sk-accent);
 }
 
 stockly-quick-order .stockly-qo__fpq-banner[data-fpq-state="met"] .stockly-qo__fpq-banner-icon {
-  color: rgb(34, 139, 87);
+  color: rgb(28, 110, 70);
 }
 
+/* — Volume tier ladder — */
 stockly-quick-order .stockly-qo__ladder {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.625rem;
-  margin: 0 0 1rem;
-  padding: 0.875rem 1rem;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid var(--stockly-border);
-  border-radius: 6px;
-  font-size: 0.875rem;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  background: var(--sk-surface-2);
+  border: 1px solid var(--sk-line-2);
+  border-radius: var(--sk-radius-ctrl);
+  font-size: 14px;
 }
 
 stockly-quick-order .stockly-qo__ladder-label {
   font-weight: 600;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--stockly-accent);
-  margin-right: 0.25rem;
+  color: var(--sk-ink-3);
+  margin-right: 4px;
 }
 
 stockly-quick-order .stockly-qo__ladder-tiers {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 stockly-quick-order .stockly-qo__ladder-tier {
   display: inline-flex;
   align-items: baseline;
   gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--stockly-accent);
+  padding: 7px 12px;
+  border: 1px solid var(--sk-line);
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-surface);
+  color: var(--sk-ink);
   transition: all 0.18s ease;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 stockly-quick-order .stockly-qo__ladder-qty {
-  font-weight: 500;
+  font-weight: 600;
 }
 
 stockly-quick-order .stockly-qo__ladder-discount {
-  font-weight: 600;
-  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--sk-accent-strong);
 }
 
 stockly-quick-order .stockly-qo__ladder-tier--active {
-  background: var(--stockly-primary);
-  border-color: var(--stockly-primary);
+  background: var(--sk-ink);
+  border-color: var(--sk-ink);
   color: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(23, 21, 15, 0.16);
 }
 
-stockly-quick-order .stockly-qo__state {
-  margin: 0;
-  font-size: 1rem;
-  line-height: 1.5;
+stockly-quick-order .stockly-qo__ladder-tier--active .stockly-qo__ladder-discount {
+  color: #fff;
 }
 
+/* — Table (desktop) — */
 stockly-quick-order .stockly-qo__table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--stockly-border);
-  border-radius: 6px;
 }
 
 stockly-quick-order .stockly-qo__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-stockly-quick-order .stockly-qo__table th,
-stockly-quick-order .stockly-qo__table td {
-  padding: 0.75rem 0.875rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--stockly-border);
+  font-size: 15px;
 }
 
 stockly-quick-order .stockly-qo__table thead th {
-  background: rgba(0, 0, 0, 0.025);
+  padding: 0 14px 12px;
+  text-align: left;
   font-weight: 600;
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--stockly-accent);
+  color: var(--sk-ink-3);
+  border-bottom: 1px solid var(--sk-line);
+}
+
+stockly-quick-order .stockly-qo__table td {
+  padding: 16px 14px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--sk-line-2);
 }
 
 stockly-quick-order .stockly-qo__row:hover {
-  background: var(--stockly-row-hover);
+  background: var(--sk-row-hover);
 }
 
 stockly-quick-order .stockly-qo__cell--image img {
   display: block;
-  width: 60px;
-  height: 60px;
+  width: 52px;
+  height: 52px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: var(--sk-radius-ctrl);
+  border: 1px solid var(--sk-line);
 }
 
 stockly-quick-order .stockly-qo__cell--title a {
-  color: inherit;
+  color: var(--sk-ink);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 15px;
 }
 
 stockly-quick-order .stockly-qo__cell--title a:hover {
-  text-decoration: underline;
+  color: var(--sk-accent-strong);
 }
 
 stockly-quick-order .stockly-qo__variant {
   display: block;
   margin-top: 0.125rem;
-  font-size: 0.825rem;
-  color: var(--stockly-accent);
+  font-size: 13px;
+  color: var(--sk-ink-3);
 }
 
-stockly-quick-order .stockly-qo__cell--sku,
-stockly-quick-order .stockly-qo__cell--price,
+stockly-quick-order .stockly-qo__cell--sku {
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  color: var(--sk-ink-3);
+}
+
+stockly-quick-order .stockly-qo__cell--price {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--sk-ink);
+}
+
 stockly-quick-order .stockly-qo__cell--total {
   font-variant-numeric: tabular-nums;
-}
-
-stockly-quick-order .stockly-qo__cell--total {
   font-weight: 600;
+  text-align: right;
+  color: var(--sk-ink);
 }
 
 stockly-quick-order .stockly-qo__nudge {
   display: block;
   margin-top: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 11.5px;
+  font-weight: 600;
   letter-spacing: 0.01em;
-  color: var(--stockly-accent);
+  color: var(--sk-accent-strong);
   font-variant-numeric: normal;
   white-space: nowrap;
 }
 
+/* — Qty input — */
 stockly-quick-order .stockly-qo__qty {
-  width: 80px;
-  padding: 0.5rem 0.625rem;
+  width: 88px;
+  padding: 9px 12px;
   font: inherit;
-  border: 1px solid rgba(0, 0, 0, 0.18);
-  border-radius: 4px;
-  background: #fff;
+  font-weight: 600;
+  text-align: center;
+  color: var(--sk-ink);
+  border: 1px solid var(--sk-line);
+  border-radius: var(--sk-radius-ctrl);
+  background: var(--sk-surface);
+  box-shadow: var(--sk-shadow-ctrl);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 stockly-quick-order .stockly-qo__qty:focus {
-  outline: 2px solid var(--stockly-primary);
-  outline-offset: 1px;
+  outline: none;
+  border-color: var(--sk-accent);
+  box-shadow: 0 0 0 3px var(--sk-accent-tint);
 }
 
 stockly-quick-order .stockly-qo__qty:disabled {
@@ -236,51 +297,60 @@ stockly-quick-order .stockly-qo__qty:disabled {
   cursor: not-allowed;
 }
 
+/* — Footer — */
 stockly-quick-order .stockly-qo__footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1.25rem 0.875rem;
-  margin-top: 0.5rem;
-  border-top: 2px solid var(--stockly-primary);
+  gap: 20px;
+  padding: 22px 0 0;
+  margin-top: 24px;
+  border-top: 1.5px solid var(--sk-line);
 }
 
 stockly-quick-order .stockly-qo__grand {
   display: flex;
-  align-items: baseline;
-  gap: 0.625rem;
+  flex-direction: column;
+  gap: 2px;
 }
 
 stockly-quick-order .stockly-qo__grand-label {
-  font-size: 0.85rem;
+  font-size: 11.5px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--stockly-accent);
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--sk-ink-3);
 }
 
 stockly-quick-order .stockly-qo__grand-value {
-  font-size: 1.25rem;
+  font-size: 26px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
+  color: var(--sk-ink);
 }
 
+/* — CTA — */
 stockly-quick-order .stockly-qo__cta {
   appearance: none;
-  background: var(--stockly-primary);
+  background: var(--sk-ink);
   color: #fff;
   border: none;
-  padding: 0.75rem 1.5rem;
+  padding: 15px 28px;
   font: inherit;
   font-weight: 600;
-  border-radius: 4px;
+  font-size: 15px;
+  border-radius: var(--sk-radius-ctrl);
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  box-shadow: var(--sk-shadow-ctrl);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 stockly-quick-order .stockly-qo__cta:hover:not(:disabled) {
-  opacity: 0.9;
+  transform: translateY(-1px);
+  background: var(--sk-accent-strong);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--sk-accent) 55%, transparent);
 }
 
 stockly-quick-order .stockly-qo__cta:disabled {
@@ -288,30 +358,118 @@ stockly-quick-order .stockly-qo__cta:disabled {
   cursor: not-allowed;
 }
 
+/* — Add-to-cart error — */
 stockly-quick-order .stockly-qo__add-error {
   margin: 0.75rem 0 0;
   padding: 0.75rem 0.875rem;
   background: rgba(200, 60, 60, 0.08);
   border: 1px solid rgba(200, 60, 60, 0.3);
-  border-radius: 4px;
+  border-radius: var(--sk-radius-ctrl);
   color: rgb(170, 50, 50);
-  font-size: 0.9rem;
+  font-size: 14px;
   line-height: 1.45;
 }
 
-@media (max-width: 600px) {
-  stockly-quick-order .stockly-qo__table {
-    font-size: 0.85rem;
+/* =========================================================================
+   RESPONSIVE — real card layout under 640px (was: just shrink the table).
+   Each row becomes a stacked card. Mobile cell labels come from data-label.
+   ========================================================================= */
+@media (max-width: 640px) {
+  stockly-quick-order {
+    padding: 18px;
+    border-radius: var(--sk-radius-ctrl);
   }
-  stockly-quick-order .stockly-qo__table th,
+
+  stockly-quick-order .stockly-qo__heading {
+    font-size: 23px;
+  }
+
+  stockly-quick-order .stockly-qo__table thead {
+    display: none;
+  }
+
+  /* the desktop horizontal scroll container must not clip the cards */
+  stockly-quick-order .stockly-qo__table-wrap {
+    overflow: visible;
+  }
+
+  stockly-quick-order .stockly-qo__table,
+  stockly-quick-order .stockly-qo__table tbody,
+  stockly-quick-order .stockly-qo__row,
   stockly-quick-order .stockly-qo__table td {
-    padding: 0.5rem 0.5rem;
+    display: block;
+    width: 100%;
   }
-  stockly-quick-order .stockly-qo__cell--image img {
-    width: 40px;
-    height: 40px;
+
+  stockly-quick-order .stockly-qo__row {
+    border: 1px solid var(--sk-line);
+    border-radius: var(--sk-radius-ctrl);
+    box-shadow: var(--sk-shadow-ctrl);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 12px;
+    align-items: center;
   }
+
+  stockly-quick-order .stockly-qo__row:hover {
+    background: transparent;
+  }
+
+  stockly-quick-order .stockly-qo__table td {
+    padding: 0;
+    border: 0;
+  }
+
+  /* Card header: image + title side by side on the first row */
+  stockly-quick-order .stockly-qo__cell--image {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  stockly-quick-order .stockly-qo__cell--title {
+    grid-row: 1;
+    grid-column: 2;
+    min-width: 0; /* let long titles wrap instead of overflowing the card */
+  }
+
+  stockly-quick-order .stockly-qo__cell--title a {
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  /* sku, price, qty and total become full-width labelled meta rows.
+     Selectors are td-qualified so they beat `.stockly-qo__table td{display:block}`
+     on specificity (the same pitfall the hidden-contract comment warns about). */
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--sku,
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--price,
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--qty,
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--total {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0 0;
+    border-top: 1px solid var(--sk-line-2);
+    text-align: left;
+  }
+
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--sku::before,
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--price::before,
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--qty::before,
+  stockly-quick-order .stockly-qo__table td.stockly-qo__cell--total::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sk-ink-3);
+  }
+
   stockly-quick-order .stockly-qo__qty {
-    width: 60px;
+    width: 96px;
   }
 }
