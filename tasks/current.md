@@ -4,11 +4,11 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-02 (Storefront premium Phase 1 + 4 shipped to code, PRE-DEPLOY)
+**Last updated:** 2026-06-02 (Storefront premium Phase 1 + 4 LIVE, Shopify stockly-31)
 
 ---
 
-## Shipped to code, ⏳ PRE-DEPLOY (2026-06-02) — Premium Phase 1 + Phase 4
+## Just shipped (2026-06-02) — Premium Phase 1 + Phase 4 (LIVE, stockly-31)
 
 ADR-015 / `docs/design/storefront-premium-plan.md`. Unified all four
 storefront blocks onto ONE premium token set, killing the "Frankenstein".
@@ -24,13 +24,15 @@ storefront blocks onto ONE premium token set, killing the "Frankenstein".
   (injected by registration-form.js from admin appearance JSON) preserved;
   only its defaults derive from `--sk-*` + radii/shadows/font aligned.
 
-CSS+Liquid only → `npx shopify app deploy` ONLY (NO `fly deploy`); revenue
-path untouched. `verify.sh` green. Full journal:
-`progress/2026-06-02-storefront-premium-phase1-phase4.md`.
+CSS+Liquid only → released via `npx shopify app deploy` (NO `fly deploy`);
+revenue path untouched. `verify.sh` green. Full journal:
+`progress/2026-06-02-storefront-premium-phase1-phase4.md`. (Non-blocking
+deploy warning: `registration-form.js` 13 KB > 10 KB app-block threshold —
+trim is a tracked follow-up, not introduced here.)
 
-**⏳ NOT deployed.** Needs Jonatan go + deployment-guardian, then visual
-confirm: product page (panel), cart (FPQ banner), registration page. QOF
-unchanged. Remaining plan: Phase 5 (conditional nav visibility by tag).
+**⏳ Pending Jonatan visual confirm:** product page (panel), cart (FPQ
+banner), registration page. QOF unchanged. Remaining plan: Phase 5
+(conditional nav visibility by tag).
 
 ---
 
