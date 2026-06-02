@@ -4,7 +4,39 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-01 (QOF premium re-skin LIVE, Shopify stockly-29)
+**Last updated:** 2026-06-02 (QOF Appearance knobs LIVE, Shopify stockly-30)
+
+---
+
+## Just shipped (2026-06-02) — QOF merchant Appearance knobs
+
+**LIVE on Shopify `stockly-30`** (commit `11c91b2`, ADR-015). The Quick
+Order Form theme-editor panel gained an **"Appearance"** group so the
+merchant can adjust the look from where they already edit the block —
+deliberately FEW knobs (premium-opinionated, can't be made ugly):
+
+- **Accent color** (`color` setting). Precedence chain in the CSS: block
+  setting (`--sk-accent-theme`) → App Proxy branding (`--stockly-primary`)
+  → bronze fallback. A color set here wins over the shop branding; left
+  empty it inherits the brand color.
+- **Density** (comfortable/compact) → `--sk-pad` + `--sk-cell-pad-y`.
+- **Text size** (small/medium/large) → `--sk-text-base`.
+
+All emitted as inline CSS custom properties on the host from
+`quick-order-form.liquid`; `quick-order-form.css` consumes them at 5
+anchor points. **Pure CSS+Liquid** — the `data-stockly-*` contract and the
+pricing/cart JS are untouched, so the revenue path is unaffected.
+`verify.sh` green. `shopify app deploy` only (no `fly deploy`).
+
+Decision recap (with Jonatan): the knobs live in the **theme editor block
+panel** (chosen over a centralized admin "Appearance" panel) — fastest,
+native Shopify controls, no backend change. The admin-side centralized
+panel (original Phase 3) remains a later option if cross-block coherence
+becomes a need.
+
+**⏳ Validate in prod (Jonatan):** open the QOF block in the theme editor,
+expand the **Appearance** group, try the accent color / density / text
+size and confirm the storefront reflects them.
 
 ---
 
