@@ -1,11 +1,17 @@
-/* Stockly — Wholesale FPQ Banner (cart-page) — see fpq-banner.liquid */
+/* Stockly — Wholesale FPQ Banner (cart-page) — see fpq-banner.liquid
+ *
+ * Premium re-skin onto the shared --sk-* tokens (stockly-base.css,
+ * ADR-015 / storefront-premium-plan Phase 4). Pure re-skin: every
+ * .stockly-fpq__* class and the [hidden] contract are preserved; the
+ * block's JS is untouched. Text sizes are absolute px so the banner
+ * stays legible on themes that shrink the root (font-size: 62.5%).
+ */
 
 stockly-fpq-banner {
   display: block;
-  --stockly-primary: #111;
-  --stockly-accent: #555;
-  font-family: inherit;
-  color: inherit;
+  font-family: var(--sk-font);
+  color: var(--sk-ink);
+  font-size: 16px;
 }
 
 /* Block-level CSS rules below set display: flex on the banner, which
@@ -22,25 +28,27 @@ stockly-fpq-banner .stockly-fpq__banner {
   gap: 0.625rem;
   margin: 0 0 1rem;
   padding: 0.875rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
+  border-radius: var(--sk-radius-ctrl);
+  font-size: 14px;
   line-height: 1.4;
-  background: rgba(201, 169, 97, 0.08);
-  border: 1px solid rgba(201, 169, 97, 0.25);
-  color: var(--stockly-primary);
+  background: var(--sk-accent-tint);
+  border: 1px solid color-mix(in srgb, var(--sk-accent) 28%, transparent);
+  color: var(--sk-ink);
+  box-shadow: var(--sk-shadow-ctrl);
 }
 
 stockly-fpq-banner .stockly-fpq__banner[data-fpq-state="met"] {
-  background: rgba(34, 139, 87, 0.08);
-  border-color: rgba(34, 139, 87, 0.35);
+  background: var(--sk-success-tint);
+  border-color: var(--sk-success-line);
+  color: var(--sk-success-ink);
 }
 
 stockly-fpq-banner .stockly-fpq__icon {
   flex-shrink: 0;
-  font-size: 1.1rem;
-  color: var(--stockly-accent);
+  font-size: 17px;
+  color: var(--sk-accent);
 }
 
 stockly-fpq-banner .stockly-fpq__banner[data-fpq-state="met"] .stockly-fpq__icon {
-  color: rgb(34, 139, 87);
+  color: var(--sk-success);
 }

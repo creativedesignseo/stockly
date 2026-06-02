@@ -1,0 +1,61 @@
+/*
+ * Stockly — shared storefront design tokens (--sk-*).
+ *
+ * ONE canonical token set for ALL four storefront blocks (Quick Order
+ * Form, Wholesale Product Panel, FPQ Banner, Registration Form) so the
+ * premium identity (ADR-015, docs/design/storefront-premium-plan.md
+ * Phase 1) never drifts between them. Each block's .liquid loads this
+ * asset with a {{ 'stockly-base.css' | asset_url | stylesheet_tag }} tag
+ * alongside its own per-block stylesheet.
+ *
+ * Tokens are declared on the four custom-element hosts (NOT :root) so the
+ * accent precedence chain still sees the per-host overrides injected
+ * inline at runtime:
+ *   block "Appearance" setting (--sk-accent-theme, QOF only)
+ *     → App Proxy branding (--stockly-primary)
+ *       → premium bronze fallback (#9a6b34).
+ *
+ * Adding a block? Add its host element to the selector list below and it
+ * inherits the whole system for free.
+ */
+
+stockly-quick-order,
+stockly-product-panel,
+stockly-fpq-banner,
+stockly-registration {
+  /* — Accent: precedence chain (see header) — */
+  --sk-accent: var(--sk-accent-theme, var(--stockly-primary, #9a6b34));
+  --sk-accent-strong: color-mix(in srgb, var(--sk-accent) 78%, #000);
+  --sk-accent-tint: color-mix(in srgb, var(--sk-accent) 12%, transparent);
+
+  /* — Ink scale (Stockly's own, NOT inherited from the theme) — */
+  --sk-ink: #17150f;
+  --sk-ink-2: #4b463c;
+  --sk-ink-3: #8a8479;
+  --sk-line: rgba(23, 21, 15, 0.10);
+  --sk-line-2: rgba(23, 21, 15, 0.06);
+  --sk-surface: #ffffff;
+  --sk-surface-2: #faf8f4;
+  --sk-row-hover: color-mix(in srgb, var(--sk-accent) 4.5%, transparent);
+
+  /* — Semantic: success (savings, FPQ met) — */
+  --sk-success: rgb(34, 139, 87);
+  --sk-success-ink: rgb(28, 110, 70);
+  --sk-success-tint: rgba(34, 139, 87, 0.10);
+  --sk-success-line: rgba(34, 139, 87, 0.30);
+
+  /* — Semantic: danger (errors) — */
+  --sk-danger: rgb(170, 50, 50);
+  --sk-danger-tint: rgba(200, 60, 60, 0.10);
+  --sk-danger-line: rgba(200, 60, 60, 0.30);
+
+  /* — Type: Stockly's own system stack (independent of the theme font) — */
+  --sk-font: var(--stockly-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+
+  /* — Shape & elevation — */
+  --sk-radius-card: 16px;
+  --sk-radius-ctrl: 10px;
+  --sk-radius-pill: 999px;
+  --sk-shadow-card: 0 1px 2px rgba(23, 21, 15, 0.04), 0 8px 24px -12px rgba(23, 21, 15, 0.14);
+  --sk-shadow-ctrl: 0 1px 2px rgba(23, 21, 15, 0.05);
+}

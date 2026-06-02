@@ -38,6 +38,8 @@
   {%- unless forloop.last -%}{%- assign collection_gids = collection_gids | append: ',' -%}{%- endunless -%}
 {%- endfor -%}
 
+{{ 'stockly-base.css' | asset_url | stylesheet_tag }}
+
 <stockly-product-panel
   class="stockly-wpp"
   data-context-url="/apps/stockly/context"

@@ -25,6 +25,8 @@
   shop's pricing config.
 {%- endcomment -%}
 
+{{ 'stockly-base.css' | asset_url | stylesheet_tag }}
+
 <stockly-fpq-banner
   class="stockly-fpq"
   data-context-url="/apps/stockly/context"

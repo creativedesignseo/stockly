@@ -5,42 +5,19 @@
  * own identity (type scale, palette, spacing, radii, shadows) instead of
  * inheriting the host theme's font/palette. The merchant only adjusts a
  * few high-level knobs — primarily the accent — which arrive as
- * --stockly-primary from the App Proxy `branding` response and are mapped
- * onto --sk-accent below (falls back to a refined bronze).
+ * --stockly-primary from the App Proxy `branding` response (or
+ * --sk-accent-theme from the block "Appearance" setting) and are mapped
+ * onto --sk-accent.
  *
- * Token set is --sk-* (canonical, shared design language — see
- * docs/design/storefront-premium-plan.md). The block's JS contract is
+ * The --sk-* token set is now defined ONCE in the shared `stockly-base.css`
+ * (loaded by this block's .liquid alongside this file — Phase 1, see
+ * docs/design/storefront-premium-plan.md), so every storefront block
+ * speaks the same language with no drift. The block's JS contract is
  * untouched: every .stockly-qo__* class and data-stockly-* hook is
  * preserved; this is a pure re-skin + a real mobile card layout.
  */
 
 stockly-quick-order {
-  /* — Accent: precedence chain — block "Appearance" setting (--sk-accent-theme)
-       → App Proxy branding (--stockly-primary) → premium bronze fallback — */
-  --sk-accent: var(--sk-accent-theme, var(--stockly-primary, #9a6b34));
-  --sk-accent-strong: color-mix(in srgb, var(--sk-accent) 78%, #000);
-  --sk-accent-tint: color-mix(in srgb, var(--sk-accent) 12%, transparent);
-
-  /* — Ink scale (Stockly's own, NOT inherited from the theme) — */
-  --sk-ink: #17150f;
-  --sk-ink-2: #4b463c;
-  --sk-ink-3: #8a8479;
-  --sk-line: rgba(23, 21, 15, 0.10);
-  --sk-line-2: rgba(23, 21, 15, 0.06);
-  --sk-surface: #ffffff;
-  --sk-surface-2: #faf8f4;
-  --sk-row-hover: color-mix(in srgb, var(--sk-accent) 4.5%, transparent);
-
-  /* — Type: Stockly's own system stack (independent of the theme font) — */
-  --sk-font: var(--stockly-font, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
-
-  /* — Shape & elevation — */
-  --sk-radius-card: 16px;
-  --sk-radius-ctrl: 10px;
-  --sk-radius-pill: 999px;
-  --sk-shadow-card: 0 1px 2px rgba(23, 21, 15, 0.04), 0 8px 24px -12px rgba(23, 21, 15, 0.14);
-  --sk-shadow-ctrl: 0 1px 2px rgba(23, 21, 15, 0.05);
-
   display: block;
   margin: 1.5rem 0;
   padding: var(--sk-pad, 28px);

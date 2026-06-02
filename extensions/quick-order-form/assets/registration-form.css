@@ -26,29 +26,33 @@
  *   .stockly-reg--layout-default    Plain form, no border/card.
  *   .stockly-reg--layout-boxed      Card-wrapped form with padding + border.
  *
- * All properties are optional. Defaults keep parity with the previous
- * hard-coded form so theme blocks without a fetched definition still
- * look right.
+ * All properties are optional. Their DEFAULTS now derive from the shared
+ * --sk-* premium token set (stockly-base.css, ADR-015 / storefront-premium-
+ * plan Phase 4), so the form inherits Stockly's identity out of the box
+ * and stays coherent with the other three blocks. A merchant value set in
+ * the admin still wins: registration-form.js injects the --rf-color-* as
+ * inline custom properties on the host, which override these defaults.
  * ─────────────────────────────────────────────────────────────────── */
 
 stockly-registration {
   display: block;
-  /* Default palette — overridden at runtime when appearance is fetched. */
-  --rf-color-main: #111;
-  --rf-color-heading: #111;
-  --rf-color-label: #555;
-  --rf-color-description: #666;
-  --rf-color-option: #111;
-  --rf-color-paragraph: #333;
+  /* Default palette — derived from --sk-* (stockly-base.css); overridden
+     at runtime when the merchant's appearance JSON is fetched. */
+  --rf-color-main: var(--sk-accent);
+  --rf-color-heading: var(--sk-ink);
+  --rf-color-label: var(--sk-ink-2);
+  --rf-color-description: var(--sk-ink-3);
+  --rf-color-option: var(--sk-ink);
+  --rf-color-paragraph: var(--sk-ink-2);
   --rf-color-paragraph-bg: transparent;
-  --rf-color-background: #ffffff;
-  --rf-color-border: rgba(0, 0, 0, 0.12);
-  --rf-color-button-text: #ffffff;
-  --rf-color-error: rgb(170, 50, 50);
-  --rf-color-success: rgb(28, 110, 70);
+  --rf-color-background: var(--sk-surface);
+  --rf-color-border: var(--sk-line);
+  --rf-color-button-text: var(--sk-surface);
+  --rf-color-error: var(--sk-danger);
+  --rf-color-success: var(--sk-success-ink);
   --rf-form-max-width: 100%;
-  font-family: var(--stockly-font, inherit);
-  color: inherit;
+  font-family: var(--sk-font);
+  color: var(--sk-ink);
   margin: 1.5rem 0;
   /* Anchor our OWN base font-size. Without this the form inherits the
      theme's root size — and many Shopify themes set the root to 10px via
@@ -76,9 +80,9 @@ stockly-registration .stockly-reg__root {
 stockly-registration.stockly-reg--layout-boxed .stockly-reg__inner {
   padding: 2rem;
   border: 1px solid var(--rf-color-border);
-  border-radius: 12px;
+  border-radius: var(--sk-radius-card);
   background: var(--rf-color-background);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--sk-shadow-card);
 }
 
 stockly-registration.stockly-reg--layout-default .stockly-reg__inner {
@@ -139,11 +143,11 @@ stockly-registration .stockly-reg__field select {
   padding: 0.7rem 0.8rem;
   font: inherit;
   border: 1px solid var(--rf-color-border);
-  border-radius: 8px;
-  background: #fff;
+  border-radius: var(--sk-radius-ctrl);
+  background: var(--sk-surface);
   color: var(--rf-color-option);
   box-sizing: border-box;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--sk-shadow-ctrl);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -182,9 +186,9 @@ stockly-registration .stockly-reg__field textarea {
 stockly-registration .stockly-reg__errors {
   margin: 1rem 0 0;
   padding: 0.75rem 0.875rem;
-  background: rgba(200, 60, 60, 0.08);
-  border: 1px solid rgba(200, 60, 60, 0.3);
-  border-radius: 4px;
+  background: var(--sk-danger-tint);
+  border: 1px solid var(--sk-danger-line);
+  border-radius: var(--sk-radius-ctrl);
   color: var(--rf-color-error);
 }
 
@@ -212,9 +216,9 @@ stockly-registration .stockly-reg__submit {
   font-weight: 600;
   font-size: 15px;
   letter-spacing: 0.01em;
-  border-radius: 8px;
+  border-radius: var(--sk-radius-ctrl);
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--sk-shadow-ctrl);
   transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
@@ -231,9 +235,9 @@ stockly-registration .stockly-reg__submit:disabled {
 stockly-registration .stockly-reg__success,
 stockly-registration .stockly-reg__already {
   padding: 1.25rem 1rem;
-  background: rgba(34, 139, 87, 0.08);
-  border: 1px solid rgba(34, 139, 87, 0.35);
-  border-radius: 6px;
+  background: var(--sk-success-tint);
+  border: 1px solid var(--sk-success-line);
+  border-radius: var(--sk-radius-ctrl);
   color: var(--rf-color-success);
 }
 

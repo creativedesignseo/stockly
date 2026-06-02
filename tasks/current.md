@@ -4,7 +4,33 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-02 (QOF Appearance knobs LIVE, Shopify stockly-30)
+**Last updated:** 2026-06-02 (Storefront premium Phase 1 + 4 shipped to code, PRE-DEPLOY)
+
+---
+
+## Shipped to code, ⏳ PRE-DEPLOY (2026-06-02) — Premium Phase 1 + Phase 4
+
+ADR-015 / `docs/design/storefront-premium-plan.md`. Unified all four
+storefront blocks onto ONE premium token set, killing the "Frankenstein".
+
+- **Phase 1**: `--sk-*` tokens extracted to a shared
+  `extensions/quick-order-form/assets/stockly-base.css` (declared on a
+  4-host selector so per-host inline accent overrides still resolve);
+  loaded by each block's `.liquid` via `stylesheet_tag` (app blocks allow
+  only one schema `stylesheet`). Added `--sk-success*`/`--sk-danger*`.
+- **Phase 4**: `fpq-banner.css` + `wholesale-product-panel.css` pure
+  re-skins onto `--sk-*` (classes + `data-stockly-*` hooks + JS untouched).
+  `registration-form.css` light-touch: `--rf-color-*` runtime contract
+  (injected by registration-form.js from admin appearance JSON) preserved;
+  only its defaults derive from `--sk-*` + radii/shadows/font aligned.
+
+CSS+Liquid only → `npx shopify app deploy` ONLY (NO `fly deploy`); revenue
+path untouched. `verify.sh` green. Full journal:
+`progress/2026-06-02-storefront-premium-phase1-phase4.md`.
+
+**⏳ NOT deployed.** Needs Jonatan go + deployment-guardian, then visual
+confirm: product page (panel), cart (FPQ banner), registration page. QOF
+unchanged. Remaining plan: Phase 5 (conditional nav visibility by tag).
 
 ---
 

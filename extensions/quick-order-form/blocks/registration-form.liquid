@@ -38,6 +38,8 @@
   {%- assign customer_last  = customer.last_name -%}
 {%- endif -%}
 
+{{ 'stockly-base.css' | asset_url | stylesheet_tag }}
+
 <stockly-registration
   class="stockly-reg"
   data-action-url="/apps/stockly/apply"

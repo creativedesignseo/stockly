@@ -46,6 +46,8 @@
   endcase
 -%}
 
+{{ 'stockly-base.css' | asset_url | stylesheet_tag }}
+
 <stockly-quick-order
   class="stockly-qo"
   style="{{ sk_style }}"

@@ -1,6 +1,11 @@
 # Storefront Premium Redesign — phased plan
 
-> Status: PLAN (not yet executing). Created 2026-06-01.
+> Status (2026-06-02): Phases 1, 2 and 4 SHIPPED to code (verify green,
+> pending `shopify app deploy` + visual confirm). Phase 3's merchant knobs
+> shipped a different way — in the QOF theme-editor block panel
+> ("Appearance", stockly-30) rather than a centralized admin panel; the
+> admin panel remains a later option if cross-block coherence needs it.
+> Phase 5 (conditional nav by tag) still open. Created 2026-06-01.
 > Decision owner: Jonatan. Direction locked: **premium, opinionated,
 > Stockly-own identity — NOT inherited from the merchant theme.**
 > See the prototype: `docs/design/prototypes/quick-order-form.html`.
@@ -39,7 +44,15 @@ Write `docs/decisions/ADR-015-storefront-design-premium.md`:
 
 ---
 
-## Phase 1 — Canonical tokens  ·  no deploy
+## Phase 1 — Canonical tokens  ·  DONE 2026-06-02 (shipped to code)
+
+> Implemented: `extensions/quick-order-form/assets/stockly-base.css` holds
+> the canonical `--sk-*` set on a 4-host selector. Each block's `.liquid`
+> loads it via `{{ 'stockly-base.css' | asset_url | stylesheet_tag }}` (app
+> blocks allow only one schema `stylesheet`). QOF's duplicated token block
+> removed. See `progress/2026-06-02-storefront-premium-phase1-phase4.md`.
+
+
 
 Define the definitive `--sk-*` set (promote design-system.md §2,
 generalize the prototype's `:root`). Decide defaults: accent, ink scale,
@@ -91,7 +104,16 @@ branding) → both pipelines.
 
 ---
 
-## Phase 4 — Propagate to the other 3 blocks  ·  shopify app deploy
+## Phase 4 — Propagate to the other 3 blocks  ·  DONE 2026-06-02 (shipped to code)
+
+> Implemented: `fpq-banner.css` and `wholesale-product-panel.css` re-skinned
+> onto `--sk-*` (pure re-skin, classes + JS hooks preserved). Registration
+> is light-touch: its `--rf-color-*` RUNTIME CONTRACT (injected by
+> registration-form.js from the admin appearance JSON) is preserved — only
+> the *defaults* now derive from `--sk-*`, plus radii/shadows/font aligned.
+> Verify green; pending `shopify app deploy` + visual confirm.
+
+
 
 registration form (already close), wholesale product panel, FPQ banner →
 same `--sk-*` tokens, same identity. Kills the "Frankenstein" for good.
