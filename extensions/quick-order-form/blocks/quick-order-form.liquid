@@ -18,8 +18,37 @@
   {%- assign qof_products = collections.all.products -%}
 {%- endif -%}
 
+{%- comment -%}
+  Appearance knobs (ADR-015 — few, opinionated, can't-make-it-ugly).
+  Emitted as inline CSS custom properties on the host. The accent uses a
+  precedence chain in the CSS (theme setting → App Proxy branding → bronze):
+  a value set here wins; left blank, the block inherits the shop branding.
+  Density / text size map to a small set of fixed steps, never free values.
+{%- endcomment -%}
+{%- liquid
+  assign sk_style = ''
+  if block.settings.accent_color != blank
+    assign sk_style = sk_style | append: '--sk-accent-theme:' | append: block.settings.accent_color | append: ';'
+  endif
+  case block.settings.density
+    when 'compact'
+      assign sk_style = sk_style | append: '--sk-pad:20px;--sk-cell-pad-y:10px;'
+    else
+      assign sk_style = sk_style | append: '--sk-pad:28px;--sk-cell-pad-y:16px;'
+  endcase
+  case block.settings.text_size
+    when 'small'
+      assign sk_style = sk_style | append: '--sk-text-base:14px;'
+    when 'large'
+      assign sk_style = sk_style | append: '--sk-text-base:17px;'
+    else
+      assign sk_style = sk_style | append: '--sk-text-base:15px;'
+  endcase
+-%}
+
 <stockly-quick-order
   class="stockly-qo"
+  style="{{ sk_style }}"
   data-context-url="/apps/stockly/context"
   data-customer-id="{% if customer %}{{ customer.id }}{% endif %}"
   data-customer-tags="{% if customer %}{{ customer.tags | join: ',' | escape }}{% endif %}"
@@ -191,6 +220,37 @@
       "id": "not_eligible_text",
       "label": "Not-eligible copy",
       "default": "Wholesale ordering is available to approved customers. Get in touch to apply."
+    },
+    {
+      "type": "header",
+      "content": "Appearance"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Accent color",
+      "info": "Buttons, highlights and the active tier. Leave empty to use your Stockly brand color."
+    },
+    {
+      "type": "select",
+      "id": "density",
+      "label": "Density",
+      "default": "comfortable",
+      "options": [
+        { "value": "comfortable", "label": "Comfortable" },
+        { "value": "compact", "label": "Compact" }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "Text size",
+      "default": "medium",
+      "options": [
+        { "value": "small", "label": "Small" },
+        { "value": "medium", "label": "Medium" },
+        { "value": "large", "label": "Large" }
+      ]
     }
   ]
 }

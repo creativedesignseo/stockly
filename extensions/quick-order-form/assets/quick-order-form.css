@@ -15,8 +15,9 @@
  */
 
 stockly-quick-order {
-  /* — Accent: the merchant knob (App Proxy branding) → premium fallback — */
-  --sk-accent: var(--stockly-primary, #9a6b34);
+  /* — Accent: precedence chain — block "Appearance" setting (--sk-accent-theme)
+       → App Proxy branding (--stockly-primary) → premium bronze fallback — */
+  --sk-accent: var(--sk-accent-theme, var(--stockly-primary, #9a6b34));
   --sk-accent-strong: color-mix(in srgb, var(--sk-accent) 78%, #000);
   --sk-accent-tint: color-mix(in srgb, var(--sk-accent) 12%, transparent);
 
@@ -42,7 +43,7 @@ stockly-quick-order {
 
   display: block;
   margin: 1.5rem 0;
-  padding: 28px;
+  padding: var(--sk-pad, 28px);
   background: var(--sk-surface);
   border: 1px solid var(--sk-line);
   border-radius: var(--sk-radius-card);
@@ -188,7 +189,7 @@ stockly-quick-order .stockly-qo__table-wrap {
 stockly-quick-order .stockly-qo__table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: var(--sk-text-base, 15px);
 }
 
 stockly-quick-order .stockly-qo__table thead th {
@@ -203,7 +204,7 @@ stockly-quick-order .stockly-qo__table thead th {
 }
 
 stockly-quick-order .stockly-qo__table td {
-  padding: 16px 14px;
+  padding: var(--sk-cell-pad-y, 16px) 14px;
   text-align: left;
   vertical-align: middle;
   border-bottom: 1px solid var(--sk-line-2);
@@ -226,7 +227,7 @@ stockly-quick-order .stockly-qo__cell--title a {
   color: var(--sk-ink);
   text-decoration: none;
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--sk-text-base, 15px);
 }
 
 stockly-quick-order .stockly-qo__cell--title a:hover {
