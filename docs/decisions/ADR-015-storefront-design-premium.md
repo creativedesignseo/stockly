@@ -4,6 +4,16 @@
 > shipped the same day. Remaining phases tracked in
 > `docs/design/storefront-premium-plan.md`.
 >
+> **Refinement 2026-06-03 (colour direction):** the storefront is
+> **WHITE-LABEL** — it is the MERCHANT's brand, not Stockly's. The design
+> stays premium/opinionated (type scale, radii, shadows, layout), but the
+> **colour base is NEUTRAL BLACK**, and each merchant supplies their own
+> accent (App Proxy branding / the QOF Appearance knob). The earlier
+> "premium bronze" accent was a Stockly colour wrongly imposed on the
+> storefront — the `--sk-accent` fallback is now neutral black (`#17150f`).
+> Stockly's own brand colour (lime `#C6F23E`) lives in the **admin**, never
+> in the storefront. See memory `brand-color-stockly`.
+>
 > **Authors:** Jonatan Montilla (Adspubli) + Claude Code.
 
 ## Context

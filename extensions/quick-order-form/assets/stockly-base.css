@@ -13,7 +13,13 @@
  * inline at runtime:
  *   block "Appearance" setting (--sk-accent-theme, QOF only)
  *     → App Proxy branding (--stockly-primary)
- *       → premium bronze fallback (#9a6b34).
+ *       → neutral black fallback (#17150f).
+ *
+ * WHITE-LABEL: the storefront is the MERCHANT's brand, not Stockly's. The
+ * design is premium/elegant (type, radii, shadows) but the COLOUR base is
+ * neutral black — each merchant picks their own accent via the branding /
+ * the block's Appearance knob. Stockly's own brand colour (lime #C6F23E)
+ * lives in the ADMIN, never here. (Refines ADR-015.)
  *
  * Adding a block? Add its host element to the selector list below and it
  * inherits the whole system for free.
@@ -23,8 +29,9 @@ stockly-quick-order,
 stockly-product-panel,
 stockly-fpq-banner,
 stockly-registration {
-  /* — Accent: precedence chain (see header) — */
-  --sk-accent: var(--sk-accent-theme, var(--stockly-primary, #9a6b34));
+  /* — Accent: precedence chain (see header). Neutral black fallback so
+       the storefront is white-label; the merchant supplies their colour. — */
+  --sk-accent: var(--sk-accent-theme, var(--stockly-primary, #17150f));
   --sk-accent-strong: color-mix(in srgb, var(--sk-accent) 78%, #000);
   --sk-accent-tint: color-mix(in srgb, var(--sk-accent) 12%, transparent);
 
