@@ -1,0 +1,15 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "cost": { "subtotalAmount": { "amount": "10.00" } },
+        "lines": [{ "quantity": 1 }],
+        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" } }
+      },
+      "validation": { "metafield": { "value": "{\"mode\":\"none\"}" } }
+    },
+    "output": { "operations": [{ "validationAdd": { "errors": [] } }] }
+  }
+}

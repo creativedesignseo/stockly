@@ -1,0 +1,22 @@
+query CartValidationsGenerateRunInput {
+  cart {
+    cost {
+      subtotalAmount {
+        amount
+      }
+    }
+    lines {
+      quantity
+    }
+    buyerIdentity {
+      customer {
+        id
+      }
+    }
+  }
+  validation {
+    metafield(namespace: "$app:stockly-opening-order", key: "function-configuration") {
+      value
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "cost": { "subtotalAmount": { "amount": "120.00" } },
+        "lines": [{ "quantity": 2 }],
+        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" } }
+      },
+      "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":200,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"message\":\"Add 80 more to unlock wholesale checkout\"}" } }
+    },
+    "output": { "operations": [{ "validationAdd": { "errors": [{ "message": "Add 80 more to unlock wholesale checkout", "target": "$.cart" }] } }] }
+  }
+}
