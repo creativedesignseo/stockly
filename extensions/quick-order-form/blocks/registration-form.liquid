@@ -42,6 +42,7 @@
 
 <stockly-registration
   class="stockly-reg"
+  style="padding-top: {{ block.settings.padding_top }}px; padding-bottom: {{ block.settings.padding_bottom }}px;"
   data-action-url="/apps/stockly/apply"
   data-fetch-url="/apps/stockly/registration-form"
   data-form-shortcode="{{ block.settings.form_shortcode | escape }}"
@@ -152,6 +153,30 @@
       "id": "already_wholesale_text",
       "label": "Already-wholesale notice",
       "default": "You already have wholesale access. Head to the wholesale catalog to start ordering."
+    },
+    {
+      "type": "header",
+      "content": "Section padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Top padding",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "Bottom padding",
+      "min": 0,
+      "max": 120,
+      "step": 4,
+      "unit": "px",
+      "default": 0
     }
   ]
 }
