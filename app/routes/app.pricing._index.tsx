@@ -269,16 +269,16 @@ export default function PricingList() {
          */}
         {shop && (
           <Card>
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingMd">
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingLg">
                 Shop-wide pricing setup
               </Text>
               <Box
-                padding="300"
+                padding="400"
                 background="bg-surface-secondary"
-                borderRadius="200"
+                borderRadius="300"
               >
-                <BlockStack gap="100">
+                <BlockStack gap="300">
                   <SettingRow
                     label="Wholesale baseline"
                     value={
@@ -308,7 +308,9 @@ export default function PricingList() {
                 </BlockStack>
               </Box>
               <InlineStack align="end">
-                <Button url="/app/settings/pricing">Edit pricing settings</Button>
+                <Button url="/app/settings/pricing" variant="primary" size="large">
+                  Edit pricing settings
+                </Button>
               </InlineStack>
             </BlockStack>
           </Card>
@@ -493,11 +495,11 @@ function StatusToggleCell({
  */
 function SettingRow({ label, value }: { label: string; value: string }) {
   return (
-    <InlineStack align="space-between" gap="200">
-      <Text as="span" variant="bodySm" tone="subdued">
+    <InlineStack align="space-between" gap="400" blockAlign="center">
+      <Text as="span" variant="bodyMd" tone="subdued">
         {label}
       </Text>
-      <Text as="span" variant="bodySm" fontWeight="medium">
+      <Text as="span" variant="bodyLg" fontWeight="semibold">
         {value}
       </Text>
     </InlineStack>
