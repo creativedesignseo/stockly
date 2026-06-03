@@ -4,7 +4,11 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-03 (Camino B opening-order Fases 1+2 in main, NOT deployed)
+**Last updated:** 2026-06-03 (end of a long multi-topic session — Camino B
+LIVE, white-label accent, Setup Guide). **▶ RESUME HERE:**
+`progress/2026-06-03-session-summary.md` has the full recap + the
+priority-ordered pending list (onboarding button fix, unify Pricing nav,
+read_themes auto-detection, admin lime, form builder…).
 
 ---
 
