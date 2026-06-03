@@ -25,6 +25,8 @@ import {
   Button,
   Badge,
   List,
+  ProgressBar,
+  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 
@@ -48,24 +50,35 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect(`/app/onboarding${search ? "?" + search : ""}`);
   }
 
-  const [activeTiers, pendingApps, qualifiedCustomers] = await Promise.all([
-    prisma.tier.count({ where: { shopId: shop.id, active: true } }),
-    prisma.wholesaleApplication.count({
-      where: { shopId: shop.id, status: "pending" },
-    }),
-    prisma.wholesaleCustomer.count({
-      where: { shopId: shop.id, qualifiedAt: { not: null } },
-    }),
-  ]);
+  const [activeTiers, pendingApps, qualifiedCustomers, activeForms] =
+    await Promise.all([
+      prisma.tier.count({ where: { shopId: shop.id, active: true } }),
+      prisma.wholesaleApplication.count({
+        where: { shopId: shop.id, status: "pending" },
+      }),
+      prisma.wholesaleCustomer.count({
+        where: { shopId: shop.id, qualifiedAt: { not: null } },
+      }),
+      prisma.registrationForm.count({
+        where: { shopId: shop.id, status: "active" },
+      }),
+    ]);
 
   return {
     shop,
     counts: { activeTiers, pendingApps, qualifiedCustomers },
+    // Setup-guide step completion. pricing + form are detectable from the
+    // DB; the theme steps (embed, QOF block) need read_themes to detect —
+    // shown as CTAs for now (auto-detection is a follow-up).
+    setup: {
+      pricingDone: shop.wholesaleBaselinePct > 0 || activeTiers > 0,
+      formDone: activeForms > 0,
+    },
   };
 };
 
 export default function Dashboard() {
-  const { shop, counts } = useLoaderData<typeof loader>();
+  const { shop, counts, setup } = useLoaderData<typeof loader>();
 
   const tips = buildTips(shop, counts);
 
@@ -81,6 +94,9 @@ export default function Dashboard() {
       <TitleBar title="Stockly" />
       <BlockStack gap="400">
         <Layout>
+          <Layout.Section>
+            <SetupGuide pricingDone={setup.pricingDone} formDone={setup.formDone} />
+          </Layout.Section>
           <Layout.Section>
             <InlineStack gap="400" wrap>
               <StatCard
@@ -218,6 +234,133 @@ function NavCard({
         </BlockStack>
       </Card>
     </Box>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               Setup Guide                                  */
+/* -------------------------------------------------------------------------- */
+
+interface SetupStepData {
+  key: string;
+  title: string;
+  body: string;
+  /** true = done, false = to do, null = theme step (not auto-detectable). */
+  done: boolean | null;
+  cta: { label: string; url: string };
+}
+
+function SetupGuide({
+  pricingDone,
+  formDone,
+}: {
+  pricingDone: boolean;
+  formDone: boolean;
+}) {
+  const steps: SetupStepData[] = [
+    {
+      key: "embed",
+      title: "Activate Stockly in your store",
+      body: "Enable the app embed in your theme so wholesale content shows on your storefront.",
+      done: null,
+      cta: {
+        label: "Open theme editor",
+        url: "shopify://admin/themes/current/editor?context=apps",
+      },
+    },
+    {
+      key: "pricing",
+      title: "Set your wholesale pricing",
+      body: "Define your baseline discount and pricing rules.",
+      done: pricingDone,
+      cta: { label: "Go to Pricing", url: "/app/pricing" },
+    },
+    {
+      key: "form",
+      title: "Create your registration form",
+      body: "Let customers apply for wholesale access.",
+      done: formDone,
+      cta: { label: "Create form", url: "/app/registration-form" },
+    },
+    {
+      key: "qof",
+      title: "Add the Quick Order Form",
+      body: "The fast bulk-order table for your wholesale buyers.",
+      done: null,
+      cta: {
+        label: "Add to store",
+        url: "shopify://admin/themes/current/editor",
+      },
+    },
+  ];
+
+  const detectable = steps.filter((s) => s.done !== null);
+  const completed = detectable.filter((s) => s.done).length;
+  const progress = detectable.length
+    ? (completed / detectable.length) * 100
+    : 0;
+
+  return (
+    <Card>
+      <BlockStack gap="400">
+        <BlockStack gap="200">
+          <Text as="h2" variant="headingMd">
+            Setup guide
+          </Text>
+          <Text as="p" variant="bodySm" tone="subdued">
+            Follow these steps to start selling wholesale.
+          </Text>
+          <ProgressBar progress={progress} size="small" />
+          <Text as="span" variant="bodySm" tone="subdued">
+            {completed} of {detectable.length} in-app steps done · the theme
+            steps are activated from your theme editor.
+          </Text>
+        </BlockStack>
+        <Divider />
+        <BlockStack gap="300">
+          {steps.map((s, i) => (
+            <SetupStep key={s.key} step={s} last={i === steps.length - 1} />
+          ))}
+        </BlockStack>
+      </BlockStack>
+    </Card>
+  );
+}
+
+function SetupStep({ step, last }: { step: SetupStepData; last: boolean }) {
+  return (
+    <BlockStack gap="300">
+      <InlineStack
+        align="space-between"
+        blockAlign="center"
+        gap="300"
+        wrap={false}
+      >
+        <InlineStack gap="300" blockAlign="center">
+          {step.done === true ? (
+            <Badge tone="success">Done</Badge>
+          ) : step.done === false ? (
+            <Badge tone="attention">To do</Badge>
+          ) : (
+            <Badge>In your theme</Badge>
+          )}
+          <BlockStack gap="050">
+            <Text as="span" variant="bodyMd" fontWeight="semibold">
+              {step.title}
+            </Text>
+            <Text as="span" variant="bodySm" tone="subdued">
+              {step.body}
+            </Text>
+          </BlockStack>
+        </InlineStack>
+        {step.done !== true && (
+          <Button url={step.cta.url} variant="primary">
+            {step.cta.label}
+          </Button>
+        )}
+      </InlineStack>
+      {!last && <Divider />}
+    </BlockStack>
   );
 }
 
