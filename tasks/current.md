@@ -35,8 +35,10 @@ ADR-004 price-side FPQ. Full journal:
   metafield with the minimum + the list of customers with qualifiedAt=null.
 - [ ] **Fase 4 — banner.** Connect the cart/QOF "you need €X more to
   activate" banner to the opening-order state (the fpq-banner block exists).
-- [ ] **Fase 5 — ADR + deploy.** ADR superseding ADR-004; verify; deploy
-  (`shopify app deploy` + `fly deploy`) with explicit Jonatan go.
+- [~] **Fase 5 — ADR + deploy.** ADR-016 written (supersedes ADR-004's
+  price-side FPQ) ✅. Pending: verify + deploy (`shopify app deploy` +
+  `fly deploy`) with explicit Jonatan go — blocked on Shopify CLI auth
+  (same gate as Fase 3 typegen).
 
 **⚠️ Status:** Fases 1+2 are in `main` but NOT in production (push doesn't
 auto-deploy). Buyer-neutral until Fase 3 ships. To resume: get the Shopify

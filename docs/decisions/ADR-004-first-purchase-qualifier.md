@@ -1,7 +1,7 @@
 # ADR-004 — First-Purchase Qualifier and Multi-State Customer Model
 
 **Date:** 2026-05-21
-**Status:** Accepted
+**Status:** Partially superseded by [ADR-016](./ADR-016-opening-order-minimum.md) (2026-06-03) — the 5-state lifecycle vocabulary stands, but the *price-side* FPQ enforcement described here is replaced by a checkout-side opening-order minimum (the pre-qualified customer now sees wholesale pricing immediately; the minimum gates checkout, not the discount).
 **Deciders:** Jonatan Montilla (working session with Claude)
 **Supersedes:** Sprint 1's simple tag-based binary eligibility
 
