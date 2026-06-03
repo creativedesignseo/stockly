@@ -148,15 +148,24 @@ stockly-registration .stockly-reg__field select {
   color: var(--rf-color-option);
   box-sizing: border-box;
   box-shadow: var(--sk-shadow-ctrl);
+  outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+/* Single, clean focus indicator: coloured border + a soft same-colour
+ * halo. `outline: none !important` on both :focus and :focus-visible kills
+ * the black outline some themes/browsers force on inputs (that was the
+ * extra line stacking on top of our border). The halo replaces the base
+ * shadow entirely, so only ONE ring shows. */
 stockly-registration .stockly-reg__field input:focus,
 stockly-registration .stockly-reg__field textarea:focus,
-stockly-registration .stockly-reg__field select:focus {
-  outline: none;
-  border-color: var(--rf-color-main);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rf-color-main) 18%, transparent);
+stockly-registration .stockly-reg__field select:focus,
+stockly-registration .stockly-reg__field input:focus-visible,
+stockly-registration .stockly-reg__field textarea:focus-visible,
+stockly-registration .stockly-reg__field select:focus-visible {
+  outline: none !important;
+  border-color: var(--sk-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sk-accent) 16%, transparent);
 }
 
 stockly-registration .stockly-reg__field input.is-invalid,
