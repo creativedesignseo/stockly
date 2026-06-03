@@ -289,14 +289,20 @@ async function updateDiscountMetafield(
  * optional in the Function reader (default-on-missing pattern). One
  * release cycle of mixed legacy + new metafield shapes is supported.
  */
-async function buildConfiguration(shopId: string): Promise<string> {
+export async function buildConfiguration(shopId: string): Promise<string> {
   const [shop, tiers, qualifiedRows] = await Promise.all([
     prisma.shop.findUniqueOrThrow({ where: { id: shopId } }),
     listTiers(shopId, { activeOnly: true }),
-    // Source of truth for qualified customers is our DB. We surface
-    // them as GIDs in the shop-level metafield the Function reads.
+    // Camino B (supersedes the ADR-004 price-side FPQ gate): EVERY
+    // approved wholesale customer is surfaced here so the Function skips
+    // its price-side FPQ gate and they see wholesale pricing from the
+    // first unit. `qualifiedAt` no longer gates the discount — it now
+    // means "has completed the opening order" and only governs the
+    // CHECKOUT-side minimum (a separate Validation Function). Filtering
+    // by qualifiedAt here would reintroduce bug C3 (approved customers
+    // silently paying retail). See discount-function-sync.test.ts.
     prisma.wholesaleCustomer.findMany({
-      where: { shopId, qualifiedAt: { not: null } },
+      where: { shopId },
       select: { shopifyCustomerId: true },
     }),
   ]);

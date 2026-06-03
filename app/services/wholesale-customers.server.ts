@@ -91,19 +91,20 @@ export async function approveCustomer(data: {
   email?: string;
   notes?: string;
 }) {
-  // Admin approval implies wholesale qualification — the customer
-  // bypasses the FPQ gate (the FPQ is for track-1 self-registered
-  // customers who must first prove themselves with a qualifying order;
-  // track-2 admin-approved customers are qualified by the act of
-  // approval itself).
+  // Camino B (supersedes the ADR-004 / C3 behavior). Approval grants
+  // wholesale PRICING immediately — discount-function-sync now surfaces
+  // EVERY approved customer in the Function's `qualifiedCustomers` list,
+  // so they see wholesale pricing from the first unit regardless of
+  // qualifiedAt (this is what keeps bug C3 fixed: the discount is gated
+  // on "is approved", not on qualifiedAt).
   //
-  // Setting qualifiedAt is essential because discount-function-sync
-  // populates the Function's `qualifiedCustomers` list ONLY from rows
-  // where qualifiedAt IS NOT NULL. A customer with qualifiedAt=null is
-  // invisible to the Function's bypass list and gets evaluated against
-  // FPQ on every cart — meaning admin-approved customers were silently
-  // paying retail at checkout (bug C3 / P1-8 in tasks/current.md).
-  const now = new Date();
+  // `qualifiedAt` now means "has completed the opening order". A fresh
+  // approval leaves it null = "must still meet the opening-order minimum
+  // at checkout" (enforced by the Validation Function). The merchant
+  // clears it (sets qualifiedAt=now) with one click once the customer
+  // has placed their opening order. Re-approving preserves an existing
+  // qualifiedAt so an established customer is never sent back to the
+  // opening-order gate.
   return prisma.wholesaleCustomer.upsert({
     where: {
       shopId_shopifyCustomerId: {
@@ -111,9 +112,8 @@ export async function approveCustomer(data: {
         shopifyCustomerId: data.shopifyCustomerId,
       },
     },
-    create: { ...data, qualifiedAt: now },
-    // Re-approve refreshes the qualification timestamp. Idempotent.
-    update: { email: data.email, notes: data.notes, qualifiedAt: now },
+    create: { ...data, qualifiedAt: null },
+    update: { email: data.email, notes: data.notes },
   });
 }
 
@@ -122,5 +122,24 @@ export async function revokeCustomer(shopId: string, shopifyCustomerId: string) 
     where: {
       shopId_shopifyCustomerId: { shopId, shopifyCustomerId },
     },
+  });
+}
+
+/**
+ * Camino B: clear a customer's opening-order requirement. Sets
+ * qualifiedAt=now ("has completed the opening order"), which removes them
+ * from the checkout-side minimum gate (the Validation Function). The
+ * merchant does this with one click once the customer has placed their
+ * opening order. Idempotent — re-running is a no-op if already cleared.
+ * Does NOT change the discount (every approved customer already sees
+ * wholesale pricing — see discount-function-sync).
+ */
+export async function releaseOpeningOrder(
+  shopId: string,
+  shopifyCustomerId: string,
+) {
+  return prisma.wholesaleCustomer.update({
+    where: { shopId_shopifyCustomerId: { shopId, shopifyCustomerId } },
+    data: { qualifiedAt: new Date() },
   });
 }

@@ -52,7 +52,11 @@ import {
   markApplicationRejected,
   normalizePhone,
 } from "../services/wholesale-applications.server";
-import { approveCustomer } from "../services/wholesale-customers.server";
+import {
+  approveCustomer,
+  listWholesaleCustomers,
+  releaseOpeningOrder,
+} from "../services/wholesale-customers.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 
 /* -------------------------------------------------------------------------- */
@@ -78,9 +82,42 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     listApplications(shop.id, { status: "rejected" }),
   ]);
 
+  // Camino B: attach each approved application's opening-order state so
+  // the row can show "Requires opening order" / "Released" + the release
+  // action. We resolve the linked WholesaleCustomer by Shopify customer
+  // id first, then by email. qualifiedAt != null = opening order met.
+  const customers = await listWholesaleCustomers(shop.id);
+  const byCustomerId = new Map(
+    customers
+      .filter((c) => c.shopifyCustomerId)
+      .map((c) => [c.shopifyCustomerId, c]),
+  );
+  const byEmail = new Map(
+    customers.filter((c) => c.email).map((c) => [c.email!.toLowerCase(), c]),
+  );
+  const appsWithStatus = apps.map((app) => {
+    const cust =
+      (app.shopifyCustomerId && byCustomerId.get(app.shopifyCustomerId)) ||
+      (app.email && byEmail.get(app.email.toLowerCase())) ||
+      null;
+    return {
+      ...app,
+      openingOrder: cust
+        ? {
+            tracked: true,
+            met: cust.qualifiedAt != null,
+            shopifyCustomerId: cust.shopifyCustomerId,
+          }
+        : { tracked: false, met: false, shopifyCustomerId: null },
+    };
+  });
+
   return {
-    apps,
+    apps: appsWithStatus,
     activeStatus: status ?? "all",
+    // Opening-order UI (badge + release action) is only meaningful when
+    // the shop actually has a minimum configured (fpqMode != none).
+    openingOrderEnabled: shop.fpqMode !== "none",
     counts: {
       pending: pending.length,
       approved: approved.length,
@@ -171,6 +208,25 @@ async function actionImpl(request: Request) {
     return {
       ok: true as const,
       action: "rejected" as const,
+      email: app.email,
+    };
+  }
+
+  if (intent === "release-opening-order") {
+    // Camino B: clear the customer's opening-order requirement (one
+    // click once they've placed their opening order). Needs a linked
+    // WholesaleCustomer row — created on approve.
+    if (!app.shopifyCustomerId) {
+      return {
+        ok: false,
+        error:
+          "Application has no Shopify customer linked yet. Approve it first.",
+      } as const;
+    }
+    await releaseOpeningOrder(shop.id, app.shopifyCustomerId);
+    return {
+      ok: true as const,
+      action: "opening-order-released" as const,
       email: app.email,
     };
   }
@@ -429,7 +485,8 @@ type ApproveResult =
   | null;
 
 export default function ApplicationsQueue() {
-  const { apps, activeStatus, counts } = useLoaderData<typeof loader>();
+  const { apps, activeStatus, counts, openingOrderEnabled } =
+    useLoaderData<typeof loader>();
   // approveResult replaces useActionData for approve: useFetcher responses
   // don't flow through useActionData (that only sees navigation submissions).
   const [approveResult, setApproveResult] = useState<ApproveResult>(null);
@@ -484,6 +541,25 @@ export default function ApplicationsQueue() {
     }
   }, [taxExemptFetcher.state, taxExemptFetcher.data]);
 
+  // Camino B: release a customer from the opening-order minimum. One-shot
+  // fetcher; result surfaces in the same banner area.
+  const releaseFetcher = useFetcher<typeof action>();
+  const [releaseResult, setReleaseResult] = useState<{
+    ok: boolean;
+    email?: string;
+    error?: string;
+  } | null>(null);
+  useEffect(() => {
+    if (releaseFetcher.state !== "idle" || !releaseFetcher.data) return;
+    const d = releaseFetcher.data;
+    if (d.ok) {
+      setReleaseResult({ ok: true, email: (d as { email: string }).email });
+      setModalApp(null);
+    } else {
+      setReleaseResult({ ok: false, error: (d as { error: string }).error });
+    }
+  }, [releaseFetcher.state, releaseFetcher.data]);
+
   const tabs = [
     { id: "pending", content: `Pending (${counts.pending})`, status: "pending" },
     { id: "approved", content: `Approved (${counts.approved})`, status: "approved" },
@@ -523,6 +599,19 @@ export default function ApplicationsQueue() {
         {taxExemptResult && !taxExemptResult.ok && (
           <Banner tone="critical" title="Could not set tax-exempt">
             <p>{taxExemptResult.error}</p>
+          </Banner>
+        )}
+        {releaseResult?.ok && (
+          <Banner tone="success" title="Released from opening order">
+            <p>
+              {releaseResult.email} no longer needs to meet the opening-order
+              minimum — they can now reorder freely at wholesale prices.
+            </p>
+          </Banner>
+        )}
+        {releaseResult && !releaseResult.ok && (
+          <Banner tone="critical" title="Could not release customer">
+            <p>{releaseResult.error}</p>
           </Banner>
         )}
 
@@ -624,7 +713,17 @@ export default function ApplicationsQueue() {
                     </Text>
                   </IndexTable.Cell>
                   <IndexTable.Cell>
-                    <StatusBadge status={app.status} />
+                    <InlineStack gap="100" align="start" blockAlign="center">
+                      <StatusBadge status={app.status} />
+                      {openingOrderEnabled &&
+                        app.status === "approved" &&
+                        app.openingOrder.tracked &&
+                        (app.openingOrder.met ? (
+                          <Badge tone="success">Opening order met</Badge>
+                        ) : (
+                          <Badge tone="attention">Opening order pending</Badge>
+                        ))}
+                    </InlineStack>
                   </IndexTable.Cell>
                   <IndexTable.Cell>
                     {app.status === "pending" ? (
@@ -705,6 +804,27 @@ export default function ApplicationsQueue() {
             : undefined
         }
         secondaryActions={[
+          // Camino B: for an approved customer who still owes their
+          // opening order, expose a one-click "Release" that clears the
+          // checkout-side minimum (sets qualifiedAt=now).
+          ...(openingOrderEnabled &&
+          modalApp?.status === "approved" &&
+          modalApp?.openingOrder?.tracked &&
+          !modalApp.openingOrder.met &&
+          modalApp?.shopifyCustomerId
+            ? [
+                {
+                  content: "Release from opening order",
+                  loading: releaseFetcher.state !== "idle",
+                  onAction: () => {
+                    const fd = new FormData();
+                    fd.append("intent", "release-opening-order");
+                    fd.append("applicationId", modalApp.id);
+                    releaseFetcher.submit(fd, { method: "POST" });
+                  },
+                },
+              ]
+            : []),
           // For approved applications, expose a "Mark as tax-exempt"
           // action that flips taxExempt=true on the linked Shopify
           // Customer. Most B2B/wholesale customers in EU/US are tax-
