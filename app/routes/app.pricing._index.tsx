@@ -48,12 +48,13 @@ import { useMemo } from "react";
 import {
   Page,
   Card,
+  Box,
+  Button,
   EmptyState,
   IndexTable,
   Text,
   Tabs,
   BlockStack,
-  Banner,
   InlineStack,
   useIndexResourceState,
 } from "@shopify/polaris";
@@ -267,33 +268,50 @@ export default function PricingList() {
          * setup without forcing a separate hub page.
          */}
         {shop && (
-          <Banner tone="info" title="Shop-wide pricing setup">
-            <InlineStack gap="400" wrap>
-              <SetupChip
-                label="Baseline"
-                value={
-                  shop.wholesaleBaselinePct > 0
-                    ? `${shop.wholesaleBaselinePct}% off retail`
-                    : "Disabled"
-                }
-              />
-              <SetupChip label="FPQ" value={formatFpq(shop)} />
-              <SetupChip
-                label="MOQ"
-                value={
-                  shop.postQualificationMOQ > 1
-                    ? `${shop.postQualificationMOQ} units/order`
-                    : "No minimum"
-                }
-              />
-              {shop.minOrderValue && shop.minOrderValue > 0 ? (
-                <SetupChip
-                  label="Min order"
-                  value={`€${shop.minOrderValue}`}
-                />
-              ) : null}
-            </InlineStack>
-          </Banner>
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">
+                Shop-wide pricing setup
+              </Text>
+              <Box
+                padding="300"
+                background="bg-surface-secondary"
+                borderRadius="200"
+              >
+                <BlockStack gap="100">
+                  <SettingRow
+                    label="Wholesale baseline"
+                    value={
+                      shop.wholesaleBaselinePct > 0
+                        ? `${shop.wholesaleBaselinePct}% off retail`
+                        : "Disabled"
+                    }
+                  />
+                  <SettingRow
+                    label="First-Purchase Qualifier"
+                    value={formatFpq(shop)}
+                  />
+                  <SettingRow
+                    label="Post-qualification MOQ"
+                    value={
+                      shop.postQualificationMOQ > 1
+                        ? `${shop.postQualificationMOQ} units/order`
+                        : "No minimum"
+                    }
+                  />
+                  {shop.minOrderValue && shop.minOrderValue > 0 ? (
+                    <SettingRow
+                      label="Min order"
+                      value={`€${shop.minOrderValue}`}
+                    />
+                  ) : null}
+                </BlockStack>
+              </Box>
+              <InlineStack align="end">
+                <Button url="/app/settings/pricing">Edit pricing settings</Button>
+              </InlineStack>
+            </BlockStack>
+          </Card>
         )}
         <Card padding="0">
           <Tabs tabs={tabs} selected={tabIndex} onSelect={onTabSelect} />
@@ -470,19 +488,19 @@ function StatusToggleCell({
 }
 
 /**
- * One stat in the Shop-wide setup banner: "Baseline: 60% off retail".
- * Label is rendered with low-emphasis tone, value next to it bold.
+ * One label/value row in the Shop-wide pricing setup card. Label
+ * low-emphasis on the left, value medium-weight on the right.
  */
-function SetupChip({ label, value }: { label: string; value: string }) {
+function SettingRow({ label, value }: { label: string; value: string }) {
   return (
-    <Text as="span" variant="bodyMd">
-      <Text as="span" variant="bodyMd" tone="subdued">
-        {label}:
-      </Text>{" "}
-      <Text as="span" variant="bodyMd" fontWeight="semibold">
+    <InlineStack align="space-between" gap="200">
+      <Text as="span" variant="bodySm" tone="subdued">
+        {label}
+      </Text>
+      <Text as="span" variant="bodySm" fontWeight="medium">
         {value}
       </Text>
-    </Text>
+    </InlineStack>
   );
 }
 

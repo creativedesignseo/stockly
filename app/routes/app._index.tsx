@@ -115,43 +115,6 @@ export default function Dashboard() {
             </InlineStack>
           </Layout.Section>
 
-          <Layout.Section>
-            <Card>
-              <BlockStack gap="300">
-                <Text as="h2" variant="headingMd">
-                  Current pricing setup
-                </Text>
-                <Box
-                  padding="300"
-                  background="bg-surface-secondary"
-                  borderRadius="200"
-                >
-                  <BlockStack gap="100">
-                    <SettingRow
-                      label="Wholesale baseline"
-                      value={`${shop.wholesaleBaselinePct}% off retail`}
-                    />
-                    <SettingRow
-                      label="First-Purchase Qualifier"
-                      value={describeFpq(shop)}
-                    />
-                    <SettingRow
-                      label="Post-qualification MOQ"
-                      value={
-                        (shop.postQualificationMOQ ?? 1) <= 1
-                          ? "None — customers buy freely after qualifying"
-                          : `${shop.postQualificationMOQ} units/order`
-                      }
-                    />
-                  </BlockStack>
-                </Box>
-                <InlineStack align="end">
-                  <Button url="/app/settings/pricing">Edit pricing settings</Button>
-                </InlineStack>
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-
           <Layout.Section variant="oneThird">
             <Card>
               <BlockStack gap="300">
@@ -256,40 +219,6 @@ function NavCard({
       </Card>
     </Box>
   );
-}
-
-function SettingRow({ label, value }: { label: string; value: string }) {
-  return (
-    <InlineStack align="space-between" gap="200">
-      <Text as="span" variant="bodySm" tone="subdued">
-        {label}
-      </Text>
-      <Text as="span" variant="bodySm" fontWeight="medium">
-        {value}
-      </Text>
-    </InlineStack>
-  );
-}
-
-/** Plain-English summary of the shop's FPQ config for the dashboard card. */
-function describeFpq(shop: {
-  fpqMode: string;
-  fpqAmount: number | null;
-  fpqQuantity: number | null;
-  fpqCombinedLogic: string;
-}): string {
-  switch (shop.fpqMode) {
-    case "none":
-      return "Off — every wholesale order gets pricing immediately";
-    case "amount":
-      return `First order ≥ ${shop.fpqAmount ?? "?"}`;
-    case "quantity":
-      return `First order ≥ ${shop.fpqQuantity ?? "?"} units`;
-    case "combined":
-      return `First order ≥ ${shop.fpqAmount ?? "?"} ${shop.fpqCombinedLogic.toUpperCase()} ≥ ${shop.fpqQuantity ?? "?"} units`;
-    default:
-      return shop.fpqMode;
-  }
 }
 
 interface Tip {
