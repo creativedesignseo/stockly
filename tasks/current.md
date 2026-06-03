@@ -25,7 +25,9 @@ ADR-004 price-side FPQ. Full journal:
 - [x] **Fase 2 — admin release** (commit `655d597`). Opening-order badge
   (pending/met, gated on `fpqMode != none`) + one-click "Release from
   opening order" on `app.customers.applications.tsx`.
-- [~] **Fase 3 — checkout block — CODE COMPLETE, ⏳ NOT DEPLOYED.**
+- [x] **Fase 3 — checkout block — DEPLOYED (stockly-36 + Fly, 2026-06-03).**
+  ⏳ Before it gates: RE-GRANT `write_validations` (reopen the app), then set
+  `fpqMode` in Settings → Pricing + save (creates the Validation). Then E2E.
   - Part 1 (commit `76866c1`): WASM extension `stockly-opening-order`
     (`cart.validations.generate.run`) + 5 green fixtures. Blocks checkout
     if customer is on the pending list + cart < minimum; fails open.
