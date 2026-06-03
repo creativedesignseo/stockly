@@ -46,6 +46,31 @@ CLI authenticated, then build Fase 3 with fixtures.
 
 ---
 
+## Backlog (2026-06-03) — Registration Form / form builder UX
+
+From a review session with Jonatan (the admin form builder + storefront
+block). Separate front from Camino B.
+
+- [x] **Storefront block short-code copy** — clearer optional copy in the
+  `registration-form` block ("leave empty → active form"). Done in code
+  (`registration-form.liquid`), ⏳ needs `shopify app deploy`. The admin
+  "Copy short code" chip already existed (icon + tooltip + "Copied!").
+- [ ] **Default template should be B2B** + rename "Samita Wholesale" →
+  "Wholesale B2B (recommended)", surface first (`seeds.ts` + test). A
+  wholesale app shouldn't default to a B2C name+email+password form. This
+  is the root cause of the company-less applications Jonatan saw.
+- [ ] **Default reg form must include Company** (overlaps above) — the
+  served form must carry `company_name`; the Applications "Company" column
+  fills ONLY from a field whose key === `company_name` (proxy.apply.tsx:86).
+  Fragile magic-key mapping; robust fix = a "field role" selector in the
+  editor (Company / Tax ID / Country…). See task notes.
+- [ ] **Rename "Reset to template"** (reads like "delete all") →
+  "Start from a template".
+- [ ] **Visual preview in the template picker** — reuse `FormPreview` for a
+  live mini-preview per template (vs Sami's static thumbnails). Polish.
+
+---
+
 ## Just shipped (2026-06-02) — Premium Phase 1 + Phase 4 (LIVE, stockly-31)
 
 ADR-015 / `docs/design/storefront-premium-plan.md`. Unified all four
