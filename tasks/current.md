@@ -40,9 +40,11 @@ ADR-004 price-side FPQ. Full journal:
   `fly deploy`) with explicit Jonatan go — blocked on Shopify CLI auth
   (same gate as Fase 3 typegen).
 
-**⚠️ Status:** Fases 1+2 are in `main` but NOT in production (push doesn't
-auto-deploy). Buyer-neutral until Fase 3 ships. To resume: get the Shopify
-CLI authenticated, then build Fase 3 with fixtures.
+**✅ Status (2026-06-03):** Fases 1+2 DEPLOYED to Fly (+ "Approve from the
+detail modal"). Buyer-neutral — the checkout gate (Fase 3) is NOT built
+yet, so an approved customer shows "opening order pending" but the minimum
+is NOT enforced at checkout. To resume Fase 3: authenticate the Shopify
+CLI, then build the Cart & Checkout Validation Function with fixtures.
 
 ---
 
