@@ -4,7 +4,43 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-02 (Storefront premium Phase 1 + 4 LIVE, Shopify stockly-31)
+**Last updated:** 2026-06-03 (Camino B opening-order Fases 1+2 in main, NOT deployed)
+
+---
+
+## In progress (2026-06-03) — Camino B: opening-order minimum
+
+New B2B model decided with Jonatan: approve manually → sees wholesale
+pricing immediately → first order must hit a minimum (€/qty) to become a
+full wholesaler → reorders free → merchant "releases" with one click. No
+dependency on privacy policy / orders-paid. Supersedes the half-wired
+ADR-004 price-side FPQ. Full journal:
+`progress/2026-06-03-camino-b-opening-order-fase1-2.md`.
+
+- [x] **Fase 1 — revenue path** (commit `655d597`). `approveCustomer`
+  leaves `qualifiedAt=null`; `discount-function-sync` surfaces EVERY
+  approved customer in `qualifiedCustomers` (discount gated on "is
+  approved", not qualifiedAt — keeps C3 fixed; WASM untouched). First
+  server-side revenue-path test added (guards C3).
+- [x] **Fase 2 — admin release** (commit `655d597`). Opening-order badge
+  (pending/met, gated on `fpqMode != none`) + one-click "Release from
+  opening order" on `app.customers.applications.tsx`.
+- [ ] **Fase 3 — checkout block (CHECKOUT-CRITICAL).** NEW Cart & Checkout
+  Validation Function (`cartValidationsGenerateRun`, output
+  `operations:[{validationAdd:{errors:[{message,target:"$.cart"}]}}]`).
+  Blocks checkout if customer owes opening order (qualifiedAt null) +
+  `fpqMode != none` + cart < minimum. Needs: Shopify CLI auth for
+  `typegen`, fixtures, and confirming how the function reads its config
+  (validation-node metafield + input query `.graphql`). Sync must write a
+  metafield with the minimum + the list of customers with qualifiedAt=null.
+- [ ] **Fase 4 — banner.** Connect the cart/QOF "you need €X more to
+  activate" banner to the opening-order state (the fpq-banner block exists).
+- [ ] **Fase 5 — ADR + deploy.** ADR superseding ADR-004; verify; deploy
+  (`shopify app deploy` + `fly deploy`) with explicit Jonatan go.
+
+**⚠️ Status:** Fases 1+2 are in `main` but NOT in production (push doesn't
+auto-deploy). Buyer-neutral until Fase 3 ships. To resume: get the Shopify
+CLI authenticated, then build Fase 3 with fixtures.
 
 ---
 
