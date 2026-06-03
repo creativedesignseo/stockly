@@ -147,9 +147,13 @@ stockly-registration .stockly-reg__field select {
   background: var(--sk-surface);
   color: var(--rf-color-option);
   box-sizing: border-box;
-  box-shadow: var(--sk-shadow-ctrl);
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  /* Force our box-shadow OFF: many Shopify themes (Dawn et al.) draw the
+   * input border with a box-shadow ring — that grey ring was the second
+   * line stacking on our border. !important beats the theme. Our single
+   * line is the `border` above. */
+  box-shadow: none !important;
+  outline: none !important;
+  transition: border-color 0.15s ease;
 }
 
 /* Single, clean focus indicator: ONE accent-coloured border, no halo.
@@ -166,7 +170,7 @@ stockly-registration .stockly-reg__field textarea:focus-visible,
 stockly-registration .stockly-reg__field select:focus-visible {
   outline: none !important;
   border-color: var(--sk-accent);
-  box-shadow: var(--sk-shadow-ctrl);
+  box-shadow: none !important;
 }
 
 stockly-registration .stockly-reg__field input.is-invalid,
