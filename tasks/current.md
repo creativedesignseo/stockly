@@ -51,9 +51,9 @@ CLI authenticated, then build Fase 3 with fixtures.
 From a review session with Jonatan (the admin form builder + storefront
 block). Separate front from Camino B.
 
-- [x] **Storefront block short-code copy** — clearer optional copy in the
-  `registration-form` block ("leave empty → active form"). Done in code
-  (`registration-form.liquid`), ⏳ needs `shopify app deploy`. The admin
+- [x] **Storefront block short-code copy + section padding — LIVE (stockly-32).**
+  Short-code setting reworded as optional ("leave empty → active form") +
+  new "Section padding" group (Top/Bottom sliders, 0–120px). The admin
   "Copy short code" chip already existed (icon + tooltip + "Copied!").
 - [ ] **Default template should be B2B** + rename "Samita Wholesale" →
   "Wholesale B2B (recommended)", surface first (`seeds.ts` + test). A
