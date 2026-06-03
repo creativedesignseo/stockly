@@ -70,6 +70,13 @@ block). Separate front from Camino B.
   "Start from a template".
 - [ ] **Visual preview in the template picker** — reuse `FormPreview` for a
   live mini-preview per template (vs Sami's static thumbnails). Polish.
+- [x] **Input "double border" fixed — LIVE (stockly-35).** Dawn-family
+  themes draw input borders with a `box-shadow` ring (often `!important`)
+  that stacked on our border = two lines. Fixed on the registration form
+  with `box-shadow: none !important` + `outline: none !important`. Full
+  writeup: `docs/architecture/theme-app-extension-css-gotchas.md`.
+- [ ] **Audit QOF + product-panel inputs** for the same theme box-shadow
+  ring (qty inputs, variant select) — apply the same reset.
 
 ---
 

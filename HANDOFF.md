@@ -304,6 +304,7 @@ The Adspubli onboarding service pitch (Barcelona-local white-glove) is in Sprint
 - [CLAUDE.md](./CLAUDE.md) — AI conventions
 - [docs/decisions/](./docs/decisions/) — all 10 ADRs (ADR-010 is the B2B pricing engine)
 - [docs/architecture/b2b-pricing-deep-dive.md](./docs/architecture/b2b-pricing-deep-dive.md) — full engineering teardown of the pricing engine
+- [docs/architecture/theme-app-extension-css-gotchas.md](./docs/architecture/theme-app-extension-css-gotchas.md) — reusable Shopify storefront CSS gotchas (e.g. the theme box-shadow "double border" on inputs, fixed in stockly-35)
 - [docs/spec/b2b-customer-lifecycle.md](./docs/spec/b2b-customer-lifecycle.md)
 - [docs/competitive/](./docs/competitive/) — competitor engineering teardowns. Currently: BSS B2B Solution (the largest direct competitor).
 - [progress/2026-05-26-approve-flow-fix.md](./progress/2026-05-26-approve-flow-fix.md) — full journal of the day Stockly's checkout pricing was validated E2E for the first time
