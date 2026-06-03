@@ -515,6 +515,23 @@ export default function ApplicationsQueue() {
     }
   }, [rejectFetcher.state, rejectFetcher.data]);
 
+  // Approve from inside the modal (mirrors the row's ApproveButton) so
+  // the merchant can approve directly from the detail view. Surfaces the
+  // result in the same approve banner and closes the modal.
+  const approveModalFetcher = useFetcher<typeof action>();
+  useEffect(() => {
+    if (approveModalFetcher.state !== "idle" || !approveModalFetcher.data)
+      return;
+    const d = approveModalFetcher.data;
+    if (d.ok) {
+      setApproveResult({ ok: true, email: (d as { email: string }).email });
+      setModalApp(null);
+      setReviewNote("");
+    } else {
+      setApproveResult({ ok: false, error: (d as { error: string }).error });
+    }
+  }, [approveModalFetcher.state, approveModalFetcher.data]);
+
   // Tax-exempt toggle (BSS Advanced parity feature). Available on the
   // modal for already-approved applications. One-shot fetcher; result
   // surfaces in a dedicated banner at the top of the page.
@@ -790,20 +807,38 @@ export default function ApplicationsQueue() {
         primaryAction={
           modalApp?.status === "pending"
             ? {
-                content: "Reject",
-                destructive: true,
-                loading: rejectFetcher.state !== "idle",
+                content: "Approve",
+                loading: approveModalFetcher.state !== "idle",
                 onAction: () => {
                   const fd = new FormData();
-                  fd.append("intent", "reject");
+                  fd.append("intent", "approve");
                   fd.append("applicationId", modalApp.id);
                   fd.append("reviewNote", reviewNote);
-                  rejectFetcher.submit(fd, { method: "POST" });
+                  approveModalFetcher.submit(fd, { method: "POST" });
                 },
               }
             : undefined
         }
         secondaryActions={[
+          // Reject lives next to Approve in the modal (destructive), so a
+          // pending application can be approved OR rejected from the detail
+          // view without going back to the row.
+          ...(modalApp?.status === "pending"
+            ? [
+                {
+                  content: "Reject",
+                  destructive: true,
+                  loading: rejectFetcher.state !== "idle",
+                  onAction: () => {
+                    const fd = new FormData();
+                    fd.append("intent", "reject");
+                    fd.append("applicationId", modalApp.id);
+                    fd.append("reviewNote", reviewNote);
+                    rejectFetcher.submit(fd, { method: "POST" });
+                  },
+                },
+              ]
+            : []),
           // Camino B: for an approved customer who still owes their
           // opening order, expose a one-click "Release" that clears the
           // checkout-side minimum (sets qualifiedAt=now).
