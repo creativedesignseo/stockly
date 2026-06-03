@@ -50,6 +50,7 @@ import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
+import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
 
 type FpqMode = "none" | "amount" | "quantity" | "combined";
 type FpqCombinedLogic = "and" | "or";
@@ -157,6 +158,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // eslint-disable-next-line no-console
     console.error("[settings.pricing] syncTiersToFunction failed:", err);
   }
+
+  // Camino B: the FPQ fields ARE the opening-order minimum — refresh the
+  // checkout Validation so the new min/mode takes effect. Internally
+  // fail-safe (never throws).
+  await syncOpeningOrderValidation(admin, shop.id);
 
   return json({ ok: true } as const);
 };

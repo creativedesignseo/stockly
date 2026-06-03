@@ -25,14 +25,19 @@ ADR-004 price-side FPQ. Full journal:
 - [x] **Fase 2 — admin release** (commit `655d597`). Opening-order badge
   (pending/met, gated on `fpqMode != none`) + one-click "Release from
   opening order" on `app.customers.applications.tsx`.
-- [ ] **Fase 3 — checkout block (CHECKOUT-CRITICAL).** NEW Cart & Checkout
-  Validation Function (`cartValidationsGenerateRun`, output
-  `operations:[{validationAdd:{errors:[{message,target:"$.cart"}]}}]`).
-  Blocks checkout if customer owes opening order (qualifiedAt null) +
-  `fpqMode != none` + cart < minimum. Needs: Shopify CLI auth for
-  `typegen`, fixtures, and confirming how the function reads its config
-  (validation-node metafield + input query `.graphql`). Sync must write a
-  metafield with the minimum + the list of customers with qualifiedAt=null.
+- [~] **Fase 3 — checkout block — CODE COMPLETE, ⏳ NOT DEPLOYED.**
+  - Part 1 (commit `76866c1`): WASM extension `stockly-opening-order`
+    (`cart.validations.generate.run`) + 5 green fixtures. Blocks checkout
+    if customer is on the pending list + cart < minimum; fails open.
+  - Part 2: `opening-order-sync.server.ts` (validationCreate +
+    metafieldsSet with config + pending GIDs from qualifiedAt=null rows);
+    wired into approve, release, and settings/pricing save; added
+    `write_validations` scope to shopify.app.toml.
+  - **To go live:** `shopify app deploy` (publishes the function + the new
+    scope → merchant must RE-GRANT the scope on the dev store) AND
+    `fly deploy` (sync + wiring). Then E2E: approve a customer with
+    fpqMode=amount set, confirm checkout is blocked below the minimum and
+    passes at/above it, then "Release" and confirm checkout is free.
 - [ ] **Fase 4 — banner.** Connect the cart/QOF "you need €X more to
   activate" banner to the opening-order state (the fpq-banner block exists).
 - [~] **Fase 5 — ADR + deploy.** ADR-016 written (supersedes ADR-004's

@@ -12,7 +12,9 @@ embedded = true
 # read_orders     — Shopify requires this scope to subscribe to the
 # orders/paid webhook (otherwise app config update fails with
 # "Missing scope for webhook topic: orders/paid").
-scopes = "write_products,write_publications,write_discounts,write_customers,read_orders"
+# write_validations — create/update the Cart & Checkout Validation that
+# enforces the opening-order minimum at checkout (Camino B / ADR-016).
+scopes = "write_products,write_publications,write_discounts,write_customers,read_orders,write_validations"
 
 # Protected customer data access — required since 2024 for ANY app
 # that reads/creates Customer records with PII (name, email, phone).

@@ -58,6 +58,7 @@ import {
   releaseOpeningOrder,
 } from "../services/wholesale-customers.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
+import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
 
 /* -------------------------------------------------------------------------- */
 /*                                  LOADER                                    */
@@ -224,6 +225,8 @@ async function actionImpl(request: Request) {
       } as const;
     }
     await releaseOpeningOrder(shop.id, app.shopifyCustomerId);
+    // Refresh the Validation so this customer drops off the pending list.
+    await syncOpeningOrderValidation(admin, shop.id);
     return {
       ok: true as const,
       action: "opening-order-released" as const,
@@ -466,6 +469,10 @@ async function actionImpl(request: Request) {
     // eslint-disable-next-line no-console
     console.error("[applications-action] syncTiersToFunction failed:", err);
   }
+
+  // Camino B: refresh the opening-order Validation — this newly-approved,
+  // not-yet-released customer joins the pending list. Internally fail-safe.
+  await syncOpeningOrderValidation(admin, shop.id);
 
   return {
     ok: true as const,
