@@ -4,11 +4,12 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-03 (end of a long multi-topic session — Camino B
-LIVE, white-label accent, Setup Guide). **▶ RESUME HERE:**
-`progress/2026-06-03-session-summary.md` has the full recap + the
-priority-ordered pending list (onboarding button fix, unify Pricing nav,
-read_themes auto-detection, admin lime, form builder…).
+**Last updated:** 2026-06-04 (verified Camino B prod state, realigned docs,
+set up + reverted the checkout-block E2E). **▶ RESUME HERE:**
+`progress/2026-06-04-camino-b-prod-verification.md` (latest), then
+`progress/2026-06-03-session-summary.md` for the full pending list
+(onboarding button fix, unify Pricing nav, read_themes auto-detection,
+admin lime, form builder…).
 
 ---
 
@@ -29,9 +30,21 @@ ADR-004 price-side FPQ. Full journal:
 - [x] **Fase 2 — admin release** (commit `655d597`). Opening-order badge
   (pending/met, gated on `fpqMode != none`) + one-click "Release from
   opening order" on `app.customers.applications.tsx`.
-- [x] **Fase 3 — checkout block — DEPLOYED (stockly-36 + Fly, 2026-06-03).**
-  ⏳ Before it gates: RE-GRANT `write_validations` (reopen the app), then set
-  `fpqMode` in Settings → Pricing + save (creates the Validation). Then E2E.
+- [x] **Fase 3 — checkout block — DEPLOYED & CONFIGURED (stockly-36 + Fly, 2026-06-03).**
+  ✅ VERIFIED in prod (read-only query 2026-06-03): `write_validations` granted,
+  `fpqMode='amount'`, `fpqAmount=200`, baseline 60%. The "set fpqMode + save"
+  pre-condition is DONE. NOTE: the Validation is (re)created on approve / release
+  / settings-save — not only the Save. **Functional gap:** `pendingOpeningOrder=0`
+  of 3 customers (the 3 existing ones are already `qualifiedAt != null`), so the
+  pending list is empty and nothing blocks today. **E2E attempted 2026-06-04 but
+  NOT completed:** de-qualified the test customer `creativedesignseo` (GID
+  10103069901128) as guinea pig, then reverted to the original `qualifiedAt`
+  (pending back to 0) since the storefront steps weren't run. To resume, see the
+  step-by-step + the de-qualify one-liner in
+  `progress/2026-06-04-camino-b-prod-verification.md`. Threshold is measured on the
+  PAID subtotal (after wholesale discount): baseline 60% → block needs retail
+  <~€500, pass needs retail ≥~€500. Also unverified (non-blocking): the Validation
+  object exists+active in Shopify (needs a fresh-token GraphQL check from the app).
   - Part 1 (commit `76866c1`): WASM extension `stockly-opening-order`
     (`cart.validations.generate.run`) + 5 green fixtures. Blocks checkout
     if customer is on the pending list + cart < minimum; fails open.
