@@ -334,3 +334,21 @@ stockly-registration .stockly-reg__form--noscript {
     grid-template-columns: 1fr;
   }
 }
+
+/* Phone field: country-code dropdown + national number on one row. The
+ * dropdown is sized to its content (overriding the base width:100% on
+ * selects); the number input takes the rest. */
+stockly-registration .stockly-reg__phone {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+stockly-registration .stockly-reg__phone .stockly-reg__dial {
+  width: auto;
+  flex: 0 0 auto;
+  max-width: 45%;
+}
+stockly-registration .stockly-reg__phone .stockly-reg__phone-number {
+  flex: 1 1 auto;
+  min-width: 0;
+}

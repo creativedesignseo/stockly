@@ -36,68 +36,73 @@
   // the destinations Stockly's wholesale merchants ship to. Edit at
   // will — the JS doesn't depend on completeness, just on this shape.
   const COUNTRIES = [
-    { code: 'US', name: 'United States' },
-    { code: 'CA', name: 'Canada' },
-    { code: 'MX', name: 'Mexico' },
-    { code: 'GB', name: 'United Kingdom' },
-    { code: 'IE', name: 'Ireland' },
-    { code: 'FR', name: 'France' },
-    { code: 'DE', name: 'Germany' },
-    { code: 'ES', name: 'Spain' },
-    { code: 'PT', name: 'Portugal' },
-    { code: 'IT', name: 'Italy' },
-    { code: 'NL', name: 'Netherlands' },
-    { code: 'BE', name: 'Belgium' },
-    { code: 'LU', name: 'Luxembourg' },
-    { code: 'CH', name: 'Switzerland' },
-    { code: 'AT', name: 'Austria' },
-    { code: 'DK', name: 'Denmark' },
-    { code: 'SE', name: 'Sweden' },
-    { code: 'NO', name: 'Norway' },
-    { code: 'FI', name: 'Finland' },
-    { code: 'IS', name: 'Iceland' },
-    { code: 'PL', name: 'Poland' },
-    { code: 'CZ', name: 'Czechia' },
-    { code: 'SK', name: 'Slovakia' },
-    { code: 'HU', name: 'Hungary' },
-    { code: 'RO', name: 'Romania' },
-    { code: 'BG', name: 'Bulgaria' },
-    { code: 'GR', name: 'Greece' },
-    { code: 'HR', name: 'Croatia' },
-    { code: 'SI', name: 'Slovenia' },
-    { code: 'EE', name: 'Estonia' },
-    { code: 'LV', name: 'Latvia' },
-    { code: 'LT', name: 'Lithuania' },
-    { code: 'TR', name: 'Türkiye' },
-    { code: 'IL', name: 'Israel' },
-    { code: 'AE', name: 'United Arab Emirates' },
-    { code: 'SA', name: 'Saudi Arabia' },
-    { code: 'IN', name: 'India' },
-    { code: 'CN', name: 'China' },
-    { code: 'JP', name: 'Japan' },
-    { code: 'KR', name: 'South Korea' },
-    { code: 'SG', name: 'Singapore' },
-    { code: 'HK', name: 'Hong Kong SAR' },
-    { code: 'TW', name: 'Taiwan' },
-    { code: 'TH', name: 'Thailand' },
-    { code: 'VN', name: 'Vietnam' },
-    { code: 'PH', name: 'Philippines' },
-    { code: 'ID', name: 'Indonesia' },
-    { code: 'MY', name: 'Malaysia' },
-    { code: 'AU', name: 'Australia' },
-    { code: 'NZ', name: 'New Zealand' },
-    { code: 'BR', name: 'Brazil' },
-    { code: 'AR', name: 'Argentina' },
-    { code: 'CL', name: 'Chile' },
-    { code: 'CO', name: 'Colombia' },
-    { code: 'PE', name: 'Peru' },
-    { code: 'UY', name: 'Uruguay' },
-    { code: 'ZA', name: 'South Africa' },
-    { code: 'MA', name: 'Morocco' },
-    { code: 'EG', name: 'Egypt' },
-    { code: 'NG', name: 'Nigeria' },
-    { code: 'KE', name: 'Kenya' },
+    { code: 'US', name: 'United States', dial: '+1' },
+    { code: 'CA', name: 'Canada', dial: '+1' },
+    { code: 'MX', name: 'Mexico', dial: '+52' },
+    { code: 'GB', name: 'United Kingdom', dial: '+44' },
+    { code: 'IE', name: 'Ireland', dial: '+353' },
+    { code: 'FR', name: 'France', dial: '+33' },
+    { code: 'DE', name: 'Germany', dial: '+49' },
+    { code: 'ES', name: 'Spain', dial: '+34' },
+    { code: 'PT', name: 'Portugal', dial: '+351' },
+    { code: 'IT', name: 'Italy', dial: '+39' },
+    { code: 'NL', name: 'Netherlands', dial: '+31' },
+    { code: 'BE', name: 'Belgium', dial: '+32' },
+    { code: 'LU', name: 'Luxembourg', dial: '+352' },
+    { code: 'CH', name: 'Switzerland', dial: '+41' },
+    { code: 'AT', name: 'Austria', dial: '+43' },
+    { code: 'DK', name: 'Denmark', dial: '+45' },
+    { code: 'SE', name: 'Sweden', dial: '+46' },
+    { code: 'NO', name: 'Norway', dial: '+47' },
+    { code: 'FI', name: 'Finland', dial: '+358' },
+    { code: 'IS', name: 'Iceland', dial: '+354' },
+    { code: 'PL', name: 'Poland', dial: '+48' },
+    { code: 'CZ', name: 'Czechia', dial: '+420' },
+    { code: 'SK', name: 'Slovakia', dial: '+421' },
+    { code: 'HU', name: 'Hungary', dial: '+36' },
+    { code: 'RO', name: 'Romania', dial: '+40' },
+    { code: 'BG', name: 'Bulgaria', dial: '+359' },
+    { code: 'GR', name: 'Greece', dial: '+30' },
+    { code: 'HR', name: 'Croatia', dial: '+385' },
+    { code: 'SI', name: 'Slovenia', dial: '+386' },
+    { code: 'EE', name: 'Estonia', dial: '+372' },
+    { code: 'LV', name: 'Latvia', dial: '+371' },
+    { code: 'LT', name: 'Lithuania', dial: '+370' },
+    { code: 'TR', name: 'Türkiye', dial: '+90' },
+    { code: 'IL', name: 'Israel', dial: '+972' },
+    { code: 'AE', name: 'United Arab Emirates', dial: '+971' },
+    { code: 'SA', name: 'Saudi Arabia', dial: '+966' },
+    { code: 'IN', name: 'India', dial: '+91' },
+    { code: 'CN', name: 'China', dial: '+86' },
+    { code: 'JP', name: 'Japan', dial: '+81' },
+    { code: 'KR', name: 'South Korea', dial: '+82' },
+    { code: 'SG', name: 'Singapore', dial: '+65' },
+    { code: 'HK', name: 'Hong Kong SAR', dial: '+852' },
+    { code: 'TW', name: 'Taiwan', dial: '+886' },
+    { code: 'TH', name: 'Thailand', dial: '+66' },
+    { code: 'VN', name: 'Vietnam', dial: '+84' },
+    { code: 'PH', name: 'Philippines', dial: '+63' },
+    { code: 'ID', name: 'Indonesia', dial: '+62' },
+    { code: 'MY', name: 'Malaysia', dial: '+60' },
+    { code: 'AU', name: 'Australia', dial: '+61' },
+    { code: 'NZ', name: 'New Zealand', dial: '+64' },
+    { code: 'BR', name: 'Brazil', dial: '+55' },
+    { code: 'AR', name: 'Argentina', dial: '+54' },
+    { code: 'CL', name: 'Chile', dial: '+56' },
+    { code: 'CO', name: 'Colombia', dial: '+57' },
+    { code: 'PE', name: 'Peru', dial: '+51' },
+    { code: 'UY', name: 'Uruguay', dial: '+598' },
+    { code: 'ZA', name: 'South Africa', dial: '+27' },
+    { code: 'MA', name: 'Morocco', dial: '+212' },
+    { code: 'EG', name: 'Egypt', dial: '+20' },
+    { code: 'NG', name: 'Nigeria', dial: '+234' },
+    { code: 'KE', name: 'Kenya', dial: '+254' },
   ];
+
+  // Default country code preselected in the phone prefix dropdown (Spain —
+  // Stockly's primary market). Customers can switch it; this just means the
+  // common case requires zero typing of the country code.
+  const DEFAULT_DIAL_CODE = 'ES';
 
   const DEFAULT_ERROR_MESSAGES = Object.freeze({
     required: 'Please fill in this field',
@@ -430,6 +435,12 @@
 
       let inputEl = null;
       let confirmEl = null;
+      // Optional wrapper that replaces a bare input in the layout (e.g. the
+      // phone field's country-code dropdown + number), and an optional value
+      // getter used at submit time when the sent value differs from
+      // inputEl.value (e.g. dial-code + number).
+      let fieldContainer = null;
+      let getValue = null;
 
       switch (field.type) {
         case 'textarea':
@@ -489,16 +500,43 @@
           }
           break;
 
-        case 'phone':
+        case 'phone': {
+          // Country-code dropdown + national number, so the customer never
+          // types the dial code. The dropdown is auxiliary (no name); the
+          // tel input keeps name=field.key for validation. At submit we
+          // combine dial + number via getValue().
+          fieldContainer = createEl('div', { class: 'stockly-reg__phone' });
+          const dialEl = createEl('select', { class: 'stockly-reg__dial' });
+          dialEl.setAttribute('aria-label', 'Country code');
+          for (const c of COUNTRIES) {
+            const opt = createEl('option', {
+              value: c.dial,
+              text: `${c.code} ${c.dial}`,
+            });
+            if (c.code === DEFAULT_DIAL_CODE) opt.selected = true;
+            dialEl.appendChild(opt);
+          }
           inputEl = createEl('input', {
             id: inputId,
             type: 'tel',
             name: field.key,
             required,
-            placeholder: field.placeholder || '+34 555 44 33 22',
+            placeholder: field.placeholder || '555 44 33 22',
             autocomplete: 'tel',
+            class: 'stockly-reg__phone-number',
           });
+          fieldContainer.appendChild(dialEl);
+          fieldContainer.appendChild(inputEl);
+          getValue = () => {
+            const num = (inputEl.value || '').trim();
+            if (!num) return '';
+            // If they already typed a full international number, respect it.
+            if (num.startsWith('+')) return num;
+            const dial = dialEl.value || '';
+            return dial ? `${dial} ${num}` : num;
+          };
           break;
+        }
 
         case 'email':
           inputEl = createEl('input', {
@@ -524,7 +562,7 @@
           break;
       }
 
-      wrapper.appendChild(inputEl);
+      wrapper.appendChild(fieldContainer || inputEl);
       if (confirmEl) wrapper.appendChild(confirmEl);
 
       if (field.helpText) {
@@ -534,7 +572,7 @@
       const fieldErrorEl = createEl('div', { class: 'stockly-reg__field-error', hidden: true });
       wrapper.appendChild(fieldErrorEl);
 
-      return { field, wrapper, inputEl, confirmEl, fieldErrorEl };
+      return { field, wrapper, inputEl, confirmEl, fieldErrorEl, getValue };
     }
 
     _prefillFromCustomer() {
@@ -619,7 +657,9 @@
         for (const r of this.renderedFields) {
           // Drop password-confirm sibling — server only needs the
           // primary value once we've verified they match client-side.
-          const value = r.inputEl.value;
+          // getValue (when present) returns the effective value, e.g. the
+          // phone field's dial-code + number combined.
+          const value = r.getValue ? r.getValue() : r.inputEl.value;
           formData.append(r.field.key, value);
         }
         const res = await fetch(this.actionUrl, {
