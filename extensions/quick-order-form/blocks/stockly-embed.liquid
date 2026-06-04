@@ -1,0 +1,31 @@
+{%- comment -%}
+  Stockly — App embed ("Activate Stockly").
+
+  The master on/off switch a merchant recognises from other apps
+  (Sami, BSS, etc.): a single toggle under the theme editor's
+  "App embeds" panel. Toggling it ON is how the merchant "activates"
+  Stockly in their theme.
+
+  What it does (intentionally light for v1):
+  - Loads the shared `--sk-*` design tokens globally, so any Stockly
+    storefront content renders on a consistent base across every page
+    (the tokens are scoped to Stockly hosts, so this has no visual
+    effect on the rest of the theme).
+  - Exposes `window.__stocklyActive = true` so the admin Setup guide /
+    future global scripts can confirm the app is switched on.
+
+  No settings (toggle only) — matching the conventional "activate the
+  app" pattern. Handle `stockly-embed` is what the admin Setup guide
+  reads from the theme's settings_data.json to auto-detect activation.
+{%- endcomment -%}
+
+{{ 'stockly-base.css' | asset_url | stylesheet_tag }}
+<script>window.__stocklyActive = true;</script>
+
+{% schema %}
+{
+  "name": "Stockly",
+  "target": "body",
+  "settings": []
+}
+{% endschema %}

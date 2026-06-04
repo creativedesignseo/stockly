@@ -13,7 +13,7 @@
  */
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Link, useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -33,8 +33,63 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
 
+/**
+ * Auto-detect whether the merchant has enabled the "Stockly" app embed
+ * (handle `stockly-embed`) in their active theme, by reading the theme's
+ * `config/settings_data.json` via the Asset REST API. Requires the
+ * `read_themes` scope.
+ *
+ * Returns:
+ *   true   — the embed exists in the live theme and is not disabled
+ *   false  — readable theme, embed absent or toggled off
+ *   null   — could not determine (scope not granted yet, theme
+ *            unreadable, parse error) → caller shows the manual CTA
+ *
+ * Never throws — the dashboard must render even if this fails.
+ */
+async function detectStocklyEmbedEnabled(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+): Promise<boolean | null> {
+  try {
+    const themesResp = await admin.rest.get({ path: "themes" });
+    const themesJson = await themesResp.json();
+    const main = (themesJson.themes ?? []).find(
+      (t: { role?: string }) => t.role === "main",
+    );
+    if (!main) return null;
+
+    const assetResp = await admin.rest.get({
+      path: `themes/${main.id}/assets`,
+      query: { "asset[key]": "config/settings_data.json" },
+    });
+    const assetJson = await assetResp.json();
+    const raw = assetJson.asset?.value;
+    if (!raw) return null;
+
+    const data = JSON.parse(raw);
+    const blocks = data?.current?.blocks ?? {};
+    for (const key of Object.keys(blocks)) {
+      const b = blocks[key];
+      if (
+        typeof b?.type === "string" &&
+        b.type.includes("/stockly-embed/") &&
+        b.disabled !== true
+      ) {
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    // read_themes may not be granted yet, or the theme is unreadable.
+    // eslint-disable-next-line no-console
+    console.error("[setup-guide] embed detection failed:", err);
+    return null;
+  }
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
+  const { shop, admin } = await authenticateAdmin(request);
 
   // First-install gate — send the merchant through the wizard before
   // they ever see the dashboard.
@@ -50,7 +105,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect(`/app/onboarding${search ? "?" + search : ""}`);
   }
 
-  const [activeTiers, pendingApps, qualifiedCustomers, activeForms] =
+  const [activeTiers, pendingApps, qualifiedCustomers, activeForms, embedEnabled] =
     await Promise.all([
       prisma.tier.count({ where: { shopId: shop.id, active: true } }),
       prisma.wholesaleApplication.count({
@@ -62,17 +117,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       prisma.registrationForm.count({
         where: { shopId: shop.id, status: "active" },
       }),
+      detectStocklyEmbedEnabled(admin),
     ]);
 
   return {
     shop,
     counts: { activeTiers, pendingApps, qualifiedCustomers },
     // Setup-guide step completion. pricing + form are detectable from the
-    // DB; the theme steps (embed, QOF block) need read_themes to detect —
-    // shown as CTAs for now (auto-detection is a follow-up).
+    // DB; the "Activate Stockly" app-embed step is auto-detected from the
+    // theme via read_themes (null = scope not granted / unreadable → CTA).
     setup: {
       pricingDone: shop.wholesaleBaselinePct > 0 || activeTiers > 0,
       formDone: activeForms > 0,
+      embedEnabled,
     },
   };
 };
@@ -95,7 +152,11 @@ export default function Dashboard() {
       <BlockStack gap="400">
         <Layout>
           <Layout.Section>
-            <SetupGuide pricingDone={setup.pricingDone} formDone={setup.formDone} />
+            <SetupGuide
+              pricingDone={setup.pricingDone}
+              formDone={setup.formDone}
+              embedEnabled={setup.embedEnabled}
+            />
           </Layout.Section>
           <Layout.Section>
             <InlineStack gap="400" wrap>
@@ -248,25 +309,32 @@ interface SetupStepData {
   /** true = done, false = to do, null = theme step (not auto-detectable). */
   done: boolean | null;
   cta: { label: string; url: string };
+  /** Show a "Refresh" button that re-checks detection (theme steps). */
+  refresh?: boolean;
 }
 
 function SetupGuide({
   pricingDone,
   formDone,
+  embedEnabled,
 }: {
   pricingDone: boolean;
   formDone: boolean;
+  embedEnabled: boolean | null;
 }) {
   const steps: SetupStepData[] = [
     {
       key: "embed",
       title: "Activate Stockly in your store",
-      body: "Enable the app embed in your theme so wholesale content shows on your storefront.",
-      done: null,
+      body: "Turn on the Stockly app embed in your theme so wholesale content shows on your storefront. After enabling it, click Refresh.",
+      // Auto-detected via read_themes. null (scope not granted yet) keeps
+      // the manual CTA; once granted, true = Done, false = To do.
+      done: embedEnabled,
       cta: {
         label: "Open theme editor",
         url: "shopify://admin/themes/current/editor?context=apps",
       },
+      refresh: true,
     },
     {
       key: "pricing",
@@ -328,6 +396,7 @@ function SetupGuide({
 }
 
 function SetupStep({ step, last }: { step: SetupStepData; last: boolean }) {
+  const revalidator = useRevalidator();
   return (
     <BlockStack gap="300">
       <InlineStack
@@ -354,9 +423,20 @@ function SetupStep({ step, last }: { step: SetupStepData; last: boolean }) {
           </BlockStack>
         </InlineStack>
         {step.done !== true && (
-          <Button url={step.cta.url} variant="primary">
-            {step.cta.label}
-          </Button>
+          <InlineStack gap="200" blockAlign="center" wrap={false}>
+            {step.refresh && (
+              <Button
+                onClick={() => revalidator.revalidate()}
+                loading={revalidator.state === "loading"}
+                variant="tertiary"
+              >
+                Refresh
+              </Button>
+            )}
+            <Button url={step.cta.url} variant="primary">
+              {step.cta.label}
+            </Button>
+          </InlineStack>
         )}
       </InlineStack>
       {!last && <Divider />}

@@ -14,7 +14,10 @@ embedded = true
 # "Missing scope for webhook topic: orders/paid").
 # write_validations — create/update the Cart & Checkout Validation that
 # enforces the opening-order minimum at checkout (Camino B / ADR-016).
-scopes = "write_products,write_publications,write_discounts,write_customers,read_orders,write_validations"
+# read_themes — read the active theme's settings_data.json so the admin
+# Setup guide can auto-detect whether the "Stockly" app embed is enabled
+# (the "Activate Stockly" step + its Refresh button).
+scopes = "write_products,write_publications,write_discounts,write_customers,read_orders,write_validations,read_themes"
 
 # Protected customer data access — required since 2024 for ANY app
 # that reads/creates Customer records with PII (name, email, phone).
