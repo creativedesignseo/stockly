@@ -5,7 +5,10 @@
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
 **Last updated:** 2026-06-04 (verified Camino B prod state, realigned docs,
-set up + reverted the checkout-block E2E). **▶ RESUME HERE:**
+set up + reverted the checkout-block E2E, **shipped the "Activate Stockly"
+app embed — stockly-38 + Fly; ⏳ pending Jonatan: re-grant read_themes +
+toggle the embed ON + dashboard Refresh** — see
+`progress/2026-06-04-app-embed-activate-stockly.md`). **▶ RESUME HERE:**
 `progress/2026-06-04-camino-b-prod-verification.md` (latest), then
 `progress/2026-06-03-session-summary.md` for the full pending list
 (onboarding button fix, unify Pricing nav, read_themes auto-detection,
