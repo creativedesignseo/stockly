@@ -53,34 +53,64 @@ async function detectStocklyEmbedEnabled(
   admin: any,
 ): Promise<boolean | null> {
   try {
-    const themesResp = await admin.rest.get({ path: "themes" });
-    const themesJson = await themesResp.json();
-    const main = (themesJson.themes ?? []).find(
-      (t: { role?: string }) => t.role === "main",
+    // shopify-app-remix here exposes only admin.graphql (no admin.rest).
+    // Read the MAIN theme's settings_data.json via the OnlineStoreTheme
+    // files API (needs read_themes).
+    const resp = await admin.graphql(
+      `#graphql
+      query StocklyEmbedDetect {
+        themes(first: 1, roles: [MAIN]) {
+          nodes {
+            files(filenames: ["config/settings_data.json"]) {
+              nodes {
+                body {
+                  __typename
+                  ... on OnlineStoreThemeFileBodyText { content }
+                  ... on OnlineStoreThemeFileBodyBase64 { contentBase64 }
+                }
+              }
+            }
+          }
+        }
+      }`,
     );
-    if (!main) return null;
-
-    const assetResp = await admin.rest.get({
-      path: `themes/${main.id}/assets`,
-      query: { "asset[key]": "config/settings_data.json" },
-    });
-    const assetJson = await assetResp.json();
-    const raw = assetJson.asset?.value;
+    const json = (await resp.json()) as {
+      data?: {
+        themes?: {
+          nodes?: Array<{
+            files?: {
+              nodes?: Array<{
+                body?: { content?: string; contentBase64?: string };
+              }>;
+            };
+          }>;
+        };
+      };
+    };
+    const body = json.data?.themes?.nodes?.[0]?.files?.nodes?.[0]?.body;
+    let raw: string | null = null;
+    if (body?.content) raw = body.content;
+    else if (body?.contentBase64)
+      raw = Buffer.from(body.contentBase64, "base64").toString("utf-8");
     if (!raw) return null;
 
     const data = JSON.parse(raw);
     const blocks = data?.current?.blocks ?? {};
+    let found = false;
     for (const key of Object.keys(blocks)) {
       const b = blocks[key];
       if (
         typeof b?.type === "string" &&
-        b.type.includes("/stockly-embed/") &&
+        b.type.includes("stockly-embed") &&
         b.disabled !== true
       ) {
-        return true;
+        found = true;
+        break;
       }
     }
-    return false;
+    // eslint-disable-next-line no-console
+    console.log("[setup-guide] embed detected:", found);
+    return found;
   } catch (err) {
     // read_themes may not be granted yet, or the theme is unreadable.
     // eslint-disable-next-line no-console
