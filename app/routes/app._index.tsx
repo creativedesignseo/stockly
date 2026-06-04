@@ -14,6 +14,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
+import { useState } from "react";
 import {
   Page,
   Layout,
@@ -25,7 +26,7 @@ import {
   Button,
   Badge,
   List,
-  ProgressBar,
+  Collapsible,
   Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -362,32 +363,34 @@ function SetupGuide({
     },
   ];
 
-  const detectable = steps.filter((s) => s.done !== null);
-  const completed = detectable.filter((s) => s.done).length;
-  const progress = detectable.length
-    ? (completed / detectable.length) * 100
-    : 0;
+  const total = steps.length;
+  const completed = steps.filter((s) => s.done === true).length;
+  // Open the first step that isn't done yet (the merchant's next action).
+  const firstIncomplete = steps.find((s) => s.done !== true)?.key ?? null;
 
   return (
     <Card>
       <BlockStack gap="400">
-        <BlockStack gap="200">
+        <BlockStack gap="100">
           <Text as="h2" variant="headingMd">
             Setup guide
           </Text>
           <Text as="p" variant="bodySm" tone="subdued">
-            Follow these steps to start selling wholesale.
+            Let&apos;s get started by following this guide.
           </Text>
-          <ProgressBar progress={progress} size="small" />
           <Text as="span" variant="bodySm" tone="subdued">
-            {completed} of {detectable.length} in-app steps done · the theme
-            steps are activated from your theme editor.
+            {completed} of {total} steps completed
           </Text>
         </BlockStack>
         <Divider />
-        <BlockStack gap="300">
+        <BlockStack gap="0">
           {steps.map((s, i) => (
-            <SetupStep key={s.key} step={s} last={i === steps.length - 1} />
+            <SetupStep
+              key={s.key}
+              step={s}
+              defaultOpen={s.key === firstIncomplete}
+              last={i === steps.length - 1}
+            />
           ))}
         </BlockStack>
       </BlockStack>
@@ -395,52 +398,150 @@ function SetupGuide({
   );
 }
 
-function SetupStep({ step, last }: { step: SetupStepData; last: boolean }) {
+/** Circular status mark: filled black check when done, dashed ring when not. */
+function StepIcon({ done }: { done: boolean | null }) {
+  if (done === true) {
+    return (
+      <span
+        aria-hidden="true"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: "#1a1a1a",
+          color: "#fff",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 20 20" fill="none">
+          <path
+            d="M5 10.5l3.2 3.2L15 7"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: "inline-block",
+        width: 22,
+        height: 22,
+        borderRadius: "50%",
+        border: "2px dashed #9a9a9a",
+        boxSizing: "border-box",
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 20 20"
+      fill="none"
+      style={{
+        flexShrink: 0,
+        transform: open ? "rotate(180deg)" : "none",
+        transition: "transform 150ms ease",
+      }}
+    >
+      <path
+        d="M5 7.5l5 5 5-5"
+        stroke="#6b6b6b"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SetupStep({
+  step,
+  defaultOpen,
+  last,
+}: {
+  step: SetupStepData;
+  defaultOpen: boolean;
+  last: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const revalidator = useRevalidator();
   return (
-    <BlockStack gap="300">
-      <InlineStack
-        align="space-between"
-        blockAlign="center"
-        gap="300"
-        wrap={false}
+    <Box>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{
+          background: "none",
+          border: "none",
+          padding: "12px 0",
+          margin: 0,
+          width: "100%",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
       >
-        <InlineStack gap="300" blockAlign="center">
-          {step.done === true ? (
-            <Badge tone="success">Done</Badge>
-          ) : step.done === false ? (
-            <Badge tone="attention">To do</Badge>
-          ) : (
-            <Badge>In your theme</Badge>
-          )}
-          <BlockStack gap="050">
+        <InlineStack
+          align="space-between"
+          blockAlign="center"
+          gap="300"
+          wrap={false}
+        >
+          <InlineStack gap="300" blockAlign="center" wrap={false}>
+            <StepIcon done={step.done} />
             <Text as="span" variant="bodyMd" fontWeight="semibold">
               {step.title}
             </Text>
-            <Text as="span" variant="bodySm" tone="subdued">
+          </InlineStack>
+          <Chevron open={open} />
+        </InlineStack>
+      </button>
+      <Collapsible
+        open={open}
+        id={`setup-${step.key}`}
+        transition={{ duration: "150ms", timingFunction: "ease-in-out" }}
+      >
+        <Box paddingBlockEnd="300" paddingInlineStart="800">
+          <BlockStack gap="300">
+            <Text as="p" variant="bodySm" tone="subdued">
               {step.body}
             </Text>
-          </BlockStack>
-        </InlineStack>
-        {step.done !== true && (
-          <InlineStack gap="200" blockAlign="center" wrap={false}>
-            {step.refresh && (
-              <Button
-                onClick={() => revalidator.revalidate()}
-                loading={revalidator.state === "loading"}
-                variant="tertiary"
-              >
-                Refresh
-              </Button>
+            {step.done !== true && (
+              <InlineStack gap="200" blockAlign="center" wrap={false}>
+                <Button url={step.cta.url} variant="primary">
+                  {step.cta.label}
+                </Button>
+                {step.refresh && (
+                  <Button
+                    onClick={() => revalidator.revalidate()}
+                    loading={revalidator.state === "loading"}
+                    variant="tertiary"
+                  >
+                    Refresh
+                  </Button>
+                )}
+              </InlineStack>
             )}
-            <Button url={step.cta.url} variant="primary">
-              {step.cta.label}
-            </Button>
-          </InlineStack>
-        )}
-      </InlineStack>
+          </BlockStack>
+        </Box>
+      </Collapsible>
       {!last && <Divider />}
-    </BlockStack>
+    </Box>
   );
 }
 
