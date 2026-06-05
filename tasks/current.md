@@ -4,9 +4,13 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-04 (verified Camino B prod state, realigned docs,
-set up + reverted the checkout-block E2E, **shipped the "Activate Stockly"
-app embed — stockly-38 + Fly; ⏳ pending Jonatan: re-grant read_themes +
+**Last updated:** 2026-06-05 (**shipped the registration phone field flag
+dropdown + integrated Shopify-native look — stockly-40 LIVE via
+`shopify app deploy`**, refining the stockly-39 country-code dropdown;
+storefront extension only, no `fly deploy`, revenue path untouched,
+`verify.sh` green). Prior 2026-06-04 (verified Camino B prod state, realigned
+docs, set up + reverted the checkout-block E2E, **shipped the "Activate
+Stockly" app embed — stockly-38 + Fly; ⏳ pending Jonatan: re-grant read_themes +
 toggle the embed ON + dashboard Refresh** — see
 `progress/2026-06-04-app-embed-activate-stockly.md`; **+ redesigned the
 dashboard Setup guide to the Sami-style collapsible accordion + circular
