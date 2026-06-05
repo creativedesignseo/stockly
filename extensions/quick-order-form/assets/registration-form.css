@@ -335,20 +335,24 @@ stockly-registration .stockly-reg__form--noscript {
   }
 }
 
-/* Phone field: country-code dropdown + national number on one row. The
- * dropdown is sized to its content (overriding the base width:100% on
- * selects); the number input takes the rest. */
+/* Phone field: a flag dropdown joined to the number input as ONE control
+ * (Shopify-native look). gap:0 + shared borders + matched radii so it reads
+ * as a single box; the dropdown hugs the flag, the number takes the rest. */
 stockly-registration .stockly-reg__phone {
   display: flex;
-  gap: 0.5rem;
+  gap: 0;
   align-items: stretch;
 }
 stockly-registration .stockly-reg__phone .stockly-reg__dial {
   width: auto;
   flex: 0 0 auto;
-  max-width: 45%;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
 }
 stockly-registration .stockly-reg__phone .stockly-reg__phone-number {
   flex: 1 1 auto;
   min-width: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }

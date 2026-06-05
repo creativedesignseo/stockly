@@ -104,6 +104,18 @@
   // common case requires zero typing of the country code.
   const DEFAULT_DIAL_CODE = 'ES';
 
+  // ISO alpha-2 → flag emoji (two regional-indicator code points). Renders a
+  // real flag on Mac/iOS/Android; Windows falls back to the letters, which is
+  // still fine next to the dial code.
+  function flagEmoji(code) {
+    if (!code || code.length !== 2) return '';
+    const A = 0x1f1e6;
+    return String.fromCodePoint(
+      A + code.charCodeAt(0) - 65,
+      A + code.charCodeAt(1) - 65,
+    );
+  }
+
   const DEFAULT_ERROR_MESSAGES = Object.freeze({
     required: 'Please fill in this field',
     invalid: 'Invalid value',
@@ -501,19 +513,24 @@
           break;
 
         case 'phone': {
-          // Country-code dropdown + national number, so the customer never
-          // types the dial code. The dropdown is auxiliary (no name); the
-          // tel input keeps name=field.key for validation. At submit we
-          // combine dial + number via getValue().
+          // Shopify-native style: a flag-only dropdown joined to a number
+          // input that carries the dial code as a prefix. The customer never
+          // types the country code; switching the flag rewrites the prefix
+          // in place. The input keeps name=field.key, so validation and the
+          // submitted value already include the full +<code> number.
           fieldContainer = createEl('div', { class: 'stockly-reg__phone' });
           const dialEl = createEl('select', { class: 'stockly-reg__dial' });
           dialEl.setAttribute('aria-label', 'Country code');
+          let defaultDial = '+34';
           for (const c of COUNTRIES) {
             const opt = createEl('option', {
               value: c.dial,
-              text: `${c.code} ${c.dial}`,
+              text: flagEmoji(c.code) || c.code,
             });
-            if (c.code === DEFAULT_DIAL_CODE) opt.selected = true;
+            if (c.code === DEFAULT_DIAL_CODE) {
+              opt.selected = true;
+              defaultDial = c.dial;
+            }
             dialEl.appendChild(opt);
           }
           inputEl = createEl('input', {
@@ -521,20 +538,26 @@
             type: 'tel',
             name: field.key,
             required,
-            placeholder: field.placeholder || '555 44 33 22',
+            placeholder: field.placeholder || '600 00 00 00',
             autocomplete: 'tel',
             class: 'stockly-reg__phone-number',
           });
+          inputEl.value = `${defaultDial} `;
+          // Switching country replaces the leading +<code> prefix in place.
+          dialEl.addEventListener('change', () => {
+            const rest = (inputEl.value || '').replace(/^\s*\+\d+\s*/, '');
+            inputEl.value = `${dialEl.value} ${rest}`;
+            inputEl.focus();
+            const end = inputEl.value.length;
+            try {
+              inputEl.setSelectionRange(end, end);
+            } catch (_) {
+              /* setSelectionRange unsupported on some inputs — ignore */
+            }
+          });
           fieldContainer.appendChild(dialEl);
           fieldContainer.appendChild(inputEl);
-          getValue = () => {
-            const num = (inputEl.value || '').trim();
-            if (!num) return '';
-            // If they already typed a full international number, respect it.
-            if (num.startsWith('+')) return num;
-            const dial = dialEl.value || '';
-            return dial ? `${dial} ${num}` : num;
-          };
+          getValue = () => (inputEl.value || '').trim();
           break;
         }
 
