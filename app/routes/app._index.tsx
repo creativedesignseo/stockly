@@ -35,6 +35,61 @@ import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
 
 /**
+ * Strip JSONC comments (block `/* *​/` and line `//`) from a string while
+ * preserving anything inside JSON string literals (e.g. `https://` in a URL
+ * value). Shopify's `config/settings_data.json` is JSONC — it ships with an
+ * auto-generated `/* ... *​/` header comment, so a raw `JSON.parse` throws
+ * `SyntaxError: Unexpected token '/'`. This makes the theme config parseable.
+ */
+function stripJsonComments(input: string): string {
+  let out = "";
+  let inString = false;
+  let inBlock = false;
+  let inLine = false;
+  for (let i = 0; i < input.length; i++) {
+    const c = input[i];
+    const next = input[i + 1];
+    if (inLine) {
+      if (c === "\n") {
+        inLine = false;
+        out += c;
+      }
+      continue;
+    }
+    if (inBlock) {
+      if (c === "*" && next === "/") {
+        inBlock = false;
+        i++;
+      }
+      continue;
+    }
+    if (inString) {
+      out += c;
+      if (c === "\\") {
+        out += next ?? "";
+        i++;
+      } else if (c === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (c === '"') {
+      inString = true;
+      out += c;
+    } else if (c === "/" && next === "*") {
+      inBlock = true;
+      i++;
+    } else if (c === "/" && next === "/") {
+      inLine = true;
+      i++;
+    } else {
+      out += c;
+    }
+  }
+  return out;
+}
+
+/**
  * Auto-detect whether the merchant has enabled the "Stockly" app embed
  * (handle `stockly-embed`) in their active theme, by reading the theme's
  * `config/settings_data.json` via the Asset REST API. Requires the
@@ -94,7 +149,9 @@ async function detectStocklyEmbedEnabled(
       raw = Buffer.from(body.contentBase64, "base64").toString("utf-8");
     if (!raw) return null;
 
-    const data = JSON.parse(raw);
+    // settings_data.json is JSONC (ships with a /* ... */ header comment),
+    // so strip comments before parsing — a raw JSON.parse throws on the `/*`.
+    const data = JSON.parse(stripJsonComments(raw));
     const blocks = data?.current?.blocks ?? {};
     let found = false;
     for (const key of Object.keys(blocks)) {
