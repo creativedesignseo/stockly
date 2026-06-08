@@ -4,7 +4,15 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-05 (**shipped the registration phone field flag
+**Last updated:** 2026-06-08 (**fixed the dashboard Setup-guide app-embed
+auto-detection — Fly v75, commit `4bf4f99`**). Root cause from Fly logs:
+`detectStocklyEmbedEnabled()` ran a raw `JSON.parse` on the theme's
+`settings_data.json`, which Shopify ships as JSONC with a `/* … */` header
+→ `SyntaxError` → `null` → the "Activate Stockly" step stayed pending even
+with the embed ON. Added `stripJsonComments()` and parse through it. Admin-UI
+only → `fly deploy`, no `shopify app deploy`; `verify.sh` green. ⏳ Pending
+Jonatan: reload the dashboard + click Refresh → step 1 should flip to Done.
+Prior 2026-06-05 (**shipped the registration phone field flag
 dropdown + integrated Shopify-native look — stockly-40 LIVE via
 `shopify app deploy`**, refining the stockly-39 country-code dropdown;
 storefront extension only, no `fly deploy`, revenue path untouched,
