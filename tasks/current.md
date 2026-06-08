@@ -4,7 +4,15 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-08 (**fixed the dashboard Setup-guide app-embed
+**Last updated:** 2026-06-08 (**added a manual "Mark as done" override to
+every Setup-guide step — Fly v77, commit `b8b8a8e`**). A step is Done if
+auto-detected OR marked by hand (`Shop.setupManualSteps String[]`, additive);
+unblocks the QOF step that has no auto-detection. Deployment-guardian gated
+GO; first `fly deploy` aborted on a local `fly-agent.sock` timeout (prod
+stayed v75, no downtime) → `fly agent restart` + `--wait-timeout 300` retry →
+v77, `release_command` confirmed the column applied. Journal:
+`progress/2026-06-08-setup-guide-detection-and-manual-mark.md`. Prior same day:
+(**fixed the dashboard Setup-guide app-embed
 auto-detection — Fly v75, commit `4bf4f99`**). Root cause from Fly logs:
 `detectStocklyEmbedEnabled()` ran a raw `JSON.parse` on the theme's
 `settings_data.json`, which Shopify ships as JSONC with a `/* … */` header
