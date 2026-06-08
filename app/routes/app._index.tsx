@@ -11,9 +11,14 @@
  *      qualified customers) plus a "what's next" card pointing the
  *      merchant at the gap they should close first.
  */
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
-import { Link, useLoaderData, useRevalidator } from "@remix-run/react";
+import {
+  Link,
+  useFetcher,
+  useLoaderData,
+  useRevalidator,
+} from "@remix-run/react";
 import { useState } from "react";
 import {
   Page,
@@ -218,8 +223,42 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       pricingDone: shop.wholesaleBaselinePct > 0 || activeTiers > 0,
       formDone: activeForms > 0,
       embedEnabled,
+      // Steps the merchant marked done by hand — a step is "done" if it is
+      // auto-detected OR present here. Lets them override detection and
+      // complete steps that have no auto-detection (e.g. the QOF).
+      manualSteps: shop.setupManualSteps ?? [],
     },
   };
+};
+
+/** Step keys the setup guide knows about; guards the manual-override action. */
+const SETUP_STEP_KEYS = new Set(["embed", "pricing", "form", "qof"]);
+
+/**
+ * Manual setup-guide override. The merchant can mark a step done (or undo
+ * it) regardless of auto-detection — persisted on `Shop.setupManualSteps`.
+ */
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { shop } = await authenticateAdmin(request);
+  const form = await request.formData();
+  const stepKey = String(form.get("stepKey") ?? "");
+  const intent = String(form.get("intent") ?? "");
+
+  if (!SETUP_STEP_KEYS.has(stepKey)) {
+    return { ok: false, error: "unknown step" };
+  }
+
+  const current = new Set(shop.setupManualSteps ?? []);
+  if (intent === "mark-done") current.add(stepKey);
+  else if (intent === "mark-undone") current.delete(stepKey);
+  else return { ok: false, error: "unknown intent" };
+
+  await prisma.shop.update({
+    where: { id: shop.id },
+    data: { setupManualSteps: Array.from(current) },
+  });
+
+  return { ok: true };
 };
 
 export default function Dashboard() {
@@ -244,6 +283,7 @@ export default function Dashboard() {
               pricingDone={setup.pricingDone}
               formDone={setup.formDone}
               embedEnabled={setup.embedEnabled}
+              manualSteps={setup.manualSteps}
             />
           </Layout.Section>
           <Layout.Section>
@@ -405,10 +445,12 @@ function SetupGuide({
   pricingDone,
   formDone,
   embedEnabled,
+  manualSteps,
 }: {
   pricingDone: boolean;
   formDone: boolean;
   embedEnabled: boolean | null;
+  manualSteps: string[];
 }) {
   const steps: SetupStepData[] = [
     {
@@ -450,10 +492,15 @@ function SetupGuide({
     },
   ];
 
+  // A step counts as done if it is auto-detected OR marked done by hand.
+  const autoDone = (s: SetupStepData) => s.done === true;
+  const manualDone = (s: SetupStepData) => manualSteps.includes(s.key);
+  const isDone = (s: SetupStepData) => autoDone(s) || manualDone(s);
+
   const total = steps.length;
-  const completed = steps.filter((s) => s.done === true).length;
+  const completed = steps.filter(isDone).length;
   // Open the first step that isn't done yet (the merchant's next action).
-  const firstIncomplete = steps.find((s) => s.done !== true)?.key ?? null;
+  const firstIncomplete = steps.find((s) => !isDone(s))?.key ?? null;
 
   return (
     <Card>
@@ -475,6 +522,8 @@ function SetupGuide({
             <SetupStep
               key={s.key}
               step={s}
+              autoDone={autoDone(s)}
+              manualDone={manualDone(s)}
               defaultOpen={s.key === firstIncomplete}
               last={i === steps.length - 1}
             />
@@ -558,15 +607,22 @@ function Chevron({ open }: { open: boolean }) {
 
 function SetupStep({
   step,
+  autoDone,
+  manualDone,
   defaultOpen,
   last,
 }: {
   step: SetupStepData;
+  autoDone: boolean;
+  manualDone: boolean;
   defaultOpen: boolean;
   last: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const revalidator = useRevalidator();
+  const fetcher = useFetcher();
+  const busy = fetcher.state !== "idle";
+  const effectiveDone = autoDone || manualDone;
   return (
     <Box>
       <button
@@ -590,7 +646,7 @@ function SetupStep({
           wrap={false}
         >
           <InlineStack gap="300" blockAlign="center" wrap={false}>
-            <StepIcon done={step.done} />
+            <StepIcon done={effectiveDone} />
             <Text as="span" variant="bodyMd" fontWeight="semibold">
               {step.title}
             </Text>
@@ -608,8 +664,8 @@ function SetupStep({
             <Text as="p" variant="bodySm" tone="subdued">
               {step.body}
             </Text>
-            {step.done !== true && (
-              <InlineStack gap="200" blockAlign="center" wrap={false}>
+            {!effectiveDone && (
+              <InlineStack gap="200" blockAlign="center">
                 <Button url={step.cta.url} variant="primary">
                   {step.cta.label}
                 </Button>
@@ -622,6 +678,29 @@ function SetupStep({
                     Refresh
                   </Button>
                 )}
+                <fetcher.Form method="post">
+                  <input type="hidden" name="stepKey" value={step.key} />
+                  <input type="hidden" name="intent" value="mark-done" />
+                  <Button submit variant="tertiary" loading={busy}>
+                    Mark as done
+                  </Button>
+                </fetcher.Form>
+              </InlineStack>
+            )}
+            {/* Only the merchant can undo a *manual* completion; auto-detected
+                steps reflect real store state and have no undo. */}
+            {effectiveDone && manualDone && !autoDone && (
+              <InlineStack gap="200" blockAlign="center">
+                <Text as="span" variant="bodySm" tone="subdued">
+                  Marked as done manually.
+                </Text>
+                <fetcher.Form method="post">
+                  <input type="hidden" name="stepKey" value={step.key} />
+                  <input type="hidden" name="intent" value="mark-undone" />
+                  <Button submit variant="plain" loading={busy}>
+                    Undo
+                  </Button>
+                </fetcher.Form>
               </InlineStack>
             )}
           </BlockStack>

@@ -74,6 +74,12 @@ model Shop {
   /// True once the store owner has completed onboarding.
   onboarded          Boolean             @default(false)
 
+  /// Setup-guide steps the merchant marked done manually, by step key
+  /// ("embed" | "pricing" | "form" | "qof"). A step is "done" if it is
+  /// auto-detected OR listed here, so the merchant can always override
+  /// detection (the QOF step has no auto-detection) and never get stuck.
+  setupManualSteps   String[]            @default([])
+
   /// Universal wholesale discount on retail price (ADR-006).
   /// 0 = no baseline (default: wholesale customers see retail prices,
   /// only tiers apply). 65 means "wholesale customers see retail × 0.35".
