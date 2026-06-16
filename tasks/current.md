@@ -4,7 +4,14 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-06-08 (**added a manual "Mark as done" override to
+**Last updated:** 2026-06-08 (**Piro landing analysis — Stockly install ON
+HOLD**). Verified via Admin API (read-only) that Piro (plan Basic) ALREADY
+runs wholesale via a Markets/Catalog Price List at −65% (+ an AppCatalog an
+installed app manages, 29 WHOLESALE-tagged products) — a different engine
+from Stockly's Discount Function. Installing on top risks double-discount.
+Decision-before-install pending Jonatan/Ana: how does Piro grant the −65%
+today? See `progress/2026-06-08-piro-landing-analysis.md` + HANDOFF "Pilot
+status". Prior same day (**added a manual "Mark as done" override to
 every Setup-guide step — Fly v77, commit `b8b8a8e`**). A step is Done if
 auto-detected OR marked by hand (`Shop.setupManualSteps String[]`, additive);
 unblocks the QOF step that has no auto-detection. Deployment-guardian gated
