@@ -17,6 +17,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
+import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
 
 const METAFIELD_NAMESPACE = "$app:stockly-volume-discount";
 const METAFIELD_KEY = "wholesale-status";
@@ -273,6 +274,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // eslint-disable-next-line no-console
     console.error(
       "[Stockly webhook orders/paid] syncTiersToFunction failed:",
+      err,
+    );
+  }
+
+  // Remove this customer from the opening-order pending list so they
+  // are no longer blocked at checkout. The update above set qualifiedAt,
+  // so buildOpeningOrderConfig will exclude them from pendingCustomers.
+  try {
+    await syncOpeningOrderValidation(admin, shopRow.id);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      "[Stockly webhook orders/paid] syncOpeningOrderValidation failed:",
       err,
     );
   }

@@ -65,6 +65,15 @@ api_version = "2025-01"
   uri = "/webhooks/shop/redact"
   compliance_topics = [ "shop/redact" ]
 
+  # customers/update — detects when a customer receives the shop's
+  # wholesale tag via an external approval flow (e.g. Piro's native
+  # B2B form). Automatically enrolls them in Stockly's opening-order
+  # pending list so the first-purchase minimum is enforced at checkout.
+  # Uses the existing customer_data = "level_1" declaration.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/update"
+  topics = [ "customers/update" ]
+
 # orders/paid webhook (ADR-004 FPQ qualification) is intentionally
 # NOT registered here yet. Shopify treats every orders/* topic as
 # "protected customer data" and refuses to register the subscription
