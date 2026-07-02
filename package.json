@@ -21,6 +21,7 @@
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:extensions": "npm run --workspace=extensions/stockly-volume-discount --workspace=extensions/stockly-opening-order test -- run",
     "shopify": "shopify",
     "prisma": "prisma",
     "graphql-codegen": "graphql-codegen",

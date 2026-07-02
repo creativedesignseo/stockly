@@ -82,12 +82,22 @@ for explicit "deploy" / "envía" / "ship" before executing.
 ## How to verify a change
 
 Run `bash scripts/verify.sh` from the repo root. The script runs lint,
-tests, extension build, and Remix build in that order. It does not
-deploy and does not touch production data. See `scripts/verify.sh`.
+tests, both extensions' vitest suites (`test:extensions`), extension
+build, and Remix build in that order. It does not deploy and does not
+touch production data. See `scripts/verify.sh`.
 
 For changes touching the Discount Function pricing logic, the unit
-fixtures under `extensions/stockly-volume-discount/tests/` must pass.
-Currently only one fixture exists (audit P1-5 tracks expanding this).
+fixtures under `extensions/stockly-volume-discount/tests/fixtures/`
+must pass (8 fixtures as of 2026-07: multi-band, legacy single-band,
+mix-variants aggregation, fixed-price, no-discounts, and the 3
+active-date-window guardrails). Shopify Functions run in a
+deterministic sandbox with no real wall clock — `new Date()` /
+`Date.now()` inside a Function returns a fixed epoch, never the real
+time. Any code needing "now" inside a Function must read
+`shop.localTime` from the GraphQL input (see
+`extensions/stockly-volume-discount/src/run.ts`), not the JS `Date`
+API — this bit us once (ADR-012's active-date filter shipped using
+`new Date()` and silently mis-evaluated every tier's start/end window).
 
 ---
 

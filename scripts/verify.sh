@@ -125,6 +125,7 @@ else
 fi
 
 run_npm_script test
+run_npm_script test:extensions
 run_npm_script build:extensions
 run_npm_script build
 
