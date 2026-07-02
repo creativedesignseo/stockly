@@ -1,10 +1,33 @@
 # ADR-009 — Backend choice: Fly.io (supersedes ADR-005 Vercel)
 
 **Date:** 2026-05-26
-**Status:** Accepted
+**Status:** HISTORICAL — production has since moved off Fly.io to Railway
+(see addendum below). Kept for the Vercel→Fly reasoning, which is still
+valid context; the Fly-specific conclusion is superseded.
 **Supersedes:** [ADR-005 — Backend choice: Vercel](./ADR-005-backend-choice.md)
 **Deciders:** Jonatan Montilla
 **Migration date:** 2026-05-26 (live in production)
+
+---
+
+## Addendum 2026-07-03 — superseded by a move to Railway
+
+Production is now running on **Railway** (`stockly-production-5ccf.up.railway.app`,
+region `sfo`), not Fly.io. The Fly app (`stockly-lustrous-forest-4364`) no
+longer exists — its domain doesn't resolve DNS at all.
+
+**Honest gap: the decision reasoning for this specific move is not
+documented anywhere.** It was discovered mid-session on 2026-07-03 via an
+uncommitted `shopify.app.toml` diff and confirmed via `railway status` —
+nobody wrote down WHY the switch happened (unlike this ADR's own
+Vercel→Fly reasoning, which is thorough). The comparison table below
+scored Railway unfavorably at the time (single region, "Limited" Postgres
+integration, no dedicated Shopify docs) — whatever changed Jonatan's mind
+isn't captured here. If/when the Railway decision is confirmed
+intentional and permanent, it deserves its own ADR-017 with real
+reasoning, superseding this one properly. Until then: **HANDOFF.md is the
+source of truth for the current host**, this ADR's Fly-specific sections
+below are historical record of the Vercel→Fly move only.
 
 ---
 
