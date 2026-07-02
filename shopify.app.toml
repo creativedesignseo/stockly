@@ -2,7 +2,7 @@
 
 client_id = "fbc28fda2161d2fc40037b0d211b83c9"
 name = "stockly"
-application_url = "https://stockly-lustrous-forest-4364.fly.dev"
+application_url = "https://stockly-production-5ccf.up.railway.app"
 embedded = true
 
 [access_scopes]
@@ -93,16 +93,16 @@ api_version = "2025-01"
 
 [auth]
 redirect_urls = [
-  "https://stockly-lustrous-forest-4364.fly.dev/auth/callback",
-  "https://stockly-lustrous-forest-4364.fly.dev/auth/shopify/callback",
-  "https://stockly-lustrous-forest-4364.fly.dev/api/auth/callback"
+  "https://stockly-production-5ccf.up.railway.app/auth/callback",
+  "https://stockly-production-5ccf.up.railway.app/auth/shopify/callback",
+  "https://stockly-production-5ccf.up.railway.app/api/auth/callback"
 ]
 
 [app_proxy]
 # Storefront URL /apps/stockly/* is forwarded to our backend /proxy/*.
 # The full proxy URL is set automatically by the CLI to the dev tunnel
 # during development, and to the production app URL on deploy.
-url = "https://stockly-lustrous-forest-4364.fly.dev/proxy"
+url = "https://stockly-production-5ccf.up.railway.app/proxy"
 subpath = "stockly"
 prefix = "apps"
 
