@@ -202,7 +202,7 @@ export default function TermsOfService() {
       </p>
       <p>
         Adspubli no es responsable de las interrupciones causadas por:
-        Shopify, proveedores de infraestructura (Fly.io), redes de
+        Shopify, proveedores de infraestructura (Railway), redes de
         telecomunicaciones, fuerza mayor, o cualquier circunstancia ajena al
         control razonable de Adspubli.
       </p>

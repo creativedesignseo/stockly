@@ -154,8 +154,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         shopifyCustomerId: loggedInCustomerId ?? null,
       });
     } catch (mirrorErr) {
-      // SHOULD-4: structured log key for soak monitoring. Grep
-      // `fly logs` for [rf.dual_write.fail] during the 48h window.
+      // SHOULD-4: structured log key for soak monitoring. Grep the
+      // host's logs for [rf.dual_write.fail] during the 48h window.
       // eslint-disable-next-line no-console
       console.error("[rf.dual_write.fail]", {
         shop: shopRow.id,

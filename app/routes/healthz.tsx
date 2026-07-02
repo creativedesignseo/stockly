@@ -1,5 +1,5 @@
 /**
- * Liveness endpoint for Fly.io (and any future monitoring).
+ * Liveness endpoint for the hosting platform (any future monitoring).
  *
  * GET /healthz → 200 with a tiny JSON payload.
  *
@@ -9,14 +9,15 @@
  *
  * Why a dedicated route instead of pointing the health check at `/`:
  *   - `/` runs Shopify embedded-app auth bootstrap. A transient
- *     Shopify outage would mark the machine unhealthy and Fly would
- *     restart it, making the outage worse for our users.
+ *     Shopify outage would mark the machine unhealthy and the host
+ *     would restart it, making the outage worse for our users.
  *   - `/healthz` is intentionally boring: if it returns 500 the
  *     container itself is broken, not its dependencies.
  *
  * Used by:
- *   - Fly.io `[[http_service.checks]]` in fly.toml
  *   - Manual `curl -sI` smoke tests
+ *   - (historical) Fly.io `[[http_service.checks]]` in fly.toml, back
+ *     when Fly was the host — see HANDOFF.md for the current host.
  *
  * If you ever need a richer readiness probe (DB ping, Shopify ping),
  * add a separate /readyz endpoint and keep this one cheap.

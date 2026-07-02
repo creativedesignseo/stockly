@@ -158,8 +158,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         anyErr.body?.errors?.graphQLErrors ??
         [];
       if (gqlErrors.length > 0) {
-        // Log structured detail so we can debug from Fly logs (util.inspect
-        // collapses nested arrays/objects by default — JSON.stringify expands).
+        // Log structured detail so we can debug from the host's logs
+        // (util.inspect collapses nested arrays/objects by default —
+        // JSON.stringify expands).
         // eslint-disable-next-line no-console
         console.error(
           "[applications-action] graphQLErrors:",

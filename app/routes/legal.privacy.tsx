@@ -217,9 +217,9 @@ export default function PrivacyPolicy() {
           Addendum (DPA) que Shopify mantiene con sus partners.
         </li>
         <li>
-          <strong>Fly.io</strong> — infraestructura de hosting de los
+          <strong>Railway</strong> — infraestructura de hosting de los
           servidores de Stockly. Datos almacenados en su región{" "}
-          <code>iad</code> (Ashburn, Virginia, Estados Unidos).
+          <code>sfo</code> (San Francisco, California, Estados Unidos).
         </li>
       </ul>
       <p>

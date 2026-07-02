@@ -3,14 +3,16 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // Fly.io runs Debian bookworm-slim (OpenSSL 3.0) in our container.
-  // Without an explicit target the generated client only ships the
-  // local-OS engine (Mac on dev), causing runtime "Unable to open
-  // database file" errors on production because the engine falls
-  // back to a SQLite-flavoured binary. The rhel-openssl-3.0.x target
-  // is the right one for any modern Linux container with OpenSSL 3.x.
-  // See docs/decisions/ADR-009-backend-fly-io.md for the migration
-  // history (Vercel → Fly.io).
+  // The production container (Debian bookworm-slim, OpenSSL 3.0 — same
+  // Dockerfile regardless of host) needs an explicit target. Without
+  // it the generated client only ships the local-OS engine (Mac on
+  // dev), causing runtime "Unable to open database file" errors on
+  // production because the engine falls back to a SQLite-flavoured
+  // binary. The rhel-openssl-3.0.x target is the right one for any
+  // modern Linux container with OpenSSL 3.x.
+  // See docs/decisions/ADR-009-backend-fly-io.md for the original
+  // migration history (Vercel → Fly.io; Fly → Railway followed later,
+  // see HANDOFF.md for the current host).
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -18,8 +20,9 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  // Production: Fly Managed Postgres (DATABASE_URL set via
-  // `fly secrets set` on app stockly-lustrous-forest-4364).
+  // Production: Railway Postgres (DATABASE_URL set as a Railway
+  // service variable). Historical: Fly Managed Postgres, until the
+  // 2026-06 migration off Fly — see HANDOFF.md.
   // Local dev: set DATABASE_URL in .env to a local Postgres URL.
   provider = "postgresql"
   url      = env("DATABASE_URL")

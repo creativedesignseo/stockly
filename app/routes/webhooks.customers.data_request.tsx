@@ -20,8 +20,8 @@
  *
  * Current implementation:
  *   - Look up the rows by the customer's id and email
- *   - Log a structured summary (Fly logs are the source of truth here
- *     until we wire a merchant-facing export tool)
+ *   - Log a structured summary (the host's logs are the source of truth
+ *     here until we wire a merchant-facing export tool)
  *   - Return 200
  *
  * Follow-up tracked separately (NOT a launch blocker, the log line
@@ -82,7 +82,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }),
   ]);
 
-  // Structured log: the auditable record. Fly logs retain this for the
+  // Structured log: the auditable record. The host's logs retain this for the
   // statutory window. Reviewers can pull it on request.
   // eslint-disable-next-line no-console
   console.log(
