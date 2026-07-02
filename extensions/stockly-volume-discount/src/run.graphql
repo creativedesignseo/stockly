@@ -30,4 +30,9 @@ query RunInput {
       value
     }
   }
+  shop {
+    localTime {
+      date
+    }
+  }
 }

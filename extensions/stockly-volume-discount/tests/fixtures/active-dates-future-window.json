@@ -1,5 +1,5 @@
 {
-  "_comment": "ADR-012 guardrail: a tier with startsAt = 2099-01-01 must NOT apply. Catches a Date.now() regression in the WASM runtime — if Date.now() returned 0 silently, the comparison nowIso > startsAt would be false and the tier would slip through.",
+  "_comment": "ADR-012 guardrail: a tier with startsAt = 2099-01-01 must NOT apply. Catches a regression where the active-date filter falls back to a broken clock (e.g. Date.now(), which is epoch-0 inside the Function's deterministic sandbox) instead of shop.localTime.date — if that happened, 'today' would read as 1970 and the comparison would silently let this future tier through.",
   "payload": {
     "export": "run",
     "target": "purchase.product-discount.run",
@@ -33,6 +33,11 @@
       "discountNode": {
         "metafield": {
           "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_future_1\",\"minQty\":1,\"quantityTo\":null,\"discountPct\":20,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\",\"startsAt\":\"2099-01-01T00:00:00.000Z\",\"endsAt\":null}]}"
+        }
+      },
+      "shop": {
+        "localTime": {
+          "date": "2025-06-15"
         }
       }
     },

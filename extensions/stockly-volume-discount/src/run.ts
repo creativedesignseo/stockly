@@ -114,9 +114,9 @@ interface ConfiguredTier {
    */
   customerEligibility?: CustomerEligibility;
   /**
-   * ADR-012: active-date window. ISO-8601 strings. Function compares
-   * to its own `new Date().toISOString()` once per invocation. null /
-   * missing = no gate on that side.
+   * ADR-012: active-date window. ISO-8601 strings. Compared at DATE
+   * granularity (see nowIso derivation below) against `shop.localTime.date`.
+   * null / missing = no gate on that side.
    */
   startsAt?: string | null;
   endsAt?: string | null;
@@ -295,15 +295,19 @@ export function run(input: RunInput): FunctionRunResult {
     );
   });
 
-  // ADR-012: active-date filter. Reads Date.now() once at the top of
-  // the Function so the comparison is stable across the per-line loop.
-  // A fixture under tests/fixtures/active-dates-* pins the behavior;
-  // if Date.now() ever degrades inside the WASM runtime, those tests
-  // are the alarm.
-  const nowIso = new Date().toISOString();
+  // ADR-012: active-date filter. Shopify Functions execute in a
+  // deterministic sandbox with NO real wall clock — `new Date()` /
+  // `Date.now()` inside the JS runtime returns a fixed epoch (1970),
+  // not the real time. `shop.localTime.date` is Shopify's sanctioned
+  // way to read the store's actual current date from OUTSIDE the
+  // sandbox; it's day-granularity only (no `dateTime` scalar exists
+  // on LocalTime), so the comparison below is date-level, not
+  // instant-level, even though startsAt/endsAt are stored as full
+  // ISO timestamps upstream — we compare only their date portion.
+  const today = input.shop.localTime.date;
   const activeTiers = tiers.filter((t) => {
-    if (t.startsAt && nowIso < t.startsAt) return false;
-    if (t.endsAt && nowIso > t.endsAt) return false;
+    if (t.startsAt && today < t.startsAt.slice(0, 10)) return false;
+    if (t.endsAt && today > t.endsAt.slice(0, 10)) return false;
     return true;
   });
 

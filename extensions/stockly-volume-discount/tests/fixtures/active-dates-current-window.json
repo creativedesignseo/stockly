@@ -34,6 +34,11 @@
         "metafield": {
           "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_now_1\",\"minQty\":1,\"quantityTo\":null,\"discountPct\":20,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\",\"startsAt\":\"2020-01-01T00:00:00.000Z\",\"endsAt\":\"2099-12-31T00:00:00.000Z\"}]}"
         }
+      },
+      "shop": {
+        "localTime": {
+          "date": "2025-06-15"
+        }
       }
     },
     "output": {

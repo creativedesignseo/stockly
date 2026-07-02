@@ -1,5 +1,5 @@
 {
-  "_comment": "ADR-012: mix_variants aggregation — two cart lines of the same product (different variants) with qty 6 + 5 = 11 sum, tier minQty=10 with discountPct=15. Both lines must receive the 15% discount.",
+  "_comment": "ADR-012: mix_variants aggregation \u2014 two cart lines of the same product (different variants) with qty 6 + 5 = 11 sum, tier minQty=10 with discountPct=15. Both lines must receive the 15% discount.",
   "payload": {
     "export": "run",
     "target": "purchase.product-discount.run",
@@ -49,6 +49,11 @@
       "discountNode": {
         "metafield": {
           "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"product\",\"scopeIds\":[\"gid://shopify/Product/1\"],\"groupId\":\"g_mix_1\",\"minQty\":10,\"quantityTo\":null,\"discountPct\":15,\"discountType\":\"percentage\",\"aggregation\":\"mix_variants\",\"customerEligibility\":\"wholesale_tagged\"}]}"
+        }
+      },
+      "shop": {
+        "localTime": {
+          "date": "2025-06-15"
         }
       }
     },

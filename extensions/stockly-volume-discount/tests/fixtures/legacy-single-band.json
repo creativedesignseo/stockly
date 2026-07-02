@@ -34,6 +34,11 @@
         "metafield": {
           "value": "{\"wholesaleBaselinePct\":0,\"tiers\":[{\"scope\":\"all\",\"scopeId\":null,\"minQty\":10,\"discountPct\":10}]}"
         }
+      },
+      "shop": {
+        "localTime": {
+          "date": "2025-06-15"
+        }
       }
     },
     "output": {

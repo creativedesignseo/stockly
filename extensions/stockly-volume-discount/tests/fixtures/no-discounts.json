@@ -5,10 +5,15 @@
     "input": {
       "discountNode": {
         "metafield": null
+      },
+      "shop": {
+        "localTime": {
+          "date": "2025-06-15"
+        }
       }
     },
     "output": {
-      "discountApplicationStrategy": "FIRST",
+      "discountApplicationStrategy": "ALL",
       "discounts": []
     }
   }
