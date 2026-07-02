@@ -81,6 +81,12 @@ prisma/dev.db*
 .parcel-cache/
 .turbo/
 
+# graphify — keep the outputs (graph.json/graph.html/GRAPH_REPORT.md/
+# manifest.json/cost.json + dated backups), ignore the ephemeral AST/
+# semantic cache and ".graphify_*" working files.
+graphify-out/cache/
+graphify-out/.graphify_*
+
 # Temp
 tmp/
 temp/
