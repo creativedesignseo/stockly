@@ -2,6 +2,12 @@
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
+# HISTORICAL — kept for reference / possible rollback only. Production
+# moved off Fly.io to Railway (2026-06-24). The `stockly-lustrous-
+# forest-4364` app referenced below no longer exists (DNS doesn't
+# resolve). Railway relies on auto-detection, not this file — nothing
+# reads it today. See HANDOFF.md for the current deploy target.
+#
 
 app = 'stockly-lustrous-forest-4364'
 primary_region = 'iad'

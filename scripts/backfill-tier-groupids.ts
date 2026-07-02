@@ -22,8 +22,15 @@
  *
  *   Production (handled by deployment-guardian, not by an agent):
  *     1. Deploy the new Prisma client + schema (additive `prisma db push`).
- *     2. fly ssh console -a stockly-lustrous-forest-4364 \
- *          -C 'node /app/scripts/backfill-tier-groupids.js'
+ *     2. [HISTORICAL — this ran once on Fly, when that was the host:
+ *          fly ssh console -a stockly-lustrous-forest-4364 \
+ *            -C 'node /app/scripts/backfill-tier-groupids.js'
+ *        Production is now on Railway; the equivalent today would be
+ *        `railway run --service stockly -- node scripts/backfill-tier-groupids.js`
+ *        (or point DATABASE_URL at Railway's public proxy and run it
+ *        locally per the "Local dev" line above) — this script is a
+ *        one-shot backfill and has already run against all legacy rows,
+ *        it is idempotent if it ever needs to run again.]
  *     3. Verify: `SELECT count(*) FROM "Tier" WHERE "groupId" IS NULL;`
  *        must return 0 before any new code paths are released.
  *
