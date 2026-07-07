@@ -91,15 +91,15 @@ ENV NODE_ENV=production \
 COPY --from=builder /app/node_modules ./node_modules
 # Copy built Remix output.
 COPY --from=builder /app/build ./build
-# Copy public assets, prisma schema (needed for `prisma migrate deploy`
-# in the Fly release_command), and the package manifests.
+# Copy public assets, prisma schema (needed for `prisma db push`
+# in Railway's preDeployCommand, see railway.json), and the package manifests.
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json /app/package-lock.json /app/.npmrc ./
 
 EXPOSE 3000
 
-# Fly.io runs `npx prisma migrate deploy` via [deploy].release_command in
-# fly.toml, so the container CMD just needs to boot the Remix server.
+# Railway runs `npx prisma db push --skip-generate` via deploy.preDeployCommand
+# in railway.json, so the container CMD just needs to boot the Remix server.
 # (`remix-serve` is shipped by @remix-run/serve — a prod dep.)
 CMD ["npm", "run", "start"]
