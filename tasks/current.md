@@ -4,26 +4,31 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-07-03 (**Fly→Railway migration verified + Discount
-Function clock bug fixed — code committed, deploy steps PENDING**).
+**Last updated:** 2026-07-07 (**`shopify app deploy` shipped and verified
+ACTIVE as `stockly-43`; Railway pre-deploy pipeline fix committed+pushed
+but NOT yet activated by a real Railway deploy; `FLY_API_TOKEN` GitHub
+secret deleted**). Verified this session (not assumed): `verify.sh` green,
+`curl` on prod → 200, `railway status` → Postgres Online, `shopify app
+versions list` → `stockly-4[3] ★ active`. Full detail: HANDOFF.md
+"Last updated" 2026-07-07 entry.
 
 ## P0 — needs Jonatan's explicit go-ahead before it's actually live
 
-- [ ] **Run `shopify app deploy`.** Ships two committed-but-not-live fixes
-  to Shopify Partners: (1) `shopify.app.toml`'s Fly→Railway URL fix
-  (Partners' active version `stockly-42` still has the dead Fly URLs),
-  (2) the Discount Function `shop.localTime` clock-bug fix. Gated per
-  AGENTS.md — do not run without an explicit "deploy"/"sí" from Jonatan.
-- [ ] **Fix Railway's deploy pipeline.** No `prisma migrate deploy` (or
-  equivalent) runs on Railway deploys today — the Dockerfile still
-  assumes Fly's `release_command` model. Not broken yet (DB is schema-
-  current per the 2026-07-03 audit), but the next schema change won't
-  self-apply. Needs a `railway.toml` `preDeployCommand` or pointing
-  Railway's start command at `npm run docker-start`. Deploy-pipeline
-  change — needs go-ahead.
-- [ ] **Delete the orphaned `FLY_API_TOKEN` GitHub secret** (the workflow
-  that used it, `fly-deploy.yml`, was deleted 2026-07-03; the app it
-  deployed to no longer exists). External-system action, ask first.
+- [x] **Run `shopify app deploy` — DONE 2026-07-07.** `stockly-43` released
+  and confirmed active on Shopify Partners. Ships `shopify.app.toml`'s
+  Fly→Railway URLs + the Discount Function `shop.localTime` clock-bug fix.
+  Gated through `deployment-guardian` (GO verdict) before running.
+- [x] **`FLY_API_TOKEN` GitHub secret deleted — DONE 2026-07-07.** Confirmed
+  via `gh secret list` (now empty). Was already orphaned since
+  `fly-deploy.yml` was deleted 2026-07-03.
+- [ ] **Activate the Railway pre-deploy pipeline fix (commit `dd7a02e`,
+  already pushed to `main`).** Added `railway.json` with
+  `deploy.preDeployCommand: npx prisma db push --skip-generate`. Railway
+  deploys are MANUAL (`railway up` / dashboard), NOT triggered by
+  `git push` — confirmed still true this session. The `preDeployCommand`
+  is inert until the next real Railway deploy, and that first run against
+  the live Postgres is UNTESTED. **Needs Jonatan's go-ahead to run
+  `railway up`** — asked, awaiting answer as of 2026-07-07.
 - [ ] **Calendar reminder: before 2026-09-22**, reopen the Stockly app in
   the Shopify admin at least once. The stored offline session's
   `refreshToken` expires that date; if nobody re-triggers the token
