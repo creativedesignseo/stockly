@@ -409,9 +409,28 @@ Shopify App Store.
   with the `compliance_topics` key (not regular `topics`).
   Released to Partners via `npx shopify app deploy` in the same
   session as the code deploy.
-- [ ] **B0-2 — Billing API.** Wire `billing` config in `shopifyApp()`, add
-  `/app/billing` plan picker, call `appSubscriptionCreate` from onboarding.
-  ~3 days.
+- [x] **B0-2 — Billing API plumbing — DONE 2026-07-08 (code + tests, NOT deployed).**
+  `shopifyApp()` now carries a `billing` config (3 plans from ADR-008:
+  Starter $39 / Growth $79 / Plus $149, USD, Every30Days, 14-day trial —
+  single source of truth in `app/services/billing-plans.ts`). New
+  `/app/billing` plan-picker route calls `billing.request()` (wraps
+  `appSubscriptionCreate`) with `isTest` derived from `NODE_ENV`, never
+  hardcoded. **Scope decision (soft-gate, not hard-gate):** no route is
+  blocked pre-payment — a dismissible-per-page-load Polaris Banner nags
+  toward `/app/billing` from the dashboard, plus a 5th Setup Guide step.
+  **Subscribing does NOT happen inside the onboarding wizard** — deliberately
+  kept out of `app.onboarding.tsx`'s state machine (billing lives in the
+  Setup Guide instead), so "call `appSubscriptionCreate` from onboarding"
+  in this item's original wording didn't happen as literally stated; the
+  subscribe flow is reachable from the nav/dashboard instead. **No new
+  Prisma field** — subscription state is queried live via `billing.check()`,
+  not cached in the DB. Planned by `stockly-orchestrator`, built by
+  `stockly-implementer`, reviewed by `stockly-reviewer` (verdict: Ship).
+  `verify.sh` green, 119 app tests (was 105, +14 new). Full detail:
+  `progress/2026-07-08-billing-api-plumbing.md`. **Still pending:**
+  commit + push (code is uncommitted as of this note), and this is only
+  the plumbing — actual paid-feature gating for Growth/Plus tiers isn't
+  built (those tiers' features don't exist yet either).
 - [ ] **B0-3 — Discount Function pricing bugs (C1, C2, C3).**
   - C1: `webhooks.orders.paid` evaluates FPQ against the wrong amount —
     pending verification; the Function itself evaluates FPQ against

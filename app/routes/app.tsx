@@ -60,6 +60,7 @@ export default function App() {
         <Link to="/app/registration-form">Registration form</Link>
         <Link to="/app/customers/applications">Applications</Link>
         <Link to="/app/qualify-customer">Qualify customer</Link>
+        <Link to="/app/billing">Billing</Link>
       </NavMenu>
       <Outlet />
     </AppProvider>

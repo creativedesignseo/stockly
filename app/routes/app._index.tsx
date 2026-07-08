@@ -30,6 +30,7 @@ import {
   Box,
   Button,
   Badge,
+  Banner,
   List,
   Collapsible,
   Divider,
@@ -38,6 +39,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
+import { checkActiveSubscription } from "../services/billing.server";
 
 /**
  * Strip JSONC comments (block `/* *​/` and line `//`) from a string while
@@ -182,7 +184,7 @@ async function detectStocklyEmbedEnabled(
 }
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { shop, admin } = await authenticateAdmin(request);
+  const { shop, admin, billing } = await authenticateAdmin(request);
 
   // First-install gate — send the merchant through the wizard before
   // they ever see the dashboard.
@@ -198,20 +200,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect(`/app/onboarding${search ? "?" + search : ""}`);
   }
 
-  const [activeTiers, pendingApps, qualifiedCustomers, activeForms, embedEnabled] =
-    await Promise.all([
-      prisma.tier.count({ where: { shopId: shop.id, active: true } }),
-      prisma.wholesaleApplication.count({
-        where: { shopId: shop.id, status: "pending" },
-      }),
-      prisma.wholesaleCustomer.count({
-        where: { shopId: shop.id, qualifiedAt: { not: null } },
-      }),
-      prisma.registrationForm.count({
-        where: { shopId: shop.id, status: "active" },
-      }),
-      detectStocklyEmbedEnabled(admin),
-    ]);
+  const [
+    activeTiers,
+    pendingApps,
+    qualifiedCustomers,
+    activeForms,
+    embedEnabled,
+    subscription,
+  ] = await Promise.all([
+    prisma.tier.count({ where: { shopId: shop.id, active: true } }),
+    prisma.wholesaleApplication.count({
+      where: { shopId: shop.id, status: "pending" },
+    }),
+    prisma.wholesaleCustomer.count({
+      where: { shopId: shop.id, qualifiedAt: { not: null } },
+    }),
+    prisma.registrationForm.count({
+      where: { shopId: shop.id, status: "active" },
+    }),
+    detectStocklyEmbedEnabled(admin),
+    checkActiveSubscription(billing),
+  ]);
 
   return {
     shop,
@@ -219,20 +228,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Setup-guide step completion. pricing + form are detectable from the
     // DB; the "Activate Stockly" app-embed step is auto-detected from the
     // theme via read_themes (null = scope not granted / unreadable → CTA).
+    // billingDone comes from a live billing.check — no DB field for this
+    // (see app/services/billing.server.ts).
     setup: {
       pricingDone: shop.wholesaleBaselinePct > 0 || activeTiers > 0,
       formDone: activeForms > 0,
       embedEnabled,
+      billingDone: subscription.hasActivePayment,
       // Steps the merchant marked done by hand — a step is "done" if it is
       // auto-detected OR present here. Lets them override detection and
       // complete steps that have no auto-detection (e.g. the QOF).
       manualSteps: shop.setupManualSteps ?? [],
     },
+    // Soft-gate banner input (ADR-008 billing plumbing): the dashboard
+    // renders a dismissible warning Banner when there's no active/trialing
+    // subscription. Never a hard redirect — see billing.server.ts docblock.
+    hasActiveSubscription: subscription.hasActivePayment,
   };
 };
 
 /** Step keys the setup guide knows about; guards the manual-override action. */
-const SETUP_STEP_KEYS = new Set(["embed", "pricing", "form", "qof"]);
+const SETUP_STEP_KEYS = new Set(["embed", "pricing", "form", "qof", "billing"]);
 
 /**
  * Manual setup-guide override. The merchant can mark a step done (or undo
@@ -262,7 +278,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Dashboard() {
-  const { shop, counts, setup } = useLoaderData<typeof loader>();
+  const { shop, counts, setup, hasActiveSubscription } =
+    useLoaderData<typeof loader>();
+  const [billingBannerDismissed, setBillingBannerDismissed] = useState(false);
 
   const tips = buildTips(shop, counts);
 
@@ -277,12 +295,30 @@ export default function Dashboard() {
     >
       <TitleBar title="Stockly" />
       <BlockStack gap="400">
+        {/* Soft-gate only — never a hard redirect/lockout (see
+            app/services/billing.server.ts docblock). Dismissal is
+            per-session component state: it reappears on the next page
+            load/reload, which is intentional (light nag, not a blocker). */}
+        {!hasActiveSubscription && !billingBannerDismissed && (
+          <Banner
+            tone="warning"
+            title="You don't have an active Stockly plan"
+            onDismiss={() => setBillingBannerDismissed(true)}
+            action={{ content: "Choose a plan", url: "/app/billing" }}
+          >
+            <p>
+              Start a 14-day free trial to keep using Stockly&apos;s wholesale
+              pricing tools without interruption.
+            </p>
+          </Banner>
+        )}
         <Layout>
           <Layout.Section>
             <SetupGuide
               pricingDone={setup.pricingDone}
               formDone={setup.formDone}
               embedEnabled={setup.embedEnabled}
+              billingDone={setup.billingDone}
               manualSteps={setup.manualSteps}
             />
           </Layout.Section>
@@ -445,11 +481,13 @@ function SetupGuide({
   pricingDone,
   formDone,
   embedEnabled,
+  billingDone,
   manualSteps,
 }: {
   pricingDone: boolean;
   formDone: boolean;
   embedEnabled: boolean | null;
+  billingDone: boolean;
   manualSteps: string[];
 }) {
   const steps: SetupStepData[] = [
@@ -489,6 +527,16 @@ function SetupGuide({
         label: "Add to store",
         url: "shopify://admin/themes/current/editor",
       },
+    },
+    {
+      key: "billing",
+      title: "Choose a plan",
+      body: "Start your 14-day free trial to keep full access to Stockly's wholesale pricing tools.",
+      // Auto-detected via a live billing.check — no DB field for this
+      // (see app/services/billing.server.ts). true once any plan is
+      // active or trialing.
+      done: billingDone,
+      cta: { label: "Choose a plan", url: "/app/billing" },
     },
   ];
 
