@@ -4,15 +4,25 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-07-07 (**`shopify app deploy` shipped and verified
-ACTIVE as `stockly-43`; Railway pre-deploy pipeline fix committed+pushed
-but NOT yet activated by a real Railway deploy; `FLY_API_TOKEN` GitHub
-secret deleted**). Verified this session (not assumed): `verify.sh` green,
-`curl` on prod → 200, `railway status` → Postgres Online, `shopify app
-versions list` → `stockly-4[3] ★ active`. Full detail: HANDOFF.md
-"Last updated" 2026-07-07 entry.
+**Last updated:** 2026-07-26 (**🚨 PRODUCTION DOWN — Railway trial expired,
+`stockly` app + Postgres both Offline**). Verified this session, not
+assumed: `railway status` → both services `○ Offline`; `curl` on prod →
+`404 Application not found` (`x-railway-fallback: true`); Railway Usage
+dashboard → red "Trial expired" banner, $0.00 credits. Full detail:
+HANDOFF.md "Last updated" 2026-07-26 entry.
 
 ## P0 — needs Jonatan's explicit go-ahead before it's actually live
+
+- [ ] **🚨 URGENT — Railway production outage.** Trial credit exhausted,
+  no card on file, Hobby plan ($5/mo) never activated despite being
+  flagged 2026-07-23 ("1 day or $3.04 left"). Both `stockly` and Postgres
+  are `Offline`. **Needs Jonatan to add a payment method and activate the
+  Hobby plan** in the Railway dashboard — this is a billing action only he
+  can authorize. Once active, the `stockly` service likely needs a manual
+  restart/redeploy (not confirmed to auto-resume) — route that redeploy
+  through `deployment-guardian` since `railway.json`'s `preDeployCommand`
+  (`prisma db push`) has still never run against live prod (open since
+  2026-07-07).
 
 - [x] **Run `shopify app deploy` — DONE 2026-07-07.** `stockly-43` released
   and confirmed active on Shopify Partners. Ships `shopify.app.toml`'s
