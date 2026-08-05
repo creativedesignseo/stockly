@@ -302,14 +302,154 @@
   },
   "nodes": [
     {
+      "label": "rate-limit.server.ts",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server",
+      "community": 40,
+      "norm_label": "rate-limit.server.ts"
+    },
+    {
+      "label": "RateLimitResult",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L36",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_ratelimitresult",
+      "community": 40,
+      "norm_label": "ratelimitresult"
+    },
+    {
+      "label": "RateLimiterOptions",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L44",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_ratelimiteroptions",
+      "community": 40,
+      "norm_label": "ratelimiteroptions"
+    },
+    {
+      "label": "RateLimiter",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L57",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_ratelimiter",
+      "community": 40,
+      "norm_label": "ratelimiter"
+    },
+    {
+      "label": "createRateLimiter()",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L68",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_createratelimiter",
+      "community": 40,
+      "norm_label": "createratelimiter()"
+    },
+    {
+      "label": "applyPerClientLimiter",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L138",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_applyperclientlimiter",
+      "community": 40,
+      "norm_label": "applyperclientlimiter"
+    },
+    {
+      "label": "applyPerShopLimiter",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_applypershoplimiter",
+      "community": 40,
+      "norm_label": "applypershoplimiter"
+    },
+    {
+      "label": "clientIpFrom()",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L168",
+      "_origin": "ast",
+      "id": "lib_rate_limit_server_clientipfrom",
+      "community": 40,
+      "norm_label": "clientipfrom()"
+    },
+    {
+      "label": "rate-limit.test.ts",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.test.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "lib_rate_limit_test",
+      "community": 40,
+      "norm_label": "rate-limit.test.ts"
+    },
+    {
+      "label": "fakeClock()",
+      "file_type": "code",
+      "source_file": "app/lib/rate-limit.test.ts",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "lib_rate_limit_test_fakeclock",
+      "community": 40,
+      "norm_label": "fakeclock()"
+    },
+    {
+      "label": "proxy.apply.tsx",
+      "file_type": "code",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "routes_proxy_apply",
+      "community": 40,
+      "norm_label": "proxy.apply.tsx"
+    },
+    {
+      "label": "action()",
+      "file_type": "code",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "routes_proxy_apply_action",
+      "community": 40,
+      "norm_label": "action()"
+    },
+    {
+      "label": "loader()",
+      "file_type": "code",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L225",
+      "_origin": "ast",
+      "id": "routes_proxy_apply_loader",
+      "community": 40,
+      "norm_label": "loader()"
+    },
+    {
+      "label": "corsHeaders()",
+      "file_type": "code",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L231",
+      "_origin": "ast",
+      "id": "routes_proxy_apply_corsheaders",
+      "community": 40,
+      "norm_label": "corsheaders()"
+    },
+    {
       "label": "HANDOFF.md",
       "file_type": "document",
       "source_file": "HANDOFF.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "handoff",
       "community": 132,
-      "norm_label": "handoff.md"
+      "norm_label": "handoff.md",
+      "id": "handoff"
     },
     {
       "label": "HANDOFF \u2014 Resume work hands-off",
@@ -317,9 +457,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "handoff_handoff_resume_work_hands_off",
       "community": 132,
-      "norm_label": "handoff \u2014 resume work hands-off"
+      "norm_label": "handoff \u2014 resume work hands-off",
+      "id": "handoff_handoff_resume_work_hands_off"
     },
     {
       "label": "TL;DR \u2014 current state",
@@ -327,9 +467,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L93",
       "_origin": "ast",
-      "id": "handoff_tl_dr_current_state",
       "community": 132,
-      "norm_label": "tl;dr \u2014 current state"
+      "norm_label": "tl;dr \u2014 current state",
+      "id": "handoff_tl_dr_current_state"
     },
     {
       "label": "Architecture today (post Vercel\u2192Fly migration)",
@@ -337,9 +477,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L122",
       "_origin": "ast",
-      "id": "handoff_architecture_today_post_vercel_fly_migration",
       "community": 132,
-      "norm_label": "architecture today (post vercel\u2192fly migration)"
+      "norm_label": "architecture today (post vercel\u2192fly migration)",
+      "id": "handoff_architecture_today_post_vercel_fly_migration"
     },
     {
       "label": "What ships next (Volume Pricing, ADR-012) \u2014 PRE-DEPLOY",
@@ -347,9 +487,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L153",
       "_origin": "ast",
-      "id": "handoff_what_ships_next_volume_pricing_adr_012_pre_deploy",
       "community": 132,
-      "norm_label": "what ships next (volume pricing, adr-012) \u2014 pre-deploy"
+      "norm_label": "what ships next (volume pricing, adr-012) \u2014 pre-deploy",
+      "id": "handoff_what_ships_next_volume_pricing_adr_012_pre_deploy"
     },
     {
       "label": "What works (validated 2026-05-26)",
@@ -357,9 +497,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L204",
       "_origin": "ast",
-      "id": "handoff_what_works_validated_2026_05_26",
       "community": 132,
-      "norm_label": "what works (validated 2026-05-26)"
+      "norm_label": "what works (validated 2026-05-26)",
+      "id": "handoff_what_works_validated_2026_05_26"
     },
     {
       "label": "Resume work checklist (next session)",
@@ -367,9 +507,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L234",
       "_origin": "ast",
-      "id": "handoff_resume_work_checklist_next_session",
       "community": 132,
-      "norm_label": "resume work checklist (next session)"
+      "norm_label": "resume work checklist (next session)",
+      "id": "handoff_resume_work_checklist_next_session"
     },
     {
       "label": "Critical deploy commands",
@@ -377,9 +517,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L252",
       "_origin": "ast",
-      "id": "handoff_critical_deploy_commands",
       "community": 132,
-      "norm_label": "critical deploy commands"
+      "norm_label": "critical deploy commands",
+      "id": "handoff_critical_deploy_commands"
     },
     {
       "label": "Files modified in the 2026-05-26 migration",
@@ -387,9 +527,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L278",
       "_origin": "ast",
-      "id": "handoff_files_modified_in_the_2026_05_26_migration",
       "community": 132,
-      "norm_label": "files modified in the 2026-05-26 migration"
+      "norm_label": "files modified in the 2026-05-26 migration",
+      "id": "handoff_files_modified_in_the_2026_05_26_migration"
     },
     {
       "label": "Open decisions / TODOs",
@@ -397,9 +537,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L295",
       "_origin": "ast",
-      "id": "handoff_open_decisions_todos",
       "community": 132,
-      "norm_label": "open decisions / todos"
+      "norm_label": "open decisions / todos",
+      "id": "handoff_open_decisions_todos"
     },
     {
       "label": "Pilot status",
@@ -407,9 +547,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L315",
       "_origin": "ast",
-      "id": "handoff_pilot_status",
       "community": 132,
-      "norm_label": "pilot status"
+      "norm_label": "pilot status",
+      "id": "handoff_pilot_status"
     },
     {
       "label": "Pointers to deeper docs",
@@ -417,9 +557,9 @@
       "source_file": "HANDOFF.md",
       "source_location": "L353",
       "_origin": "ast",
-      "id": "handoff_pointers_to_deeper_docs",
       "community": 132,
-      "norm_label": "pointers to deeper docs"
+      "norm_label": "pointers to deeper docs",
+      "id": "handoff_pointers_to_deeper_docs"
     },
     {
       "label": "current.md",
@@ -427,9 +567,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tasks_current",
       "community": 51,
-      "norm_label": "current.md"
+      "norm_label": "current.md",
+      "id": "tasks_current"
     },
     {
       "label": "tasks/current.md \u2014 Stockly active task queue",
@@ -437,9 +577,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "tasks_current_tasks_current_md_stockly_active_task_queue",
       "community": 51,
-      "norm_label": "tasks/current.md \u2014 stockly active task queue"
+      "norm_label": "tasks/current.md \u2014 stockly active task queue",
+      "id": "tasks_current_tasks_current_md_stockly_active_task_queue"
     },
     {
       "label": "P0 \u2014 needs Jonatan's explicit go-ahead before it's actually live",
@@ -447,9 +587,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L14",
       "_origin": "ast",
-      "id": "tasks_current_p0_needs_jonatan_s_explicit_go_ahead_before_it_s_actually_live",
       "community": 51,
-      "norm_label": "p0 \u2014 needs jonatan's explicit go-ahead before it's actually live"
+      "norm_label": "p0 \u2014 needs jonatan's explicit go-ahead before it's actually live",
+      "id": "tasks_current_p0_needs_jonatan_s_explicit_go_ahead_before_it_s_actually_live"
     },
     {
       "label": "In progress (2026-06-03) \u2014 Camino B: opening-order minimum",
@@ -457,9 +597,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L96",
       "_origin": "ast",
-      "id": "tasks_current_in_progress_2026_06_03_camino_b_opening_order_minimum",
       "community": 51,
-      "norm_label": "in progress (2026-06-03) \u2014 camino b: opening-order minimum"
+      "norm_label": "in progress (2026-06-03) \u2014 camino b: opening-order minimum",
+      "id": "tasks_current_in_progress_2026_06_03_camino_b_opening_order_minimum"
     },
     {
       "label": "Backlog (2026-06-03) \u2014 Registration Form / form builder UX",
@@ -467,9 +607,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L155",
       "_origin": "ast",
-      "id": "tasks_current_backlog_2026_06_03_registration_form_form_builder_ux",
       "community": 51,
-      "norm_label": "backlog (2026-06-03) \u2014 registration form / form builder ux"
+      "norm_label": "backlog (2026-06-03) \u2014 registration form / form builder ux",
+      "id": "tasks_current_backlog_2026_06_03_registration_form_form_builder_ux"
     },
     {
       "label": "Just shipped (2026-06-02) \u2014 Premium Phase 1 + Phase 4 (LIVE, stockly-31)",
@@ -477,9 +617,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L187",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_06_02_premium_phase_1_phase_4_live_stockly_31",
       "community": 51,
-      "norm_label": "just shipped (2026-06-02) \u2014 premium phase 1 + phase 4 (live, stockly-31)"
+      "norm_label": "just shipped (2026-06-02) \u2014 premium phase 1 + phase 4 (live, stockly-31)",
+      "id": "tasks_current_just_shipped_2026_06_02_premium_phase_1_phase_4_live_stockly_31"
     },
     {
       "label": "Just shipped (2026-06-02) \u2014 QOF merchant Appearance knobs",
@@ -487,9 +627,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L215",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_06_02_qof_merchant_appearance_knobs",
       "community": 51,
-      "norm_label": "just shipped (2026-06-02) \u2014 qof merchant appearance knobs"
+      "norm_label": "just shipped (2026-06-02) \u2014 qof merchant appearance knobs",
+      "id": "tasks_current_just_shipped_2026_06_02_qof_merchant_appearance_knobs"
     },
     {
       "label": "Just shipped (2026-06-01) \u2014 Quick Order Form premium re-skin",
@@ -497,9 +637,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L247",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_06_01_quick_order_form_premium_re_skin",
       "community": 51,
-      "norm_label": "just shipped (2026-06-01) \u2014 quick order form premium re-skin"
+      "norm_label": "just shipped (2026-06-01) \u2014 quick order form premium re-skin",
+      "id": "tasks_current_just_shipped_2026_06_01_quick_order_form_premium_re_skin"
     },
     {
       "label": "In progress (2026-05-29) \u2014 Rescue audit + interview",
@@ -507,9 +647,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L279",
       "_origin": "ast",
-      "id": "tasks_current_in_progress_2026_05_29_rescue_audit_interview",
       "community": 51,
-      "norm_label": "in progress (2026-05-29) \u2014 rescue audit + interview"
+      "norm_label": "in progress (2026-05-29) \u2014 rescue audit + interview",
+      "id": "tasks_current_in_progress_2026_05_29_rescue_audit_interview"
     },
     {
       "label": "Just shipped (2026-05-30) \u2014 Storefront form font sizes (theme-proof)",
@@ -517,9 +657,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L296",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_05_30_storefront_form_font_sizes_theme_proof",
       "community": 51,
-      "norm_label": "just shipped (2026-05-30) \u2014 storefront form font sizes (theme-proof)"
+      "norm_label": "just shipped (2026-05-30) \u2014 storefront form font sizes (theme-proof)",
+      "id": "tasks_current_just_shipped_2026_05_30_storefront_form_font_sizes_theme_proof"
     },
     {
       "label": "Just shipped (2026-05-30) \u2014 Schema-driven storefront validation",
@@ -527,9 +667,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L312",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_05_30_schema_driven_storefront_validation",
       "community": 51,
-      "norm_label": "just shipped (2026-05-30) \u2014 schema-driven storefront validation"
+      "norm_label": "just shipped (2026-05-30) \u2014 schema-driven storefront validation",
+      "id": "tasks_current_just_shipped_2026_05_30_schema_driven_storefront_validation"
     },
     {
       "label": "Just shipped (2026-05-30) \u2014 RF editor in a max modal",
@@ -537,9 +677,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L334",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_05_30_rf_editor_in_a_max_modal",
       "community": 51,
-      "norm_label": "just shipped (2026-05-30) \u2014 rf editor in a max modal"
+      "norm_label": "just shipped (2026-05-30) \u2014 rf editor in a max modal",
+      "id": "tasks_current_just_shipped_2026_05_30_rf_editor_in_a_max_modal"
     },
     {
       "label": "Just shipped (2026-05-29) \u2014 Registration Form multi-form",
@@ -547,9 +687,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L372",
       "_origin": "ast",
-      "id": "tasks_current_just_shipped_2026_05_29_registration_form_multi_form",
       "community": 51,
-      "norm_label": "just shipped (2026-05-29) \u2014 registration form multi-form"
+      "norm_label": "just shipped (2026-05-29) \u2014 registration form multi-form",
+      "id": "tasks_current_just_shipped_2026_05_29_registration_form_multi_form"
     },
     {
       "label": "Current state",
@@ -557,9 +697,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L386",
       "_origin": "ast",
-      "id": "tasks_current_current_state",
       "community": 51,
-      "norm_label": "current state"
+      "norm_label": "current state",
+      "id": "tasks_current_current_state"
     },
     {
       "label": "P0 \u2014 blocking pilot #2 and App Store",
@@ -567,9 +707,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L401",
       "_origin": "ast",
-      "id": "tasks_current_p0_blocking_pilot_2_and_app_store",
       "community": 51,
-      "norm_label": "p0 \u2014 blocking pilot #2 and app store"
+      "norm_label": "p0 \u2014 blocking pilot #2 and app store",
+      "id": "tasks_current_p0_blocking_pilot_2_and_app_store"
     },
     {
       "label": "P1 \u2014 pre-pilot polish",
@@ -577,9 +717,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L519",
       "_origin": "ast",
-      "id": "tasks_current_p1_pre_pilot_polish",
       "community": 51,
-      "norm_label": "p1 \u2014 pre-pilot polish"
+      "norm_label": "p1 \u2014 pre-pilot polish",
+      "id": "tasks_current_p1_pre_pilot_polish"
     },
     {
       "label": "Blocked",
@@ -587,9 +727,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L572",
       "_origin": "ast",
-      "id": "tasks_current_blocked",
       "community": 51,
-      "norm_label": "blocked"
+      "norm_label": "blocked",
+      "id": "tasks_current_blocked"
     },
     {
       "label": "Known pre-existing failures (not blockers, but on the floor)",
@@ -597,9 +737,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L580",
       "_origin": "ast",
-      "id": "tasks_current_known_pre_existing_failures_not_blockers_but_on_the_floor",
       "community": 51,
-      "norm_label": "known pre-existing failures (not blockers, but on the floor)"
+      "norm_label": "known pre-existing failures (not blockers, but on the floor)",
+      "id": "tasks_current_known_pre_existing_failures_not_blockers_but_on_the_floor"
     },
     {
       "label": "Next recommended action",
@@ -607,9 +747,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L600",
       "_origin": "ast",
-      "id": "tasks_current_next_recommended_action",
       "community": 51,
-      "norm_label": "next recommended action"
+      "norm_label": "next recommended action",
+      "id": "tasks_current_next_recommended_action"
     },
     {
       "label": "Out of scope right now",
@@ -617,9 +757,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L613",
       "_origin": "ast",
-      "id": "tasks_current_out_of_scope_right_now",
       "community": 51,
-      "norm_label": "out of scope right now"
+      "norm_label": "out of scope right now",
+      "id": "tasks_current_out_of_scope_right_now"
     },
     {
       "label": "Notes / reusable assets created during this project",
@@ -627,9 +767,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L623",
       "_origin": "ast",
-      "id": "tasks_current_notes_reusable_assets_created_during_this_project",
       "community": 51,
-      "norm_label": "notes / reusable assets created during this project"
+      "norm_label": "notes / reusable assets created during this project",
+      "id": "tasks_current_notes_reusable_assets_created_during_this_project"
     },
     {
       "label": "app._index.tsx",
@@ -1690,46 +1830,6 @@
       "community": 78,
       "norm_label": "termsofservice()",
       "id": "routes_legal_terms_termsofservice"
-    },
-    {
-      "label": "proxy.apply.tsx",
-      "file_type": "code",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L1",
-      "_origin": "ast",
-      "community": 163,
-      "norm_label": "proxy.apply.tsx",
-      "id": "routes_proxy_apply"
-    },
-    {
-      "label": "action()",
-      "file_type": "code",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L39",
-      "_origin": "ast",
-      "community": 163,
-      "norm_label": "action()",
-      "id": "routes_proxy_apply_action"
-    },
-    {
-      "label": "loader()",
-      "file_type": "code",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L188",
-      "_origin": "ast",
-      "community": 163,
-      "norm_label": "loader()",
-      "id": "routes_proxy_apply_loader"
-    },
-    {
-      "label": "corsHeaders()",
-      "file_type": "code",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L194",
-      "_origin": "ast",
-      "community": 163,
-      "norm_label": "corsheaders()",
-      "id": "routes_proxy_apply_corsheaders"
     },
     {
       "label": "webhooks.customers.data_request.tsx",
@@ -4485,7 +4585,7 @@
       "source_file": "app/components/registration-form/RegistrationFormEditor.tsx",
       "source_location": "L85",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "registrationformeditorhandle",
       "id": "registration_form_registrationformeditor_registrationformeditorhandle"
     },
@@ -4545,7 +4645,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "registrationformlist.tsx",
       "id": "registration_form_registrationformlist"
     },
@@ -4555,7 +4655,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L47",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "registrationformlistitem",
       "id": "registration_form_registrationformlist_registrationformlistitem"
     },
@@ -4565,7 +4665,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L57",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "loadershape",
       "id": "registration_form_registrationformlist_loadershape"
     },
@@ -4575,7 +4675,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L65",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "tabid",
       "id": "registration_form_registrationformlist_tabid"
     },
@@ -4585,7 +4685,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L67",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "registrationformlist()",
       "id": "registration_form_registrationformlist_registrationformlist"
     },
@@ -4595,7 +4695,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L383",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "shortcodechip()",
       "id": "registration_form_registrationformlist_shortcodechip"
     },
@@ -4605,7 +4705,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L439",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "statustogglecell()",
       "id": "registration_form_registrationformlist_statustogglecell"
     },
@@ -4615,7 +4715,7 @@
       "source_file": "app/components/registration-form/RegistrationFormList.tsx",
       "source_location": "L514",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "deletecell()",
       "id": "registration_form_registrationformlist_deletecell"
     },
@@ -4655,7 +4755,7 @@
       "source_file": "app/components/registration-form/TemplatePickerModal.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "templatepickermodal.tsx",
       "id": "registration_form_templatepickermodal"
     },
@@ -4665,7 +4765,7 @@
       "source_file": "app/components/registration-form/TemplatePickerModal.tsx",
       "source_location": "L22",
       "_origin": "ast",
-      "community": 20,
+      "community": 8,
       "norm_label": "templatepickermodal()",
       "id": "registration_form_templatepickermodal_templatepickermodal"
     },
@@ -4675,7 +4775,7 @@
       "source_file": "app/components/registration-form/TemplatePickerModal.tsx",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "templatecard()",
       "id": "registration_form_templatepickermodal_templatecard"
     },
@@ -4835,7 +4935,7 @@
       "source_file": "app/lib/auth.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 163,
       "norm_label": "auth.server.ts",
       "id": "lib_auth_server"
     },
@@ -4855,7 +4955,7 @@
       "source_file": "app/lib/registrationForm/seeds.test.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "seeds.test.ts",
       "id": "registrationform_seeds_test"
     },
@@ -4865,7 +4965,7 @@
       "source_file": "app/lib/registrationForm/seeds.test.ts",
       "source_location": "L21",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "legacy_keys",
       "id": "registrationform_seeds_test_legacy_keys"
     },
@@ -4885,7 +4985,7 @@
       "source_file": "app/lib/registrationForm/seeds.ts",
       "source_location": "L24",
       "_origin": "ast",
-      "community": 21,
+      "community": 167,
       "norm_label": "default_appearance",
       "id": "registrationform_seeds_default_appearance"
     },
@@ -4895,7 +4995,7 @@
       "source_file": "app/lib/registrationForm/seeds.ts",
       "source_location": "L41",
       "_origin": "ast",
-      "community": 21,
+      "community": 167,
       "norm_label": "default_settings",
       "id": "registrationform_seeds_default_settings"
     },
@@ -4905,7 +5005,7 @@
       "source_file": "app/lib/registrationForm/seeds.ts",
       "source_location": "L56",
       "_origin": "ast",
-      "community": 21,
+      "community": 167,
       "norm_label": "default_form_definition",
       "id": "registrationform_seeds_default_form_definition"
     },
@@ -4945,7 +5045,7 @@
       "source_file": "app/lib/registrationForm/seeds.ts",
       "source_location": "L329",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "templates",
       "id": "registrationform_seeds_templates"
     },
@@ -4955,7 +5055,7 @@
       "source_file": "app/lib/registrationForm/seeds.ts",
       "source_location": "L336",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "template_meta",
       "id": "registrationform_seeds_template_meta"
     },
@@ -5025,7 +5125,7 @@
       "source_file": "app/lib/registrationForm/types.ts",
       "source_location": "L79",
       "_origin": "ast",
-      "community": 167,
+      "community": 21,
       "norm_label": "registrationformdefinition",
       "id": "registrationform_types_registrationformdefinition"
     },
@@ -5065,7 +5165,7 @@
       "source_file": "app/lib/registrationForm/types.ts",
       "source_location": "L101",
       "_origin": "ast",
-      "community": 45,
+      "community": 21,
       "norm_label": "formappearance",
       "id": "registrationform_types_formappearance"
     },
@@ -5085,7 +5185,7 @@
       "source_file": "app/lib/registrationForm/types.ts",
       "source_location": "L128",
       "_origin": "ast",
-      "community": 45,
+      "community": 21,
       "norm_label": "formsettings",
       "id": "registrationform_types_formsettings"
     },
@@ -5095,7 +5195,7 @@
       "source_file": "app/lib/registrationForm/types.ts",
       "source_location": "L147",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "registrationformpayload",
       "id": "registrationform_types_registrationformpayload"
     },
@@ -5105,7 +5205,7 @@
       "source_file": "app/lib/registrationForm/types.ts",
       "source_location": "L156",
       "_origin": "ast",
-      "community": 20,
+      "community": 167,
       "norm_label": "seedtemplateid",
       "id": "registrationform_types_seedtemplateid"
     },
@@ -5295,7 +5395,7 @@
       "source_file": "app/routes/_index/route.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 133,
+      "community": 17,
       "norm_label": "route.tsx",
       "id": "index_route"
     },
@@ -5305,7 +5405,7 @@
       "source_file": "app/routes/_index/route.tsx",
       "source_location": "L9",
       "_origin": "ast",
-      "community": 133,
+      "community": 17,
       "norm_label": "loader()",
       "id": "index_route_loader"
     },
@@ -5315,7 +5415,7 @@
       "source_file": "app/routes/_index/route.tsx",
       "source_location": "L19",
       "_origin": "ast",
-      "community": 133,
+      "community": 17,
       "norm_label": "app()",
       "id": "index_route_app"
     },
@@ -5595,7 +5695,7 @@
       "source_file": "app/routes/app.pricing.$id.tsx",
       "source_location": "L1185",
       "_origin": "ast",
-      "community": 22,
+      "community": 25,
       "norm_label": "sameidset()",
       "id": "routes_app_pricing_id_sameidset"
     },
@@ -5675,7 +5775,7 @@
       "source_file": "app/routes/app.pricing._index.tsx",
       "source_location": "L117",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "loader()",
       "id": "routes_app_pricing_index_loader"
     },
@@ -5865,7 +5965,7 @@
       "source_file": "app/routes/app.pricing.new.tsx",
       "source_location": "L943",
       "_origin": "ast",
-      "community": 34,
+      "community": 25,
       "norm_label": "sameidset()",
       "id": "routes_app_pricing_new_sameidset"
     },
@@ -5945,7 +6045,7 @@
       "source_file": "app/routes/app.qualify-customer.tsx",
       "source_location": "L121",
       "_origin": "ast",
-      "community": 25,
+      "community": 28,
       "norm_label": "qualifycustomer()",
       "id": "routes_app_qualify_customer_qualifycustomer"
     },
@@ -6105,7 +6205,7 @@
       "source_file": "app/routes/app.settings.pricing.tsx",
       "source_location": "L205",
       "_origin": "ast",
-      "community": 25,
+      "community": 28,
       "norm_label": "pricingsettings()",
       "id": "routes_app_settings_pricing_pricingsettings"
     },
@@ -6175,7 +6275,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L213",
       "_origin": "ast",
-      "community": 30,
+      "community": 88,
       "norm_label": "action()",
       "id": "routes_app_volume_pricing_id_action"
     },
@@ -6315,7 +6415,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "app.volume-pricing._index.tsx",
       "id": "routes_app_volume_pricing_index"
     },
@@ -6325,7 +6425,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "action()",
       "id": "routes_app_volume_pricing_index_action"
     },
@@ -6335,7 +6435,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L94",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "loader()",
       "id": "routes_app_volume_pricing_index_loader"
     },
@@ -6345,7 +6445,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L108",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "tabid",
       "id": "routes_app_volume_pricing_index_tabid"
     },
@@ -6355,7 +6455,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L110",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "volumepricinglist()",
       "id": "routes_app_volume_pricing_index_volumepricinglist"
     },
@@ -6365,7 +6465,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L320",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "statustogglecell()",
       "id": "routes_app_volume_pricing_index_statustogglecell"
     },
@@ -6375,7 +6475,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L391",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "formatcustomereligibility()",
       "id": "routes_app_volume_pricing_index_formatcustomereligibility"
     },
@@ -6385,7 +6485,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L411",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "formatbandsummary()",
       "id": "routes_app_volume_pricing_index_formatbandsummary"
     },
@@ -6395,7 +6495,7 @@
       "source_file": "app/routes/app.volume-pricing._index.tsx",
       "source_location": "L425",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "scopecell()",
       "id": "routes_app_volume_pricing_index_scopecell"
     },
@@ -6655,7 +6755,7 @@
       "source_file": "app/routes/proxy.context.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 11,
+      "community": 20,
       "norm_label": "proxy.context.tsx",
       "id": "routes_proxy_context"
     },
@@ -6665,7 +6765,7 @@
       "source_file": "app/routes/proxy.context.tsx",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 11,
+      "community": 20,
       "norm_label": "loader()",
       "id": "routes_proxy_context_loader"
     },
@@ -6675,7 +6775,7 @@
       "source_file": "app/routes/proxy.context.tsx",
       "source_location": "L141",
       "_origin": "ast",
-      "community": 11,
+      "community": 20,
       "norm_label": "corsheaders()",
       "id": "routes_proxy_context_corsheaders"
     },
@@ -6685,7 +6785,7 @@
       "source_file": "app/routes/proxy.registration-form.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "proxy.registration-form.tsx",
       "id": "routes_proxy_registration_form"
     },
@@ -6695,7 +6795,7 @@
       "source_file": "app/routes/proxy.registration-form.tsx",
       "source_location": "L61",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "loader()",
       "id": "routes_proxy_registration_form_loader"
     },
@@ -6705,7 +6805,7 @@
       "source_file": "app/routes/proxy.registration-form.tsx",
       "source_location": "L103",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "jsonheaders()",
       "id": "routes_proxy_registration_form_jsonheaders"
     },
@@ -6825,7 +6925,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 75,
+      "community": 35,
       "norm_label": "webhooks.orders.paid.tsx",
       "id": "routes_webhooks_orders_paid"
     },
@@ -6835,7 +6935,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 75,
+      "community": 35,
       "norm_label": "orderspaidpayload",
       "id": "routes_webhooks_orders_paid_orderspaidpayload"
     },
@@ -6845,7 +6945,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 75,
+      "community": 35,
       "norm_label": "parsecustomertags()",
       "id": "routes_webhooks_orders_paid_parsecustomertags"
     },
@@ -6855,7 +6955,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L55",
       "_origin": "ast",
-      "community": 75,
+      "community": 35,
       "norm_label": "fpqrule",
       "id": "routes_webhooks_orders_paid_fpqrule"
     },
@@ -6865,7 +6965,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 75,
+      "community": 35,
       "norm_label": "evaluatefpq()",
       "id": "routes_webhooks_orders_paid_evaluatefpq"
     },
@@ -6875,7 +6975,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L84",
       "_origin": "ast",
-      "community": 75,
+      "community": 35,
       "norm_label": "action()",
       "id": "routes_webhooks_orders_paid_action"
     },
@@ -7185,7 +7285,7 @@
       "source_file": "app/services/onboarding.server.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 12,
+      "community": 11,
       "norm_label": "presetfirsttier",
       "id": "services_onboarding_server_presetfirsttier"
     },
@@ -7435,7 +7535,7 @@
       "source_file": "app/services/registrationForms.server.ts",
       "source_location": "L124",
       "_origin": "ast",
-      "community": 45,
+      "community": 21,
       "norm_label": "updateregistrationforminput",
       "id": "services_registrationforms_server_updateregistrationforminput"
     },
@@ -7475,7 +7575,7 @@
       "source_file": "app/services/registrationForms.server.ts",
       "source_location": "L204",
       "_origin": "ast",
-      "community": 21,
+      "community": 40,
       "norm_label": "resolvestorefrontform()",
       "id": "services_registrationforms_server_resolvestorefrontform"
     },
@@ -7505,7 +7605,7 @@
       "source_file": "app/services/registrationForms.server.ts",
       "source_location": "L308",
       "_origin": "ast",
-      "community": 45,
+      "community": 21,
       "norm_label": "upsertregistrationforminput",
       "id": "services_registrationforms_server_upsertregistrationforminput"
     },
@@ -7535,7 +7635,7 @@
       "source_file": "app/services/registrationForms.server.ts",
       "source_location": "L369",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "parsedefinition()",
       "id": "services_registrationforms_server_parsedefinition"
     },
@@ -7545,7 +7645,7 @@
       "source_file": "app/services/registrationForms.server.ts",
       "source_location": "L373",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "parseappearance()",
       "id": "services_registrationforms_server_parseappearance"
     },
@@ -7555,7 +7655,7 @@
       "source_file": "app/services/registrationForms.server.ts",
       "source_location": "L377",
       "_origin": "ast",
-      "community": 163,
+      "community": 40,
       "norm_label": "parsesettings()",
       "id": "services_registrationforms_server_parsesettings"
     },
@@ -7565,7 +7665,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "shops.server.ts",
       "id": "services_shops_server"
     },
@@ -7575,7 +7675,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L16",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "default_branding",
       "id": "services_shops_server_default_branding"
     },
@@ -7585,7 +7685,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L27",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "default_copy",
       "id": "services_shops_server_default_copy"
     },
@@ -7595,7 +7695,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L35",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "shopbranding",
       "id": "services_shops_server_shopbranding"
     },
@@ -7605,7 +7705,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L36",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "shopcopy",
       "id": "services_shops_server_shopcopy"
     },
@@ -7625,7 +7725,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L78",
       "_origin": "ast",
-      "community": 11,
+      "community": 20,
       "norm_label": "parseshop()",
       "id": "services_shops_server_parseshop"
     },
@@ -7635,7 +7735,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L90",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "safeparse()",
       "id": "services_shops_server_safeparse"
     },
@@ -7645,7 +7745,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L102",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "updatebranding()",
       "id": "services_shops_server_updatebranding"
     },
@@ -7655,7 +7755,7 @@
       "source_file": "app/services/shops.server.ts",
       "source_location": "L117",
       "_origin": "ast",
-      "community": 11,
+      "community": 163,
       "norm_label": "updatecopy()",
       "id": "services_shops_server_updatecopy"
     },
@@ -7685,7 +7785,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 12,
+      "community": 11,
       "norm_label": "tierscope",
       "id": "services_tiers_server_tierscope"
     },
@@ -7705,7 +7805,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 12,
+      "community": 11,
       "norm_label": "tieraggregation",
       "id": "services_tiers_server_tieraggregation"
     },
@@ -7715,7 +7815,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L39",
       "_origin": "ast",
-      "community": 30,
+      "community": 22,
       "norm_label": "tiercustomereligibility",
       "id": "services_tiers_server_tiercustomereligibility"
     },
@@ -7775,7 +7875,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L174",
       "_origin": "ast",
-      "community": 11,
+      "community": 20,
       "norm_label": "listtiers()",
       "id": "services_tiers_server_listtiers"
     },
@@ -7915,7 +8015,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L678",
       "_origin": "ast",
-      "community": 22,
+      "community": 88,
       "norm_label": "deleterule()",
       "id": "services_tiers_server_deleterule"
     },
@@ -7925,7 +8025,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L686",
       "_origin": "ast",
-      "community": 28,
+      "community": 7,
       "norm_label": "listrules()",
       "id": "services_tiers_server_listrules"
     },
@@ -8075,7 +8175,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 19,
+      "community": 20,
       "norm_label": "wholesale-customers.server.ts",
       "id": "services_wholesale_customers_server"
     },
@@ -8085,7 +8185,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 19,
+      "community": 20,
       "norm_label": "eligibilitycheckinput",
       "id": "services_wholesale_customers_server_eligibilitycheckinput"
     },
@@ -8095,7 +8195,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 19,
+      "community": 20,
       "norm_label": "iseligible()",
       "id": "services_wholesale_customers_server_iseligible"
     },
@@ -8105,7 +8205,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 19,
+      "community": 20,
       "norm_label": "customerstatus",
       "id": "services_wholesale_customers_server_customerstatus"
     },
@@ -8115,7 +8215,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L60",
       "_origin": "ast",
-      "community": 11,
+      "community": 20,
       "norm_label": "resolvecustomerstatus()",
       "id": "services_wholesale_customers_server_resolvecustomerstatus"
     },
@@ -8145,7 +8245,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L120",
       "_origin": "ast",
-      "community": 19,
+      "community": 20,
       "norm_label": "revokecustomer()",
       "id": "services_wholesale_customers_server_revokecustomer"
     },
@@ -14840,7 +14940,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "inline panel pattern (app bridge max modal gotcha)",
       "id": "registration_form_field_edit_form_inline_panel_pattern"
     },
@@ -14931,7 +15031,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "dual chrome pattern (page vs modal)",
       "id": "registration_form_editor_dual_chrome_pattern"
     },
@@ -14944,7 +15044,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "registrationformlist",
       "id": "registration_form_list_registrationformlist"
     },
@@ -14957,7 +15057,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "shortcodechip",
       "id": "registration_form_list_shortcodechip"
     },
@@ -14970,7 +15070,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "statustogglecell",
       "id": "registration_form_list_statustogglecell"
     },
@@ -14983,7 +15083,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "deletecell",
       "id": "registration_form_list_deletecell"
     },
@@ -15035,7 +15135,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "templatepickermodal",
       "id": "registration_form_template_picker_modal_templatepickermodal"
     },
@@ -15048,7 +15148,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "templatecard",
       "id": "registration_form_template_picker_modal_templatecard"
     },
@@ -15113,7 +15213,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 8,
+      "community": 75,
       "norm_label": "app bridge variant=max modal editor pattern",
       "id": "concept_app_bridge_max_modal_editor"
     },
@@ -15672,7 +15772,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 28,
       "norm_label": "webhooks.app.scopes_update (oauth scope update handler)",
       "id": "routes_webhooks_app_scopes_update_scopesupdatewebhook"
     },
@@ -15685,7 +15785,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 28,
       "norm_label": "webhooks.app.uninstalled (session cleanup on uninstall)",
       "id": "routes_webhooks_app_uninstalled_uninstalledwebhook"
     },
@@ -15724,7 +15824,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 28,
       "norm_label": "first-purchase qualifier (fpq) gate",
       "id": "concept_fpq_gate"
     },
@@ -15802,7 +15902,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 28,
       "norm_label": "syncopeningordervalidation (service)",
       "id": "services_opening_order_sync_syncopeningorder"
     },
@@ -15919,7 +16019,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 25,
+      "community": 28,
       "norm_label": "prisma (db.server \u2014 prisma client singleton)",
       "id": "db_server_prisma"
     },
@@ -17605,6 +17705,424 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_applyperclientlimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_applypershoplimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_clientipfrom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_createratelimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L57",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_ratelimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_ratelimiteroptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.server.ts",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "lib_rate_limit_server",
+      "target": "lib_rate_limit_server_ratelimitresult",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "lib_rate_limit_test",
+      "target": "lib_rate_limit_server",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "lib_rate_limit_server",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "lib_rate_limit_test",
+      "target": "lib_rate_limit_server_createratelimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "lib_rate_limit_server_applyperclientlimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "lib_rate_limit_server_applypershoplimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.test.ts",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "lib_rate_limit_test",
+      "target": "lib_rate_limit_server_clientipfrom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "lib_rate_limit_server_clientipfrom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "lib_rate_limit_server_clientipfrom"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/lib/rate-limit.test.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "lib_rate_limit_test",
+      "target": "lib_rate_limit_test_fakeclock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L23",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "app_shopify_server"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "registrationform_validate"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "registrationform_validate_validateresponses"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L39",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "routes_proxy_apply_action"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L194",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "routes_proxy_apply_corsheaders"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L188",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "routes_proxy_apply_loader"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_applications_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L37",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_applications_server_submitapplication"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_registrationforms_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_registrationforms_server_parsedefinition"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_registrationforms_server_parsesettings"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_registrationforms_server_resolvestorefrontform"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_shops_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_shops_server_getorcreateshop"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_wholesale_applications_server"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply",
+      "target": "services_wholesale_applications_server_submitapplication"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "registrationform_validate_validateresponses"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L43",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "routes_proxy_apply_corsheaders"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "services_registrationforms_server_parsedefinition"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "services_registrationforms_server_parsesettings"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "services_registrationforms_server_resolvestorefrontform"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "routes_proxy_apply_action",
+      "target": "services_shops_server_getorcreateshop"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "app/routes/proxy.apply.tsx",
+      "source_location": "L191",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "routes_proxy_apply_loader",
+      "target": "routes_proxy_apply_corsheaders"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "HANDOFF.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -18878,17 +19396,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L23",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "app_shopify_server"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "app/routes/proxy.context.tsx",
       "source_location": "L31",
       "weight": 1.0,
@@ -19852,245 +20359,6 @@
       "confidence_score": 1.0,
       "source": "routes_legal_terms",
       "target": "routes_legal_terms_termsofservice"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L36",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "registrationform_validate"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L36",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "registrationform_validate_validateresponses"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L39",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "routes_proxy_apply_action"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L194",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "routes_proxy_apply_corsheaders"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L188",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "routes_proxy_apply_loader"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L37",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_applications_server"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L37",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_applications_server_submitapplication"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_registrationforms_server"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_registrationforms_server_parsedefinition"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_registrationforms_server_parsesettings"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L31",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_registrationforms_server_resolvestorefrontform"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_shops_server"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L24",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_shops_server_getorcreateshop"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_wholesale_applications_server"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L25",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply",
-      "target": "services_wholesale_applications_server_submitapplication"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L114",
-      "weight": 1.0,
-      "source": "routes_proxy_apply_action",
-      "target": "registrationform_validate_validateresponses"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L43",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply_action",
-      "target": "routes_proxy_apply_corsheaders"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L101",
-      "weight": 1.0,
-      "source": "routes_proxy_apply_action",
-      "target": "services_registrationforms_server_parsedefinition"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L102",
-      "weight": 1.0,
-      "source": "routes_proxy_apply_action",
-      "target": "services_registrationforms_server_parsesettings"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L100",
-      "weight": 1.0,
-      "source": "routes_proxy_apply_action",
-      "target": "services_registrationforms_server_resolvestorefrontform"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L59",
-      "weight": 1.0,
-      "source": "routes_proxy_apply_action",
-      "target": "services_shops_server_getorcreateshop"
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "app/routes/proxy.apply.tsx",
-      "source_location": "L191",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "routes_proxy_apply_loader",
-      "target": "routes_proxy_apply_corsheaders"
     },
     {
       "relation": "imports_from",
@@ -40452,5 +40720,5 @@
       "source_file": "docs/design/prototypes/quick-order-form.html"
     }
   ],
-  "built_at_commit": "5b12ae641a67f8c2fa11001e77b2568324e590ac"
+  "built_at_commit": "4ed17156b3b02b2145efc8e2637cfcdf17b6f609"
 }
