@@ -20,13 +20,28 @@ Full detail: HANDOFF.md "Last updated" 2026-08-05 entry.
   case is "services stop" instead of a surprise bill. Egress ($0.05/GB) is
   the line item that scales with real merchant traffic — not DB storage.
 
-- [ ] **Verify `prisma db push` actually runs on deploy.** Still open since
-  2026-07-07. The plan-activation rebuild was triggered by Railway, not by
-  us, and neither the build nor the deploy logs show the `railway.json`
-  `preDeployCommand` executing. Harmless while the schema is unchanged;
-  the first real schema change rides on an untested hook. Close it by
-  comparing the live DB schema against `prisma/schema.prisma`, or by
-  watching the pre-deploy step on the next deliberate deploy.
+- [x] **Verify `prisma db push` actually runs on deploy — DONE 2026-08-05,
+  GREEN.** Open since 2026-07-07, now closed. `prisma migrate diff` against
+  the live prod DB returned `-- This is an empty migration.`, and the deploy
+  log shows the preDeployCommand running: `The database is already in sync
+  with the Prisma schema.` Note: a local diff must use `DATABASE_PUBLIC_URL`
+  — the internal host only resolves inside Railway's network.
+
+- [ ] **Test the rate limiting in production.** Deployed 2026-08-05 but
+  never exercised: it sits behind the App Proxy HMAC check, so it can only
+  be hit from the real storefront form. Submit the registration form 6× in
+  one minute on `desarrollo-adspubli.myshopify.com` — the 6th must return
+  `429`.
+
+- [ ] **Remember: `git push` does NOT deploy.** Railway is not connected to
+  GitHub; deploys are manual `railway up` uploads with no git metadata.
+  This is why prod ran 2026-06-24 code until today. Consider connecting the
+  GitHub repo so the two stop drifting silently.
+
+- [ ] **Set a Railway usage limit** (Workspace → Usage): hard ~$15-20, soft
+  email alert ~$10. Also set `healthcheckPath` to `/healthz` on the
+  `stockly` service — it currently sits at `null`, so a broken deploy can
+  replace a working one.
 
 - [ ] **Wire up `stocklygo.site`** (bought 2026-08-05, DNS propagating).
   Point a subdomain at Railway (Hobby allows 2 custom domains), then update
@@ -41,9 +56,11 @@ Full detail: HANDOFF.md "Last updated" 2026-08-05 entry.
   the client, and who owns it in Partners. If it can be brought into the
   org, the App Store (and its 5-15 day review) is avoidable entirely.
 
-- [x] **Rate limiting on `/proxy/apply` — BUILT 2026-08-05**, not yet
-  committed or deployed. `app/lib/rate-limit.server.ts` + 10 tests;
-  `verify.sh` green, 129/129. See HANDOFF for the design rationale.
+- [x] **Rate limiting on `/proxy/apply` — BUILT + DEPLOYED 2026-08-05**
+  (commits `4ed1715`, live via `railway up` from `5dfbe1d`).
+  `app/lib/rate-limit.server.ts` + 10 tests; `verify.sh` green, 129/129.
+  See HANDOFF for the design rationale. Still needs the storefront test
+  above to confirm it actually bites.
 
 - [x] **Run `shopify app deploy` — DONE 2026-07-07.** `stockly-43` released
   and confirmed active on Shopify Partners. Ships `shopify.app.toml`'s
@@ -52,14 +69,10 @@ Full detail: HANDOFF.md "Last updated" 2026-08-05 entry.
 - [x] **`FLY_API_TOKEN` GitHub secret deleted — DONE 2026-07-07.** Confirmed
   via `gh secret list` (now empty). Was already orphaned since
   `fly-deploy.yml` was deleted 2026-07-03.
-- [ ] **Activate the Railway pre-deploy pipeline fix (commit `dd7a02e`,
-  already pushed to `main`).** Added `railway.json` with
-  `deploy.preDeployCommand: npx prisma db push --skip-generate`. Railway
-  deploys are MANUAL (`railway up` / dashboard), NOT triggered by
-  `git push` — confirmed still true this session. The `preDeployCommand`
-  is inert until the next real Railway deploy, and that first run against
-  the live Postgres is UNTESTED. **Needs Jonatan's go-ahead to run
-  `railway up`** — asked, awaiting answer as of 2026-07-07.
+- [x] **Activate the Railway pre-deploy pipeline fix (commit `dd7a02e`)
+  — DONE 2026-08-05.** `railway up` run with Jonatan's go-ahead and a
+  `deployment-guardian` GO verdict; the `preDeployCommand` fired and
+  logged `The database is already in sync with the Prisma schema.`
 - [ ] **Calendar reminder: before 2026-09-22**, reopen the Stockly app in
   the Shopify admin at least once. The stored offline session's
   `refreshToken` expires that date; if nobody re-triggers the token
