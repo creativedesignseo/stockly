@@ -1,8 +1,8 @@
 {
   ".claude/settings.local.json": {
-    "mtime": 1785781480.5000935,
-    "ast_hash": "106342ce6e42f9b11fd12b67de2fe678",
-    "semantic_hash": ""
+    "mtime": 1781899498.1384923,
+    "ast_hash": "46ba6d78ac76ad8af39ccc405e3f98a3",
+    "semantic_hash": "46ba6d78ac76ad8af39ccc405e3f98a3"
   },
   ".graphqlrc.ts": {
     "mtime": 1779303505.0,
@@ -265,8 +265,8 @@
     "semantic_hash": ""
   },
   "app/routes/proxy.apply.tsx": {
-    "mtime": 1785934298.3190882,
-    "ast_hash": "6963494de16be4d4b0b58fd9250aee63",
+    "mtime": 1783035859.84938,
+    "ast_hash": "cce46b8030201f6432f75ca9555fa991",
     "semantic_hash": ""
   },
   "app/routes/proxy.context.tsx": {
@@ -385,7 +385,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1785934356.1446528,
+    "mtime": 1783537914.17579,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -395,7 +395,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1785934355.878189,
+    "mtime": 1783537913.933743,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -405,7 +405,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1785934356.654709,
+    "mtime": 1783537914.6869755,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -415,7 +415,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1785934356.3902318,
+    "mtime": 1783537914.417571,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -720,8 +720,8 @@
     "semantic_hash": "df1b9dd43c67241173dee00bc39ec3dd"
   },
   "HANDOFF.md": {
-    "mtime": 1785937314.601669,
-    "ast_hash": "f5df9aa0e26d9d0fe88202c26cfa8d57",
+    "mtime": 1783424684.9574215,
+    "ast_hash": "090fd32c8236cf39c7bd8542f353a656",
     "semantic_hash": ""
   },
   "PROJECT.md": {
@@ -1060,8 +1060,8 @@
     "semantic_hash": "6f60a4159dad79c0e35d001a01daf29b"
   },
   "tasks/current.md": {
-    "mtime": 1785937334.547134,
-    "ast_hash": "8d9c678be633bfb660aff42b5a07e723",
+    "mtime": 1783537891.8570147,
+    "ast_hash": "54eb42f37c4b6a46bb019fe294bbbd7e",
     "semantic_hash": ""
   },
   "docs/competitive/assets/sami-registration-form/sami-01-landing.png": {
@@ -1142,21 +1142,6 @@
   "progress/2026-07-08-billing-api-plumbing.md": {
     "mtime": 1783537574.800701,
     "ast_hash": "da607cd015c2e1e316e21e6bef22ba7d",
-    "semantic_hash": ""
-  },
-  "app/lib/rate-limit.server.ts": {
-    "mtime": 1785934278.8241887,
-    "ast_hash": "85ec978f4c46d9c40750cac21052072f",
-    "semantic_hash": ""
-  },
-  "app/lib/rate-limit.test.ts": {
-    "mtime": 1785934332.0208757,
-    "ast_hash": "13ee1538d159110365fa7fdfc0413573",
-    "semantic_hash": ""
-  },
-  "progress/2026-08-05-railway-recovery-and-proxy-rate-limit.md": {
-    "mtime": 1785937362.186256,
-    "ast_hash": "1dba8e6f853bac6916b48236a40be1e5",
     "semantic_hash": ""
   }
 }

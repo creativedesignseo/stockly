@@ -4,25 +4,46 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-07-26 (**🚨 PRODUCTION DOWN — Railway trial expired,
-`stockly` app + Postgres both Offline**). Verified this session, not
-assumed: `railway status` → both services `○ Offline`; `curl` on prod →
-`404 Application not found` (`x-railway-fallback: true`); Railway Usage
-dashboard → red "Trial expired" banner, $0.00 credits. Full detail:
-HANDOFF.md "Last updated" 2026-07-26 entry.
+**Last updated:** 2026-08-05 (**✅ PRODUCTION BACK UP — Hobby plan active,
+prod serving 200**). Verified this session, not assumed: Railway GraphQL API
+→ `plan: "HOBBY"`, `customer.state: "ACTIVE"`, `isTrialing: false`;
+`railway status` → both services `● Online`; `curl` on prod → `HTTP/2 200`.
+Full detail: HANDOFF.md "Last updated" 2026-08-05 entry.
 
-## P0 — needs Jonatan's explicit go-ahead before it's actually live
+## P0 — active
 
-- [ ] **🚨 URGENT — Railway production outage.** Trial credit exhausted,
-  no card on file, Hobby plan ($5/mo) never activated despite being
-  flagged 2026-07-23 ("1 day or $3.04 left"). Both `stockly` and Postgres
-  are `Offline`. **Needs Jonatan to add a payment method and activate the
-  Hobby plan** in the Railway dashboard — this is a billing action only he
-  can authorize. Once active, the `stockly` service likely needs a manual
-  restart/redeploy (not confirmed to auto-resume) — route that redeploy
-  through `deployment-guardian` since `railway.json`'s `preDeployCommand`
-  (`prisma db push`) has still never run against live prod (open since
-  2026-07-07).
+- [x] **🚨 Railway production outage — RESOLVED 2026-08-05.** Jonatan added
+  a card and activated Hobby; Railway auto-triggered a rebuild and both
+  services came back Online. Outage ran ~2026-07-08 → 2026-08-05.
+  **Recommended follow-up (not done):** set a hard usage limit in
+  Workspace → Usage (~$15-20) plus a soft email alert (~$10), so the worst
+  case is "services stop" instead of a surprise bill. Egress ($0.05/GB) is
+  the line item that scales with real merchant traffic — not DB storage.
+
+- [ ] **Verify `prisma db push` actually runs on deploy.** Still open since
+  2026-07-07. The plan-activation rebuild was triggered by Railway, not by
+  us, and neither the build nor the deploy logs show the `railway.json`
+  `preDeployCommand` executing. Harmless while the schema is unchanged;
+  the first real schema change rides on an untested hook. Close it by
+  comparing the live DB schema against `prisma/schema.prisma`, or by
+  watching the pre-deploy step on the next deliberate deploy.
+
+- [ ] **Wire up `stocklygo.site`** (bought 2026-08-05, DNS propagating).
+  Point a subdomain at Railway (Hobby allows 2 custom domains), then update
+  `application_url`, the three OAuth `redirect_urls` and `app_proxy.url` in
+  `shopify.app.toml` and `shopify app deploy`. **Do this BEFORE the first
+  real merchant install** — after that, the same change reconfigures OAuth
+  on every live install.
+
+- [ ] **Decide the distribution path — blocked on Jonatan.** Custom
+  distribution cannot install on a store outside Adspubli's Partner org
+  (`invalid_link_organization`, confirmed 2026-07-08). Need: which store is
+  the client, and who owns it in Partners. If it can be brought into the
+  org, the App Store (and its 5-15 day review) is avoidable entirely.
+
+- [x] **Rate limiting on `/proxy/apply` — BUILT 2026-08-05**, not yet
+  committed or deployed. `app/lib/rate-limit.server.ts` + 10 tests;
+  `verify.sh` green, 129/129. See HANDOFF for the design rationale.
 
 - [x] **Run `shopify app deploy` — DONE 2026-07-07.** `stockly-43` released
   and confirmed active on Shopify Partners. Ships `shopify.app.toml`'s
