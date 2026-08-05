@@ -12,10 +12,13 @@
  * Auth: Shopify signs the proxy request with HMAC; we verify via
  * authenticate.public.appProxy which throws 401 on tampering.
  *
- * No CAPTCHA / rate limiting in v1 — App Proxy already gives us
- * HMAC-authenticated origin (only requests originating from the
- * merchant's storefront reach us). Spam protection can layer on
- * top in Sprint 5 if needed.
+ * Rate limiting: App Proxy's HMAC authenticates the *origin* of a
+ * request, not its volume — anyone who can load the merchant's
+ * registration page can replay the POST in a loop. Two sliding windows
+ * guard the endpoint (see `app/lib/rate-limit.server.ts`): 5/min per
+ * shop+IP so one visitor cannot lock out the merchant's other
+ * customers, and 60/min per shop as a backstop against a distributed
+ * flood. Over either → 429 + Retry-After.
  */
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
@@ -35,6 +38,11 @@ import {
 } from "../services/registrationForms.server";
 import { validateResponses } from "../lib/registrationForm/validate";
 import { submitApplication as submitGenericApplication } from "../services/applications.server";
+import {
+  applyPerClientLimiter,
+  applyPerShopLimiter,
+  clientIpFrom,
+} from "../lib/rate-limit.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
@@ -53,6 +61,35 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json(
       { ok: false, errors: ["Missing shop parameter"] },
       { status: 400, headers: corsHeaders() },
+    );
+  }
+
+  // Rate limit BEFORE any DB work — getOrCreateShop below is itself a
+  // write, so checking after it would leave the cheapest attack
+  // (hammering an unknown shop) unprotected.
+  const ip = clientIpFrom(request);
+  const perClient = applyPerClientLimiter.check(`${shopDomain}:${ip}`);
+  const perShop = perClient.allowed
+    ? applyPerShopLimiter.check(shopDomain)
+    : perClient;
+  if (!perClient.allowed || !perShop.allowed) {
+    const retryAfter = Math.max(perClient.retryAfter, perShop.retryAfter);
+    // Structured log key for monitoring — grep [rf.rate_limited].
+    // eslint-disable-next-line no-console
+    console.warn("[rf.rate_limited]", {
+      shop: shopDomain,
+      scope: perClient.allowed ? "shop" : "client",
+      retryAfter,
+    });
+    return json(
+      {
+        ok: false,
+        errors: ["Too many submissions. Please wait a moment and try again."],
+      },
+      {
+        status: 429,
+        headers: { ...corsHeaders(), "Retry-After": String(retryAfter) },
+      },
     );
   }
 
