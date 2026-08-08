@@ -385,7 +385,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1785934356.1446528,
+    "mtime": 1785940446.1367748,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -395,7 +395,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1785934355.878189,
+    "mtime": 1785940445.8887172,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -405,7 +405,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1785934356.654709,
+    "mtime": 1785940446.6285386,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -415,7 +415,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1785934356.3902318,
+    "mtime": 1785940446.3824925,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -720,8 +720,8 @@
     "semantic_hash": "df1b9dd43c67241173dee00bc39ec3dd"
   },
   "HANDOFF.md": {
-    "mtime": 1785937314.601669,
-    "ast_hash": "f5df9aa0e26d9d0fe88202c26cfa8d57",
+    "mtime": 1785940990.9758804,
+    "ast_hash": "924f99c47df88a5d1758a9863b886f8e",
     "semantic_hash": ""
   },
   "PROJECT.md": {
@@ -1060,8 +1060,8 @@
     "semantic_hash": "6f60a4159dad79c0e35d001a01daf29b"
   },
   "tasks/current.md": {
-    "mtime": 1785937334.547134,
-    "ast_hash": "8d9c678be633bfb660aff42b5a07e723",
+    "mtime": 1785941018.724576,
+    "ast_hash": "db8a2285435a8dc709a821501da351fe",
     "semantic_hash": ""
   },
   "docs/competitive/assets/sami-registration-form/sami-01-landing.png": {

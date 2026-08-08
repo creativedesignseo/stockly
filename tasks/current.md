@@ -4,7 +4,7 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-05 (**✅ PRODUCTION BACK UP — Hobby plan active,
+**Last updated:** 2026-08-09 (**Piro app `stockly-2` deployed; ADR-017 premise change**). Prior 2026-08-05 (**✅ PRODUCTION BACK UP — Hobby plan active,
 prod serving 200**). Verified this session, not assumed: Railway GraphQL API
 → `plan: "HOBBY"`, `customer.state: "ACTIVE"`, `isTrialing: false`;
 `railway status` → both services `● Online`; `curl` on prod → `HTTP/2 200`.
@@ -50,11 +50,33 @@ Full detail: HANDOFF.md "Last updated" 2026-08-05 entry.
   real merchant install** — after that, the same change reconfigures OAuth
   on every live install.
 
-- [ ] **Decide the distribution path — blocked on Jonatan.** Custom
-  distribution cannot install on a store outside Adspubli's Partner org
-  (`invalid_link_organization`, confirmed 2026-07-08). Need: which store is
-  the client, and who owns it in Partners. If it can be brought into the
-  org, the App Store (and its 5-15 day review) is avoidable entirely.
+- [x] **Distribution path — SOLVED 2026-08-09.** Root cause: the old app's
+  install link is permanently bound to `desarrollo-adspubli.myshopify.com`.
+  Solution: a second, Piro-dedicated app (id `406994354177`), deployed as
+  `stockly-2`. See HANDOFF + ADR-017.
+
+- [ ] **🔴 Re-scope the product — ADR-017.** Native Shopify B2B has been on
+  Basic/Grow/Advanced free since 2026-04-02; Piro already runs 50 native
+  company accounts. Stockly's "B2B on Basic" premise is void. Remaining
+  value: order-value minimums, the application/registration flow, the Quick
+  Order Form. `AGENTS.md`, `PROJECT.md` and `ROADMAP.md` still advertise the
+  dead moat and need rewriting. **Not a delivery-sprint decision — needs
+  Jonatan.**
+
+- [ ] **P0 for Piro: test `stockly-opening-order` in a real B2B checkout.**
+  It matches pending buyers by customer GID; native B2B checkout runs in a
+  company-location context. Untested. This is the one thing that decides
+  whether the $300 minimum actually works for Piro.
+
+- [ ] **Piro delivery — 4 steps pending Jonatan.** (1) Select custom
+  distribution on app `406994354177` targeting
+  `piroaccessories.myshopify.com` (IRREVERSIBLE). (2) Swap Railway's
+  `SHOPIFY_API_KEY`/`SHOPIFY_API_SECRET` to that app — **breaks the
+  dev-store install**, one backend serves one app. (3) Request protected
+  customer data access (currently `customers/update` is disabled in
+  `shopify.app.piro.toml`; `customerCreate` on a real store may need it
+  too). (4) Install with **Stockly discounts OFF** — Piro's −65% Price List
+  plus Editions' new B2B discount stacking make double-discounting likely.
 
 - [x] **Rate limiting on `/proxy/apply` — BUILT + DEPLOYED 2026-08-05**
   (commits `4ed1715`, live via `railway up` from `5dfbe1d`).
