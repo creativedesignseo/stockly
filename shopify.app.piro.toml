@@ -1,0 +1,119 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b530543e584cdc7d40a269134f7b4ad3"
+name = "Stockly"
+application_url = "https://stockly-production-5ccf.up.railway.app"
+embedded = true
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+# write_customers — needed to write the wholesale-status metafield on
+# customers from the orders/paid webhook handler (ADR-004 FPQ flow).
+# read_orders     — Shopify requires this scope to subscribe to the
+# orders/paid webhook (otherwise app config update fails with
+# "Missing scope for webhook topic: orders/paid").
+# write_validations — create/update the Cart & Checkout Validation that
+# enforces the opening-order minimum at checkout (Camino B / ADR-016).
+# read_themes — read the active theme's settings_data.json so the admin
+# Setup guide can auto-detect whether the "Stockly" app embed is enabled
+# (the "Activate Stockly" step + its Refresh button).
+scopes = "write_products,write_publications,write_discounts,write_customers,read_orders,write_validations,read_themes"
+
+# Protected customer data access — required since 2024 for ANY app
+# that reads/creates Customer records with PII (name, email, phone).
+# Without this, customerCreate / customers(query:email:...) return
+# ACCESS_DENIED even with write_customers scope granted.
+# For dev stores, approval is immediate when configured here.
+[access.admin]
+direct_api_mode = "online"
+embedded_app_direct_api_access = false
+
+[access.protected_customer_data_permissions]
+customer_data = "level_1"
+customer_fields = [
+  { customer_field = "name", permission = "level_1" },
+  { customer_field = "email", permission = "level_1" },
+  { customer_field = "phone", permission = "level_1" },
+]
+
+[webhooks]
+# Match SDK's ApiVersion.January25 — 2026-07 doesn't exist yet (today is 2026-05).
+api_version = "2025-01"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  # GDPR / privacy-law mandatory webhooks (B0-1).
+  # App Store auto-rejects submission without these. Each topic uses
+  # its own subscription block. Note: the toml key for these is
+  # `compliance_topics` (NOT `topics`) — Shopify validates the key
+  # strictly. Handler routes live at app/routes/webhooks.*.tsx.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
+  # customers/update — detects when a customer receives the shop's
+  # wholesale tag via an external approval flow (e.g. Piro's native
+  # B2B form). Automatically enrolls them in Stockly's opening-order
+  # pending list so the first-purchase minimum is enforced at checkout.
+  # Uses the existing customer_data = "level_1" declaration.
+  # TEMPORARILY DISABLED on the Piro app (2026-08-05). This app has not yet
+  # been approved for protected customer data, and Shopify refuses to create
+  # an app version while it subscribes to a protected topic:
+  #   "This app is not approved to subscribe to webhook topics containing
+  #    protected customer data."
+  # Nothing in the core flow depends on it — it only auto-enrolls customers
+  # who were approved by an EXTERNAL flow (e.g. a shop's own B2B form) into
+  # the opening-order pending list. Re-enable once the access request is
+  # granted in the Dev Dashboard.
+  # [[webhooks.subscriptions]]
+  # uri = "/webhooks/customers/update"
+  # topics = [ "customers/update" ]
+
+# orders/paid webhook (ADR-004 FPQ qualification) is intentionally
+# NOT registered here yet. Shopify treats every orders/* topic as
+# "protected customer data" and refuses to register the subscription
+# until the app declares + gets approved for that data access via:
+#   Partner Dashboard → App → Configuration → Protected customer data
+# That step needs a Privacy Policy URL and is part of pre-launch
+# setup. For now, the qualification flow is exercised manually:
+#   - The handler code lives at app/routes/webhooks.orders.paid.tsx
+#   - Stockly admin will get a "Mark customer as qualified" button
+#     that writes both the DB row and the customer metafield
+#     (same effect as the webhook handler would have).
+# Once protected-customer-data approval lands, re-enable below:
+#
+#   [[webhooks.subscriptions]]
+#   uri = "/webhooks/orders/paid"
+#   topics = [ "orders/paid" ]
+
+[auth]
+redirect_urls = [
+  "https://stockly-production-5ccf.up.railway.app/auth/callback",
+  "https://stockly-production-5ccf.up.railway.app/auth/shopify/callback",
+  "https://stockly-production-5ccf.up.railway.app/api/auth/callback"
+]
+
+[app_proxy]
+# Storefront URL /apps/stockly/* is forwarded to our backend /proxy/*.
+# The full proxy URL is set automatically by the CLI to the dev tunnel
+# during development, and to the production app URL on deploy.
+url = "https://stockly-production-5ccf.up.railway.app/proxy"
+subpath = "stockly"
+prefix = "apps"
+
+[build]
+automatically_update_urls_on_dev = true
