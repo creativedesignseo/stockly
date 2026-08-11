@@ -9,30 +9,37 @@ Satisfies Shopify's Level 2 protected-customer-data requirement
 
 ---
 
-## Current state — NOT COMPLIANT (2026-08-11)
+## Current state — COMPLIANT as of 2026-08-11
 
-One Railway PostgreSQL database serves both environments. Verified by
-querying production directly:
+Two separate Railway PostgreSQL services. Verified by querying production
+directly after the migration:
 
 ```
-Shop rows:
-  desarrollo-adspubli.myshopify.com   ← development store
-  piroaccessories.myshopify.com       ← REAL merchant, real customers
+Production database — Shop rows:
+  piroaccessories.myshopify.com       ← the only shop. Real merchant.
+  (wholesale customers: 5, intact)
 ```
 
-The development store's data sits in the same database as a live merchant's
-customer records. That is the exact condition the requirement exists to
-prevent, and it is why the protected-customer-data declaration currently
-answers "No" to this question.
+Development runs against its own database (`Postgres-v-W2`, reachable through
+a dedicated TCP proxy) configured in the local, git-ignored `.env`.
 
-**How it happened:** development ran against a Partner development store for
-months. When the pilot merchant was installed on 2026-08-11, the app pointed
-at the same backend and therefore the same database. Nobody chose this; it
-was inherited.
+### How it was before, and why it mattered
 
-**Risk today, stated plainly:** low but real. A destructive query or migration
-run "against dev" hits the same database that holds a real merchant's data.
-There is no technical barrier — only care.
+Until 2026-08-11 a single database served both. The development store's data
+sat alongside a live merchant's customer records — the exact condition this
+requirement exists to prevent.
+
+Nobody chose it: development ran against a Partner development store for
+months, and when the pilot merchant was installed the app pointed at the same
+backend and therefore the same database. It was inherited, then found while
+answering Shopify's declaration honestly.
+
+### What the migration actually removed
+
+Small, and verified before deleting: 1 registration form and 1 session
+belonging to `desarrollo-adspubli.myshopify.com`. **Zero customer records** —
+that store had no wholesale customers or applications. Piro's 5 wholesale
+customers were counted before and after and were untouched.
 
 ---
 
@@ -92,10 +99,9 @@ development environment at it.
 
 ## Status
 
-- [ ] Step 1 — development database created
-- [ ] Step 2 — local environment repointed and schema initialised
-- [ ] Step 3 — development store's data removed from production
-- [ ] Step 4 — Shopify declaration updated to "Sí"
+- [x] Step 1 — development database created (`Postgres-v-W2`, TCP proxy enabled)
+- [x] Step 2 — local `.env` repointed, schema initialised with `prisma db push`
+- [x] Step 3 — development store's data removed from production, verified
+- [x] Step 4 — Shopify declaration updated to "Sí"
 
-Until every box is ticked, the honest answer to Shopify's question remains
-**No**.
+Completed 2026-08-11. The answer given to Shopify is now true.
