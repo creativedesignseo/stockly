@@ -103,8 +103,26 @@ model Shop {
   /// If fpqMode = 'combined', how amount and quantity combine.
   /// 'and' = both required, 'or' = either suffices.
   fpqCombinedLogic   String              @default("and")
+  // ----- Post-qualification minimum (orders AFTER the opening order) -----
+  /// How the post-qualification gate is evaluated, mirroring `fpqMode`
+  /// but for every order a customer places once `qualifiedAt` is set.
+  /// 'none' = no gate (default — preserves pre-feature behavior, the
+  /// customer buys freely). 'amount' = cart subtotal threshold, read
+  /// from postQualificationMinAmount. 'quantity' = cart unit count, read
+  /// from postQualificationMOQ. 'combined' = both, joined by
+  /// postQualificationCombinedLogic.
+  postQualificationMode String            @default("none")
+  /// Minimum cart subtotal (in shop currency) for post-qualification
+  /// orders when postQualificationMode is 'amount' or 'combined'.
+  /// Null = unset; the Validation Function must fail OPEN on null.
+  postQualificationMinAmount Float?
+  /// If postQualificationMode = 'combined', how the amount and quantity
+  /// minimums combine. 'and' = both required, 'or' = either suffices.
+  postQualificationCombinedLogic String   @default("and")
   /// Minimum order quantity AFTER the customer has been qualified.
   /// 1 = no minimum (default — once qualified, customer buys freely).
+  /// Doubles as the quantity leg of postQualificationMode 'quantity' and
+  /// 'combined'; it predates those fields, hence the MOQ name.
   postQualificationMOQ Int               @default(1)
 
   tiers                Tier[]

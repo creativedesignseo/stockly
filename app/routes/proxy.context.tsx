@@ -112,7 +112,29 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           quantity: shopRow.fpqQuantity,
           combinedLogic: shopRow.fpqCombinedLogic,
         },
+        // Kept as a flat key for backward compatibility: storefront
+        // bundles already shipped to merchant themes may read it.
+        // Same value as `postQualification.quantity` below.
         postQualificationMOQ: shopRow.postQualificationMOQ,
+        // Post-qualification gate config, mirroring the `fpq` shape above
+        // so the storefront can reuse the same banner logic for the two
+        // gates. This is the minimum applied to every order a customer
+        // places AFTER `qualifiedAt` is set, whereas `fpq` only applies
+        // to the opening order. A buyer is never subject to both.
+        //
+        // `quantity` is `postQualificationMOQ` — that column predates the
+        // mode/amount fields and doubles as the quantity leg. Exposed raw,
+        // with no normalization, so this endpoint stays a faithful
+        // projection of the DB. Note the column defaults to 1, which the
+        // schema documents as "no minimum": a storefront reading
+        // `quantity: 1` will find the gate met by any non-empty cart,
+        // which is the intended fail-open behavior.
+        postQualification: {
+          mode: shopRow.postQualificationMode,
+          amount: shopRow.postQualificationMinAmount,
+          quantity: shopRow.postQualificationMOQ,
+          combinedLogic: shopRow.postQualificationCombinedLogic,
+        },
       },
       branding,
       copy,

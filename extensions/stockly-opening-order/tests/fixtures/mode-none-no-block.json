@@ -6,7 +6,7 @@
       "cart": {
         "cost": { "subtotalAmount": { "amount": "10.00" } },
         "lines": [{ "quantity": 1 }],
-        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" } }
+        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" }, "purchasingCompany": null }
       },
       "validation": { "metafield": { "value": "{\"mode\":\"none\"}" } }
     },

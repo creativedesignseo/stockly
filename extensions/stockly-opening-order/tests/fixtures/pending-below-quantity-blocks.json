@@ -6,7 +6,7 @@
       "cart": {
         "cost": { "subtotalAmount": { "amount": "300.00" } },
         "lines": [{ "quantity": 2 }, { "quantity": 1 }],
-        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" } }
+        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" }, "purchasingCompany": null }
       },
       "validation": { "metafield": { "value": "{\"mode\":\"quantity\",\"quantity\":12,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"message\":\"Order at least 12 units on your first wholesale order\"}" } }
     },

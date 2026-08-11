@@ -70,18 +70,24 @@ api_version = "2025-01"
   # B2B form). Automatically enrolls them in Stockly's opening-order
   # pending list so the first-purchase minimum is enforced at checkout.
   # Uses the existing customer_data = "level_1" declaration.
-  # TEMPORARILY DISABLED on the Piro app (2026-08-05). This app has not yet
-  # been approved for protected customer data, and Shopify refuses to create
-  # an app version while it subscribes to a protected topic:
-  #   "This app is not approved to subscribe to webhook topics containing
-  #    protected customer data."
-  # Nothing in the core flow depends on it — it only auto-enrolls customers
-  # who were approved by an EXTERNAL flow (e.g. a shop's own B2B form) into
-  # the opening-order pending list. Re-enable once the access request is
-  # granted in the Dev Dashboard.
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/update"
-  # topics = [ "customers/update" ]
+  #
+  # HISTORY: disabled 2026-08-05 because a brand-new app has no
+  # protected-customer-data approval and Shopify refused to create a version
+  # while subscribing to a protected topic ("This app is not approved to
+  # subscribe to webhook topics containing protected customer data").
+  #
+  # RE-ENABLED 2026-08-11. Partners' "API access requests" page offers no
+  # protected-customer-data request at all (only: read-all-orders,
+  # subscriptions, payment mandates, post-purchase, network access), and the
+  # Piro install-consent screen explicitly listed "Ver datos de clientes —
+  # Datos sensibles". Hypothesis: for custom-distribution apps the grant comes
+  # from merchant consent at install, not a Partners review. This re-enable IS
+  # the experiment — if `shopify app deploy --config=piro` succeeds, the
+  # hypothesis holds; if it fails with the same error, revert and find the
+  # request flow elsewhere.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/update"
+  topics = [ "customers/update" ]
 
 # orders/paid webhook (ADR-004 FPQ qualification) is intentionally
 # NOT registered here yet. Shopify treats every orders/* topic as

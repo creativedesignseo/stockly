@@ -12,6 +12,14 @@ query CartValidationsGenerateRunInput {
       customer {
         id
       }
+      purchasingCompany {
+        company {
+          id
+        }
+        location {
+          id
+        }
+      }
     }
   }
   validation {

@@ -6,7 +6,7 @@
       "cart": {
         "cost": { "subtotalAmount": { "amount": "250.00" } },
         "lines": [{ "quantity": 4 }],
-        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" } }
+        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/111" }, "purchasingCompany": null }
       },
       "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":200,\"pendingCustomers\":[\"gid://shopify/Customer/111\"]}" } }
     },

@@ -7,16 +7,20 @@
  * (validationCreate) instead of an Automatic App Discount.
  *
  * Pipeline:
- *   1. Build the config JSON from the Shop's FPQ fields + the
- *      WholesaleCustomer rows with qualifiedAt = null (pending opening
- *      order), surfaced as Customer GIDs.
+ *   1. Build the config JSON from the Shop's FPQ + post-qualification
+ *      fields and two disjoint WholesaleCustomer lists, surfaced as
+ *      Customer GIDs: qualifiedAt = null (still owes the opening order)
+ *      and qualifiedAt != null (already cleared it).
  *   2. Ensure a Validation backed by our Function exists for the shop.
  *   3. Write/refresh the config into that Validation's
  *      `$app:stockly-opening-order/function-configuration` metafield.
- *   4. At checkout, the Function reads the metafield and blocks customers
- *      on the pending list whose cart is below the minimum.
+ *   4. At checkout, the Function reads the metafield and blocks a buyer
+ *      whose cart is below the minimum that applies to their list — the
+ *      opening-order minimum for pending buyers, the post-qualification
+ *      minimum for qualified ones. Never both.
  *
- * Call after: approve, release-opening-order, and FPQ-config changes.
+ * Call after: approve, release-opening-order, and FPQ or
+ * post-qualification config changes.
  *
  * Fail-safe: every error is caught and logged, never thrown — a sync
  * failure must not block the admin flow, and the Function fails OPEN
@@ -192,27 +196,88 @@ async function updateValidationMetafield(
 }
 
 /**
- * Build the config the Validation Function reads. `pendingCustomers` =
- * approved wholesale customers who still owe their opening order
- * (qualifiedAt = null). The minimum mirrors the shop's FPQ config.
+ * Both `pendingCustomers` and `qualifiedCustomers` contain ONLY Customer
+ * GIDs. That is deliberate, and the Validation Function depends on it.
+ *
+ * The Function matches a set of candidate identifiers (customer, company,
+ * company location) against these lists. Its company/location candidates are
+ * inert precisely because nothing here emits those GIDs — `WholesaleCustomer`
+ * has no column to hold them. Verified 2026-08-11 against the pilot
+ * merchant's live orders: `customer` is populated on native B2B orders, so
+ * customer-id matching is sufficient today.
+ *
+ * ⚠️ Before emitting Company or CompanyLocation GIDs here, read the buyer
+ * identity note in
+ * `extensions/stockly-opening-order/src/cart_validations_generate_run.ts`.
+ * Doing so makes identity two-level and activates a latent precedence bug:
+ * the Function's "pending wins" rule would block an already-qualified buyer
+ * because a COLLEAGUE at the same company location still owes their opening
+ * order. That must be resolved in the Function first.
+ */
+const customerGid = (shopifyCustomerId: string) =>
+  `gid://shopify/Customer/${shopifyCustomerId}`;
+
+/**
+ * Build the config the Validation Function reads.
+ *
+ * Two disjoint buyer lists, two independent gates:
+ *
+ *   - `pendingCustomers` (qualifiedAt = null) — approved wholesale
+ *     customers who still owe their opening order. Gated by the FLAT
+ *     top-level FPQ keys (`mode` / `amount` / `quantity` /
+ *     `combinedLogic`).
+ *   - `qualifiedCustomers` (qualifiedAt != null) — customers who already
+ *     cleared the opening order. Gated by the `postQualification` block.
+ *
+ * The flat FPQ keys stay exactly where they have always been: an older
+ * deployed Function reading a newer config must keep working (it simply
+ * ignores the two new keys), and a newer Function reading an older
+ * config must also keep working (missing `postQualification` /
+ * `qualifiedCustomers` → no post-qualification gate → fails open).
+ * Never rename or nest the flat keys.
+ *
+ * NOTE: do not reuse `qualifiedCustomers` from
+ * `discount-function-sync.server.ts` — that list is misnamed and
+ * deliberately unfiltered (it holds EVERY approved customer so the
+ * price-side gate is skipped, guarding bug C3). This one is genuinely
+ * filtered on `qualifiedAt: { not: null }`.
  */
 export async function buildOpeningOrderConfig(shopId: string): Promise<string> {
-  const [shop, pendingRows] = await Promise.all([
+  const [shop, pendingRows, qualifiedRows] = await Promise.all([
     prisma.shop.findUniqueOrThrow({ where: { id: shopId } }),
     prisma.wholesaleCustomer.findMany({
       where: { shopId, qualifiedAt: null },
       select: { shopifyCustomerId: true },
     }),
+    prisma.wholesaleCustomer.findMany({
+      where: { shopId, qualifiedAt: { not: null } },
+      select: { shopifyCustomerId: true },
+    }),
   ]);
-  const pendingCustomers = pendingRows.map(
-    (r) => `gid://shopify/Customer/${r.shopifyCustomerId}`,
+  const pendingCustomers = pendingRows.map((r) =>
+    customerGid(r.shopifyCustomerId),
+  );
+  const qualifiedCustomers = qualifiedRows.map((r) =>
+    customerGid(r.shopifyCustomerId),
   );
   return JSON.stringify({
+    // ----- Opening order (first purchase), for pendingCustomers -----
     mode: shop.fpqMode,
     amount: shop.fpqAmount,
     quantity: shop.fpqQuantity,
     combinedLogic: shop.fpqCombinedLogic,
     pendingCustomers,
+    // ----- Every order after qualification, for qualifiedCustomers -----
+    postQualification: {
+      mode: shop.postQualificationMode,
+      amount: shop.postQualificationMinAmount,
+      // `postQualificationMOQ` is the quantity leg; 1 means "no minimum"
+      // and is emitted as null so the Function never has to special-case
+      // the sentinel value.
+      quantity: shop.postQualificationMOQ > 1 ? shop.postQualificationMOQ : null,
+      combinedLogic: shop.postQualificationCombinedLogic,
+    },
+    qualifiedCustomers,
   });
 }
 

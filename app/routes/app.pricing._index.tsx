@@ -9,8 +9,9 @@
  *
  * Architecture:
  *   - The list is the primary content (Sami-style).
- *   - A small "Current shop setup" banner at top shows baseline +
- *     FPQ + MOQ at a glance. NOT editable inline — clicking
+ *   - A small "Current shop setup" banner at top shows baseline + the
+ *     first-order gate (FPQ) + the post-qualification gate at a
+ *     glance, in the store's own currency. NOT editable inline — clicking
  *     "Settings" in the page actions takes the merchant to
  *     /app/settings/pricing for the actual edit form. Trade-off
  *     accepted: simpler URLs > inline modal edits for shop-wide
@@ -59,6 +60,7 @@ import {
   useIndexResourceState,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
+import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import prisma from "../db.server";
@@ -114,12 +116,45 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return json({ ok: true, groupId, active: nextActive });
 };
 
+/**
+ * Read the shop's ISO 4217 currency code from the Admin API.
+ *
+ * Money labels on this page used to hardcode "€" while the stored
+ * values are plain numbers compared against the cart's real currency at
+ * checkout — so only the label was wrong. Fails soft: on any error we
+ * return null and the UI renders amounts with no symbol rather than
+ * guessing the wrong one.
+ */
+async function fetchShopCurrencyCode(
+  admin: AdminApiContext,
+): Promise<string | null> {
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query ShopCurrencyCode {
+        shop {
+          currencyCode
+        }
+      }`,
+    );
+    const body = (await response.json()) as {
+      data?: { shop?: { currencyCode?: string | null } | null } | null;
+    };
+    return body.data?.shop?.currencyCode ?? null;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[pricing._index] shop currency lookup failed:", err);
+    return null;
+  }
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
-  // Two queries in parallel: the rules to show in the table + the
-  // shop-wide setup numbers shown in the banner.
+  const { admin, shop } = await authenticateAdmin(request);
+  // Three queries in parallel: the rules to show in the table, the
+  // shop-wide setup numbers shown in the banner, and the store currency
+  // used to label the money values in that banner.
   // ADR-012: list aggregates one row per groupId (multi-band rule).
-  const [rules, shopRow] = await Promise.all([
+  const [rules, shopRow, currencyCode] = await Promise.all([
     // Wholesale Pricing only — Volume rules live under /app/volume-pricing.
     listRules(shop.id, { kind: "wholesale" }),
     prisma.shop.findUnique({
@@ -130,14 +165,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         fpqAmount: true,
         fpqQuantity: true,
         fpqCombinedLogic: true,
+        postQualificationMode: true,
+        postQualificationMinAmount: true,
         postQualificationMOQ: true,
+        postQualificationCombinedLogic: true,
         minOrderValue: true,
       },
     }),
+    fetchShopCurrencyCode(admin),
   ]);
   return {
     rules,
     shop: shopRow,
+    currencyCode,
   };
 };
 
@@ -150,9 +190,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 type TabId = "all" | "active" | "draft";
 
 export default function PricingList() {
-  const { rules, shop } = useLoaderData<typeof loader>();
+  const { rules, shop, currencyCode } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+
+  /* ----- currency labelling -----
+   * `symbol` is null only when the Admin API lookup failed; in that
+   * case every money value renders bare rather than under a guessed
+   * currency. See fetchShopCurrencyCode above.
+   */
+  const symbol = currencySymbolFor(currencyCode);
+  const money = useMemo(
+    () => (value: string | number) =>
+      symbol ? `${symbol}${value}` : `${value}`,
+    [symbol],
+  );
 
   /* ----- Tab filter (driven by ?status= query param) -----
    * setSearchParams (not window.location.assign) — same reason as
@@ -261,8 +313,10 @@ export default function PricingList() {
       <TitleBar title="Wholesale pricing" />
       <BlockStack gap="400">
         {/* ----- Shop-wide setup banner (read-only) -----
-         * At-a-glance status of the 3 shop-wide pricing decisions
-         * (baseline, FPQ, MOQ). Not editable inline — the "Settings"
+         * At-a-glance status of the shop-wide pricing decisions
+         * (baseline, first-order FPQ gate, post-qualification gate).
+         * The two gates are deliberately labelled by WHEN they apply —
+         * merchants confuse them otherwise. Not editable inline — the "Settings"
          * secondary action above takes the merchant to the full
          * /app/settings/pricing form. We preserve visibility of the
          * setup without forcing a separate hub page.
@@ -288,21 +342,17 @@ export default function PricingList() {
                     }
                   />
                   <SettingRow
-                    label="First-Purchase Qualifier"
-                    value={formatFpq(shop)}
+                    label="First-Purchase Qualifier (first order)"
+                    value={formatFpq(shop, money)}
                   />
                   <SettingRow
-                    label="Post-qualification MOQ"
-                    value={
-                      shop.postQualificationMOQ > 1
-                        ? `${shop.postQualificationMOQ} units/order`
-                        : "No minimum"
-                    }
+                    label="Post-qualification minimum (later orders)"
+                    value={formatPostQualification(shop, money)}
                   />
                   {shop.minOrderValue && shop.minOrderValue > 0 ? (
                     <SettingRow
                       label="Min order"
-                      value={`€${shop.minOrderValue}`}
+                      value={money(shop.minOrderValue)}
                     />
                   ) : null}
                 </BlockStack>
@@ -386,7 +436,7 @@ export default function PricingList() {
                 </IndexTable.Cell>
                 <IndexTable.Cell>
                   <Text as="span" variant="bodyMd">
-                    {formatDiscountSummary(rule.bands[0])}
+                    {formatDiscountSummary(rule.bands[0], money)}
                   </Text>
                 </IndexTable.Cell>
                 <IndexTable.Cell>
@@ -506,19 +556,80 @@ function SettingRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Human-readable summary of the shop's FPQ configuration. */
-function formatFpq(shop: {
-  fpqMode: string;
-  fpqAmount: number | null;
-  fpqQuantity: number | null;
-  fpqCombinedLogic: string;
-}): string {
+/** Renders an amount with the store's currency symbol, or bare. */
+type MoneyFormatter = (value: string | number) => string;
+
+/**
+ * Best-effort currency symbol for an ISO 4217 code, e.g. "USD" → "$".
+ *
+ * Returns null only when we have no code at all, so callers can render
+ * a bare number instead of inventing a symbol. An unrecognised code is
+ * echoed back verbatim ("XYZ 100") — still honest, just less pretty.
+ */
+function currencySymbolFor(code: string | null): string | null {
+  if (!code) return null;
+  try {
+    const parts = new Intl.NumberFormat("en", {
+      style: "currency",
+      currency: code,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(0);
+    return parts.find((part) => part.type === "currency")?.value ?? code;
+  } catch {
+    // Unsupported code or an ICU build without `narrowSymbol`.
+    return code;
+  }
+}
+
+/**
+ * Human-readable summary of the shop's FPQ configuration — the gate on
+ * the customer's FIRST order only.
+ */
+function formatFpq(
+  shop: {
+    fpqMode: string;
+    fpqAmount: number | null;
+    fpqQuantity: number | null;
+    fpqCombinedLogic: string;
+  },
+  money: MoneyFormatter,
+): string {
   if (shop.fpqMode === "none") return "Disabled";
   if (shop.fpqMode === "amount")
-    return `First order ≥ €${shop.fpqAmount ?? "?"}`;
+    return `First order ≥ ${money(shop.fpqAmount ?? "?")}`;
   if (shop.fpqMode === "quantity")
     return `First order ≥ ${shop.fpqQuantity ?? "?"} units`;
-  return `€${shop.fpqAmount ?? "?"} ${shop.fpqCombinedLogic.toUpperCase()} ${shop.fpqQuantity ?? "?"} units`;
+  return `${money(shop.fpqAmount ?? "?")} ${shop.fpqCombinedLogic.toUpperCase()} ${shop.fpqQuantity ?? "?"} units`;
+}
+
+/**
+ * Human-readable summary of the post-qualification gate — the minimum
+ * applied to EVERY order after the customer is qualified.
+ *
+ * `postQualificationMOQ` is a non-null Int where 1 is the "no minimum"
+ * sentinel (opening-order-sync emits `quantity: null` for <= 1), so a
+ * saved value is only meaningful once the mode turns the leg on.
+ */
+function formatPostQualification(
+  shop: {
+    postQualificationMode: string;
+    postQualificationMinAmount: number | null;
+    postQualificationMOQ: number;
+    postQualificationCombinedLogic: string;
+  },
+  money: MoneyFormatter,
+): string {
+  const { postQualificationMode: mode } = shop;
+  if (mode === "none") return "Disabled";
+  if (mode === "amount")
+    return `Every order ≥ ${money(shop.postQualificationMinAmount ?? "?")}`;
+  if (mode === "quantity")
+    return `Every order ≥ ${shop.postQualificationMOQ} units`;
+  if (mode === "combined")
+    return `${money(shop.postQualificationMinAmount ?? "?")} ${shop.postQualificationCombinedLogic.toUpperCase()} ${shop.postQualificationMOQ} units`;
+  // Unknown mode written by a future version — say so instead of
+  // implying a gate that this build cannot describe.
+  return "Disabled";
 }
 
 /**
@@ -544,7 +655,8 @@ function formatCustomerEligibility(value: string | null | undefined): string {
 /**
  * Render the flat "Discount" column for a wholesale rule. A wholesale
  * rule has a single discount; we read it off the first band. Percentage
- * → "65% off"; fixed amount → "−€10/unit"; fixed price → "€25/unit".
+ * → "65% off"; fixed amount → "−$10/unit"; fixed price → "$25/unit",
+ * with the symbol coming from the store's currency.
  */
 function formatDiscountSummary(
   band:
@@ -555,14 +667,17 @@ function formatDiscountSummary(
         discountFixedPrice: number | null;
       }
     | undefined,
+  money: MoneyFormatter,
 ): string {
   if (!band) return "—";
   if (band.discountType === "fixed_price")
     return band.discountFixedPrice != null
-      ? `€${band.discountFixedPrice}/unit`
+      ? `${money(band.discountFixedPrice)}/unit`
       : "—";
   if (band.discountType === "fixed_amount")
-    return band.discountAmount != null ? `−€${band.discountAmount}/unit` : "—";
+    return band.discountAmount != null
+      ? `−${money(band.discountAmount)}/unit`
+      : "—";
   return band.discountPct > 0 ? `${band.discountPct}% off` : "—";
 }
 

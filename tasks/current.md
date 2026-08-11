@@ -4,7 +4,30 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-09 (**Piro app `stockly-2` deployed; ADR-017 premise change**). Prior 2026-08-05 (**✅ PRODUCTION BACK UP — Hobby plan active,
+**Last updated:** 2026-08-11 (**🎉 STOCKLY LIVE ON PIRO; post-qualification minimums built, not deployed**). Verified: app shows 1 instalación and its wizard renders inside Piro's admin; `verify.sh` green with 137 app tests + 14 fixtures. Full detail: HANDOFF.md 2026-08-11 entry and `progress/2026-08-11-piro-live-and-post-qualification-minimums.md`.
+
+## P0 — needs a decision or Jonatan's go-ahead
+
+- [ ] **Deploy the post-qualification minimums.** Built + reviewed + green,
+  but NOT deployed. Needs BOTH `railway up` (backend + the 3 additive schema
+  columns via `preDeployCommand`) AND `shopify app deploy --config=piro`
+  (the Validation Function). Each through `deployment-guardian`. Migration
+  verified safe by generating the real SQL (3 × `ADD COLUMN`, no
+  `--accept-data-loss` needed); re-run the live-DB drift check first, it's
+  10 seconds.
+- [ ] **THE definitive test: a real B2B checkout on Piro.** No fixture can
+  substitute. It is the only way to confirm cart-level `buyerIdentity.customer.id`
+  is populated (Order data says yes — 12/12 including 3 `PurchasingCompany` —
+  but that's a different API). **Do this before telling Ana the minimum is live.**
+- [ ] **Piro pricing-engine decision (open since June).** Stockly's discount
+  engine vs. the existing −65% Price List. Until decided: configure minimums
+  ONLY, never tiers or baseline, and do NOT complete the onboarding wizard on
+  Piro (its step 2 writes pricing config and syncs it immediately).
+- [ ] **Currency: finish the job.** Fixed on the 2 minimums screens only.
+  ~50 hardcoded `€` remain in `app.volume-pricing.*`, `app.pricing.new`,
+  `app.pricing.$id` and 3 storefront bundles. `Shop` has no currency column.
+
+Prior 2026-08-09 (**Piro app `stockly-2` deployed; ADR-017 premise change**). Prior 2026-08-05 (**✅ PRODUCTION BACK UP — Hobby plan active,
 prod serving 200**). Verified this session, not assumed: Railway GraphQL API
 → `plan: "HOBBY"`, `customer.state: "ACTIVE"`, `isTrialing: false`;
 `railway status` → both services `● Online`; `curl` on prod → `HTTP/2 200`.

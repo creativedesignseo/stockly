@@ -1,0 +1,15 @@
+{
+  "payload": {
+    "export": "cart-validations-generate-run",
+    "target": "cart.validations.generate.run",
+    "input": {
+      "cart": {
+        "cost": { "subtotalAmount": { "amount": "400.00" } },
+        "lines": [{ "quantity": 3 }],
+        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/222" }, "purchasingCompany": null }
+      },
+      "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":500,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"qualifiedCustomers\":[\"gid://shopify/Customer/222\"],\"postQualification\":{\"mode\":\"combined\",\"amount\":150,\"quantity\":6,\"combinedLogic\":\"and\"}}" } }
+    },
+    "output": { "operations": [{ "validationAdd": { "errors": [{ "message": "This order must meet the minimum for wholesale orders.", "target": "$.cart" }] } }] }
+  }
+}
