@@ -6,7 +6,49 @@
 
 **Last updated:** 2026-08-11 (**🎉 STOCKLY LIVE ON PIRO; post-qualification minimums built, not deployed**). Verified: app shows 1 instalación and its wizard renders inside Piro's admin; `verify.sh` green with 137 app tests + 14 fixtures. Full detail: HANDOFF.md 2026-08-11 entry and `progress/2026-08-11-piro-live-and-post-qualification-minimums.md`.
 
-## P0 — the path to a working product (ADR-018)
+## P0 — RESUME HERE: finish the App Store submission
+
+Everything technical is done. What remains is media and pasting text.
+Full detail: `docs/app-store-listing-content.md` (ready-to-paste copy) and
+`docs/app-store-submission-guide.md`.
+
+Form: Partners → Stockly (`409384386561`) → Distribution → Manage submission
+
+- [x] **App Store registration paid** — account now shows "Registrado".
+- [x] **Level 2 protected-customer-data: 16/16 accepted**, all four
+  requirements genuinely met (separation, access log, 2 policies).
+- [x] **Category, 9 capability tags, English** — saved.
+- [ ] **Paste the listing copy.** Introduction, App details, 4 Features —
+  exact text in `docs/app-store-listing-content.md`. Must be typed/pasted by
+  hand; the React form rejects injected values. Avoid "Shopify", "plan",
+  "pricing" in the intro and "right" in the details — the validator flags them.
+- [ ] **Upload the app icon.** Already downloaded and verified at
+  `docs/brand/app-icon-1200.png` (1200×1200, 21 KB). Dev Dashboard → Stockly
+  → Configuración → Ícono de la app.
+- [ ] **Record a screencast** and paste its URL — REQUIRED. 2–3 min:
+  install → buyer submits registration → merchant approves → buyer sees
+  wholesale rates → cart under the minimum is blocked. Suggested script in
+  the submission guide.
+- [ ] **Create a demo store + reviewer credentials** — REQUIRED. **NOT Piro**
+  (live client, real customers). Seed it with realistic products, a wholesale
+  customer and a couple of tiers. No Google SSO, no 2FA.
+- [ ] **4–7 screenshots** with realistic data. Placeholder-looking data is a
+  common rejection cause.
+- [ ] **Legal review** of `/legal/privacy` + `/legal/terms` — outstanding
+  since July. Shopify reads them during review.
+- [ ] **Submit with LIMITED VISIBILITY (unlisted)** — installs by direct URL,
+  not indexed. Still a full review. Budget 3–6 weeks.
+
+### Then, once approved
+- [ ] Swap Railway credentials to the public app, re-enable
+  `customers/update` in `shopify.app.public.toml`, redeploy, reinstall on
+  Piro. **Only then do Piro's minimums actually enforce** — today they are
+  configured ($300 / $100) but inert, because Functions can't run from a
+  custom app on a Basic store.
+- [ ] **The real B2B checkout test on Piro.** Still the one thing no fixture
+  can substitute.
+
+## P1 — carried over (ADR-018 context)
 
 Stockly's two Functions cannot run on any non-Plus store through custom
 distribution, and both existing apps are permanently locked to custom.
