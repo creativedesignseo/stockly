@@ -8,17 +8,32 @@
 
 ## P0 — needs a decision or Jonatan's go-ahead
 
-- [ ] **Deploy the post-qualification minimums.** Built + reviewed + green,
-  but NOT deployed. Needs BOTH `railway up` (backend + the 3 additive schema
-  columns via `preDeployCommand`) AND `shopify app deploy --config=piro`
-  (the Validation Function). Each through `deployment-guardian`. Migration
-  verified safe by generating the real SQL (3 × `ADD COLUMN`, no
-  `--accept-data-loss` needed); re-run the live-DB drift check first, it's
-  10 seconds.
+- [x] **Deploy the post-qualification minimums — DONE 2026-08-11.**
+  `railway up --service stockly` (migration applied: `🚀 Your database is now
+  in sync`) + `shopify app deploy --config=piro` → `stockly-4`. Verified from
+  prod: both shops carry the new columns, `postQualificationMode='none'`.
+  **Shipped OFF** — no store changes behaviour until configured.
+- [x] **🔴 Defuse the armed opening-order landmine on Piro — DONE 2026-08-11.**
+  Piro had `fpqAmount=300` armed, `WholesaleCustomer` empty, and 5
+  wholesale-tagged customers with 67 orders (~$25.8k). The live
+  `customers/update` webhook treats unknown customers as owing a first order,
+  so the next update event would have blocked Piro's best customer (40 orders,
+  $19k) at checkout. Backfilled all 5 as already-qualified; verified 0 pending.
+- [ ] **🔴 FIX THE DESIGN GAP behind that landmine.** The system conflates
+  "approved as wholesale" with "has completed the opening order", and there is
+  **no backfill path in the code**. Piro was rescued by hand; every future
+  install on a store with pre-existing wholesale customers hits the same trap.
+  Fix on install, or prompt the merchant ("5 customers already carry your
+  wholesale tag; mark them as qualified?"). **Highest-value follow-up.**
 - [ ] **THE definitive test: a real B2B checkout on Piro.** No fixture can
-  substitute. It is the only way to confirm cart-level `buyerIdentity.customer.id`
-  is populated (Order data says yes — 12/12 including 3 `PurchasingCompany` —
-  but that's a different API). **Do this before telling Ana the minimum is live.**
+  substitute — they prove the Function's logic against synthetic input, not
+  that Shopify hands it a buyer identifier in a real native-B2B checkout.
+  Order data says the identifier is there (12/12, incl. 3 `PurchasingCompany`)
+  but that is a different API. Method in
+  `progress/2026-08-11-piro-live-and-post-qualification-minimums.md`.
+  **Can no longer be done on the dev store** — `desarrollo-adspubli` was
+  disconnected when credentials moved to the Piro app.
+  **Do this before telling Ana the minimums are live.**
 - [ ] **Piro pricing-engine decision (open since June).** Stockly's discount
   engine vs. the existing −65% Price List. Until decided: configure minimums
   ONLY, never tiers or baseline, and do NOT complete the onboarding wizard on

@@ -182,14 +182,102 @@ downloading javy; the project-local one is already warm.
 
 ---
 
+---
+
+## Part 5 — The armed landmine `deployment-guardian` caught (the most important find)
+
+The pre-deploy gate returned **NO-GO**, and not for a deploy reason. It found
+a defect that was already live and independent of shipping anything.
+
+Verified independently against production before acting:
+
+| Fact | Source |
+|---|---|
+| Piro `fpqMode='amount'`, `fpqAmount=300` | prod DB — deliberately set (schema default is `'none'`) |
+| `WholesaleCustomer` — **0 rows** | prod DB |
+| Piro has 5 customers tagged `wholesale` | Piro Admin API |
+| Their history: 8 / 3 / 14 / **40** / 2 orders = **67 orders, ~$25.8k** | Piro Admin API |
+| `customers/update` live since 13:01 today | this session's `stockly-3` deploy |
+
+`app/routes/webhooks.customers.update.tsx` treats *"not in Stockly's DB"* as
+*"owes their first order"*: unknown customer → `create({ qualifiedAt: null })`
+→ lands in `pendingCustomers` → `syncOpeningOrderValidation` creates the
+Validation with `enable: true`.
+
+Because the table was empty, **all five were "unknown."** The next
+`customers/update` event on any of them — an address edit, a tag change, or
+simply placing an order — would have enrolled them as owing an opening order
+and blocked their next sub-$300 checkout. Piro's best customer, 40 orders and
+$19k in, would have been told *"your first wholesale order must meet the
+opening-order minimum."*
+
+A legitimate sale blocked by design error — exactly what the Function's own
+fail-open golden rule exists to prevent. **There is no backfill path anywhere
+in the code.**
+
+Root cause, and it is a design gap not an accident: the system conflates two
+different states. *"Approved as wholesale"* (has the tag) and *"has completed
+the opening order"* (`qualifiedAt`) are separate, and for an unknown customer
+it assumes the second is false. That inference is correct for a customer
+approved tomorrow and wrong for one approved three years ago. Stockly was
+designed as if it always installs into a store with no wholesale history.
+
+**Defused** by backfilling the 5 as already-qualified — factually correct,
+they have 67 orders between them. Written via Prisma (`WholesaleCustomer.id`
+is `@default(cuid())`, generated client-side, so raw SQL would have to supply
+it). Verified after: 5 rows, **0 pending**. Idempotent by construction — it
+checks for an existing row first, so it cannot overwrite state set by
+Stockly's own approval flow.
+
+The guardian also caught a mechanical error that would have been much worse:
+this directory's Railway link points at the **Postgres** service, so a bare
+`railway up` would have deployed the Remix container over the production
+database. The correct command carries `--service stockly`.
+
+---
+
+## Part 6 — Deployed and verified
+
+1. `railway up --service stockly` — deploy log confirmed the migration ran
+   (`🚀 Your database is now in sync with your Prisma schema`), clean
+   `remix-serve` start, `/healthz` + `/` + `/legal/privacy` all 200.
+2. `npx shopify app deploy --config=piro --allow-updates` → **`stockly-4`**.
+
+Post-deploy state, read back from production:
+
+```
+piroaccessories: fpqMode=amount fpqAmount=300
+                 postQualificationMode=none  minAmount=null  MOQ=1
+Piro wholesale customers: 5 | pending: 0
+```
+
+**The feature shipped OFF.** `postQualificationMode` defaults to `'none'` →
+`evaluateRule` returns `"inactive"`. No store changes behaviour today; nobody
+can be blocked by the recurring minimums until a merchant configures them.
+
+Piro's $300 opening-order gate IS armed but currently bites nobody — with 0
+pending customers it would only affect someone Ana approves from now on.
+
+---
+
 ## Open risks / not done
 
-- **Nothing in Part 4 is deployed or was deployed by the workflow.** It
-  needs BOTH `railway up` (backend + schema columns via preDeployCommand)
-  and `shopify app deploy --config=piro` (the Function), each through
-  `deployment-guardian`.
-- **The definitive B2B checkout test is still pending.** No fixture can
-  substitute for it.
+- **THE definitive B2B checkout test is still pending, and it is the one
+  thing that matters.** The 14 fixtures prove the Function's *logic* against
+  synthetic input; they cannot prove that Shopify hands it a buyer identifier
+  in a real native-B2B checkout. Method: create a test customer on Piro, tag
+  it `wholesale` (the webhook enrols it as pending), log in on the storefront,
+  cart under $300, reach checkout, observe. No purchase needed, abandon the
+  cart, then delete the test customer. **Note this can no longer be done on
+  the dev store** — `desarrollo-adspubli` was disconnected when the
+  credentials moved to the Piro app. Piro is the only store Stockly runs on.
+- **🔴 The design gap from Part 5 is unfixed.** Any future install on a store
+  with pre-existing wholesale customers hits the same trap. Piro was rescued
+  by hand. The app should do this itself on install — or at minimum prompt:
+  *"5 customers already carry your wholesale tag; mark them as qualified?"*
+  This is the highest-value follow-up in this file.
+- **Do not tell the merchant the recurring minimums are live.** They are
+  deployed, not configured.
 - **Currency**: fixed only on the two minimums screens. ~50 more hardcoded
   `€` sites remain in `app.volume-pricing.*`, `app.pricing.new`,
   `app.pricing.$id` and three storefront bundles. `Shop` has no currency
