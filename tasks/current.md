@@ -6,7 +6,33 @@
 
 **Last updated:** 2026-08-11 (**🎉 STOCKLY LIVE ON PIRO; post-qualification minimums built, not deployed**). Verified: app shows 1 instalación and its wizard renders inside Piro's admin; `verify.sh` green with 137 app tests + 14 fixtures. Full detail: HANDOFF.md 2026-08-11 entry and `progress/2026-08-11-piro-live-and-post-qualification-minimums.md`.
 
-## P0 — needs a decision or Jonatan's go-ahead
+## P0 — the path to a working product (ADR-018)
+
+Stockly's two Functions cannot run on any non-Plus store through custom
+distribution, and both existing apps are permanently locked to custom.
+Everything below is the road to unblocking that. Read
+`docs/decisions/ADR-018-functions-require-public-distribution.md` first.
+
+- [ ] **Decide Billing BEFORE anything else — it gates submission.** Shopify
+  App Pricing (GA 2026-05-12) *"replaces both Managed Pricing and the legacy
+  Billing API"*. Stockly built its own Billing API integration (`cf8adf0`,
+  $39/$79/$149). Submitting the legacy approach risks a rejection cycle
+  (+1–2 weeks each). Decide: migrate to App Pricing, or submit as-is.
+- [ ] **Create the THIRD app with PUBLIC distribution.** Irreversible choice —
+  get it right this time. Code carries over unchanged; copy
+  `shopify.app.piro.toml`, change only `client_id` and `name`.
+- [ ] **Prepare the submission materials** (Jonatan's side, paces everything):
+  listing copy, 4–7 screenshots with realistic merchant data, a demo store
+  with reviewer credentials, and the legal review of `/legal/privacy` +
+  `/legal/terms` (outstanding since July).
+- [ ] **Submit with LIMITED VISIBILITY (unlisted).** Not indexed in App Store
+  search; installs by direct URL. Still a full review. Budget 3–6 weeks.
+- [ ] **Stopgap for Piro meanwhile:** keep the theme-level block and add a
+  Shopify Flow workflow that flags/cancels sub-minimum B2B orders. Not
+  elegant (acts after the order) but it is the only unbypassable option on
+  Basic without a public app.
+
+## P0 — carried over
 
 - [x] **Deploy the post-qualification minimums — DONE 2026-08-11.**
   `railway up --service stockly` (migration applied: `🚀 Your database is now
