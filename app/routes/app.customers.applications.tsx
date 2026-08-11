@@ -59,6 +59,7 @@ import {
 } from "../services/wholesale-customers.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
+import { logProtectedDataAccess } from "../services/access-log.server";
 
 /* -------------------------------------------------------------------------- */
 /*                                  LOADER                                    */
@@ -111,6 +112,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           }
         : { tracked: false, met: false, shopifyCustomerId: null },
     };
+  });
+
+  // Protected-customer-data audit trail (Shopify Level 2): the merchant
+  // just read applicant names, emails, phones and tax IDs off the queue.
+  // One row per queue load, subjectRef null because this is a list read
+  // rather than a single-record access. Internally fail-safe.
+  await logProtectedDataAccess({
+    shopId: shop.id,
+    actor: "merchant",
+    action: "read",
+    fields: ["name", "email", "phone", "company", "tax_id", "address"],
+    context: "application.list",
   });
 
   return {
@@ -207,6 +220,14 @@ async function actionImpl(request: Request) {
 
   if (intent === "reject") {
     await markApplicationRejected(shop.id, appId, reviewNote);
+    await logProtectedDataAccess({
+      shopId: shop.id,
+      actor: "merchant",
+      action: "update",
+      subjectRef: appId,
+      fields: ["email"],
+      context: "application.reject",
+    });
     return {
       ok: true as const,
       action: "rejected" as const,
@@ -226,6 +247,14 @@ async function actionImpl(request: Request) {
       } as const;
     }
     await releaseOpeningOrder(shop.id, app.shopifyCustomerId);
+    await logProtectedDataAccess({
+      shopId: shop.id,
+      actor: "merchant",
+      action: "update",
+      subjectRef: app.shopifyCustomerId,
+      fields: ["email"],
+      context: "application.release_opening_order",
+    });
     // Refresh the Validation so this customer drops off the pending list.
     await syncOpeningOrderValidation(admin, shop.id);
     return {
@@ -280,6 +309,14 @@ async function actionImpl(request: Request) {
     if (errs.length > 0) {
       return { ok: false, error: errs[0].message } as const;
     }
+    await logProtectedDataAccess({
+      shopId: shop.id,
+      actor: "merchant",
+      action: "update",
+      subjectRef: app.shopifyCustomerId,
+      fields: ["tax_exempt"],
+      context: "customer.set_tax_exempt",
+    });
     return {
       ok: true as const,
       action: "tax-exempted" as const,
@@ -456,6 +493,19 @@ async function actionImpl(request: Request) {
 
   // (6) Flip application status.
   await markApplicationApproved(shop.id, appId, reviewNote);
+
+  // Protected-customer-data audit trail (Shopify Level 2). Approve is the
+  // heaviest touch in the app: it reads the applicant's identity and pushes
+  // name / email / phone into a Shopify Customer record. Categories only —
+  // never the values. Internally fail-safe.
+  await logProtectedDataAccess({
+    shopId: shop.id,
+    actor: "merchant",
+    action: "update",
+    subjectRef: shopifyCustomerId,
+    fields: ["name", "email", "phone", "company", "tax_id"],
+    context: "application.approve",
+  });
 
   // (7) Re-sync the Discount Function's metafield so the new customer's
   //     GID lands in `qualifiedCustomers` immediately — otherwise the

@@ -35,6 +35,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { logProtectedDataAccess } from "../services/access-log.server";
 
 interface CustomerDataRequestPayload {
   shop_id?: number;
@@ -100,6 +101,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       applicationIds: applications.map((a) => a.id),
     }),
   );
+
+  // Durable audit trail (Shopify Level 2 protected customer data). The
+  // console log above is retained only as long as the host keeps it; this
+  // row is the record that survives. subjectRef is the Shopify customer id
+  // when Shopify supplied one — never the email, which is personal data.
+  // Internally fail-safe: a logging failure must not stop us acking 200.
+  await logProtectedDataAccess({
+    shopId: shop,
+    actor: "webhook",
+    action: "export",
+    subjectRef: customerId,
+    fields: ["name", "email", "phone", "company", "tax_id", "address"],
+    context: "gdpr.data_request",
+  });
 
   return new Response();
 };

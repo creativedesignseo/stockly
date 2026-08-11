@@ -43,6 +43,7 @@ import {
   applyPerShopLimiter,
   clientIpFrom,
 } from "../lib/rate-limit.server";
+import { logProtectedDataAccess } from "../services/access-log.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   if (request.method !== "POST") {
@@ -181,6 +182,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // flow until Phase 1F lands.
     const app = await submitApplication(input);
 
+    // Protected-customer-data audit trail (Shopify Level 2). Categories
+    // only — never the submitted values. Internally fail-safe: a logging
+    // failure must not turn a successful submission into a 500.
+    await logProtectedDataAccess({
+      shopId: shopRow.id,
+      actor: "storefront",
+      action: "create",
+      subjectRef: app.id,
+      fields: submittedFieldCategories(input),
+      context: "application.submit",
+    });
+
     // RF Phase 1C — dual write into the new generic Application
     // table. Non-blocking from the storefront's perspective: if this
     // fails we still return 201 because the legacy write succeeded.
@@ -232,6 +245,32 @@ function corsHeaders() {
   return {
     "Content-Type": "application/json; charset=utf-8",
   };
+}
+
+/**
+ * Map a submission to the protected-data field CATEGORIES it carried.
+ *
+ * Returns category names only ("email", "phone"), never the values — the
+ * access log must stay free of personal data so it survives a redaction
+ * request intact. See `app/services/access-log.server.ts`.
+ */
+function submittedFieldCategories(submission: {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  companyName?: string;
+  taxId?: string;
+  country?: string;
+}): string[] {
+  const categories: string[] = [];
+  if (submission.email) categories.push("email");
+  if (submission.firstName || submission.lastName) categories.push("name");
+  if (submission.phone) categories.push("phone");
+  if (submission.companyName) categories.push("company");
+  if (submission.taxId) categories.push("tax_id");
+  if (submission.country) categories.push("address");
+  return categories;
 }
 
 // No default export — resource route (loader+action only).

@@ -19,6 +19,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
+import { logProtectedDataAccess } from "../services/access-log.server";
 
 interface CustomersUpdatePayload {
   id?: number;
@@ -88,6 +89,19 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       qualifiedAt: null,
       notes: "Auto-detected via customers/update webhook (external approval)",
     },
+  });
+
+  // Protected-customer-data audit trail (Shopify Level 2). `tags` is the
+  // only field of the customer payload this handler reads or acts on — the
+  // name / email / phone Shopify also sends are deliberately ignored and
+  // never persisted, so they are not listed here. Internally fail-safe.
+  await logProtectedDataAccess({
+    shopId: shopRow.id,
+    actor: "webhook",
+    action: "update",
+    subjectRef: customerId,
+    fields: ["tags"],
+    context: "customer.update_enrolled",
   });
 
   // Push the updated pending-customers list to the Validation Function's

@@ -28,6 +28,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { logProtectedDataAccess } from "../services/access-log.server";
 
 interface CustomersRedactPayload {
   shop_id?: number;
@@ -87,6 +88,20 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       deletedApplications: deletedApps.count,
     }),
   );
+
+  // Durable audit trail (Shopify Level 2 protected customer data). Proof
+  // that the redaction was carried out, kept AFTER the personal data is
+  // gone — which is exactly why the log stores categories and an opaque
+  // id, never values. When Shopify sent no customer id we leave subjectRef
+  // null rather than falling back to the email. Internally fail-safe.
+  await logProtectedDataAccess({
+    shopId: shop,
+    actor: "webhook",
+    action: "delete",
+    subjectRef: customerId,
+    fields: ["name", "email", "phone", "company", "tax_id", "address"],
+    context: "gdpr.customers_redact",
+  });
 
   return new Response();
 };

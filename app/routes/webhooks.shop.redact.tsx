@@ -28,6 +28,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { logProtectedDataAccess } from "../services/access-log.server";
 
 interface ShopRedactPayload {
   shop_id?: number;
@@ -52,6 +53,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       { authenticatedShop: shop, payloadShopDomain: p.shop_domain },
     );
   }
+
+  // Audit trail (Shopify Level 2 protected customer data) — written BEFORE
+  // the deletion, because it references the Shop row we are about to drop.
+  //
+  // This entry cascade-deletes together with the Shop (onDelete: Cascade),
+  // so it does NOT survive this request. That is correct and intended:
+  // shop/redact means nothing about this shop should remain, including its
+  // audit trail. The durable record of the redaction is the structured
+  // console log below, which lives in the host's logs, not our database.
+  // Do not "fix" this by decoupling the FK.
+  await logProtectedDataAccess({
+    shopId: shop,
+    actor: "webhook",
+    action: "delete",
+    subjectRef: null,
+    fields: ["name", "email", "phone", "company", "tax_id", "address"],
+    context: "gdpr.shop_redact",
+  });
 
   // Hard delete in a transaction. Session rows aren't cascaded by
   // the schema (Session.shop is a String, not a FK) so we delete

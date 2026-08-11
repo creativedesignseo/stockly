@@ -139,6 +139,12 @@ model Shop {
   /// Both tables coexist during the soak window (Phase 1A–1F); the
   /// legacy table is dropped in Phase 1G.
   formApplications     Application[]
+
+  /// Audit trail of every touch on protected customer data. Required by
+  /// Shopify's Level 2 protected-customer-data rules ("Keep an access
+  /// log to protected customer data"). Cascades on shop deletion —
+  /// intended: nothing about a redacted shop survives.
+  protectedDataAccessLogs ProtectedDataAccessLog[]
 }
 
 /// Volume pricing tier. `scope` is one of 'product' | 'collection' | 'all'.
@@ -468,4 +474,48 @@ model OnboardingResponse {
   completedAt   DateTime @default(now())
 
   @@index([shopId, step])
+}
+
+// ---------------------------------------------------------------------------
+// Protected customer data access log (Shopify Level 2 requirement)
+// ---------------------------------------------------------------------------
+
+/// Append-only audit trail: one row per touch on protected customer data.
+/// Closes Shopify's Level 2 protected-customer-data requirement "Keep an
+/// access log to protected customer data"
+/// (https://shopify.dev/docs/apps/launch/protected-customer-data), a hard
+/// blocker for App Store submission.
+///
+/// CONTRACT — this table NEVER stores personal data itself. `fields` holds
+/// field CATEGORIES ("email", "phone"), never values. `subjectRef` holds an
+/// opaque record id, never a name or an address. That is what makes the log
+/// safe to retain after a customers/redact request: the personal data is
+/// gone, the fact that it was accessed is not.
+///
+/// Written exclusively through `logProtectedDataAccess` in
+/// `app/services/access-log.server.ts`, which is fail-safe by design — an
+/// audit-log write must never block a merchant action or a storefront
+/// submission.
+model ProtectedDataAccessLog {
+  id         String   @id @default(cuid())
+  shopId     String
+  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  /// Who triggered it: "merchant" (admin UI), "storefront" (customer's own
+  /// submission), "webhook" (Shopify-initiated), "system" (background sync).
+  actor      String
+  /// What happened: "create" | "read" | "update" | "delete" | "export"
+  action     String
+  /// Which record. Shopify customer id when known, else the local
+  /// Application id. NEVER personal data itself.
+  subjectRef String?
+  /// Comma-separated field categories touched, e.g. "name,email,phone".
+  /// Categories only — never the values.
+  fields     String?
+  /// Short machine-readable context, e.g. "application.approve".
+  context    String?
+
+  @@index([shopId, createdAt])
+  @@index([shopId, subjectRef])
 }
