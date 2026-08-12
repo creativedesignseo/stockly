@@ -1,0 +1,42 @@
+# What `railway up` must NOT upload.
+#
+# Railway tars the working directory and uploads it before building.
+# Without this file the upload includes every untracked local asset,
+# which is how deploys started timing out mid-upload on 2026-08-12:
+# Promo/ alone was 851 MB of screencast footage. None of it is needed
+# to build or run the app.
+
+# Local marketing / screencast assets
+Promo
+
+# Knowledge-graph output (context repo material, not app code)
+graphify-out
+
+# Build & cache artifacts — rebuilt on the server
+node_modules
+build
+.cache
+
+# Secrets: Railway injects these as service variables
+.env
+.env.*
+!.env.example
+
+# VCS, tooling, docs
+.git
+.github
+.claude
+.vscode
+.idea
+docs
+progress
+*.md
+!package.json
+
+# Local DB artifacts
+prisma/dev.sqlite
+prisma/dev.sqlite-journal
+prisma/migrations.sqlite-archive
+
+# OS junk
+.DS_Store

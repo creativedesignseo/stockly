@@ -39,3 +39,9 @@ docs
 
 # Explicitly DO NOT ignore .npmrc — required for `npm ci --legacy-peer-deps`.
 !.npmrc
+
+# Local marketing / screencast assets (851 MB as of 2026-08-12) and the
+# knowledge-graph output. Neither belongs in the image, and leaving them
+# out of the build context is what unblocked `railway up`.
+Promo
+graphify-out
