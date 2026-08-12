@@ -1,0 +1,45 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base
+  title="You're on the list — Stockly"
+  description="Thanks for joining the Stockly early access list."
+  noindex={true}
+>
+  <Nav />
+
+  <main id="main" class="on-ink bg-ink flex min-h-screen items-center text-white">
+    <div class="shell py-32">
+      <div class="max-w-xl">
+        <span
+          class="bg-lime text-ink inline-flex h-12 w-12 items-center justify-center rounded-full"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M5 12.5 10 17.5 19 7"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+        </span>
+
+        <h1 class="text-h2 mt-8 font-semibold text-balance">You're on the list.</h1>
+        <p class="text-lead mt-5 text-white/60 text-pretty">
+          Stockly is in review for the Shopify App Store. The day it opens, you get the install
+          link — one email, nothing else in between.
+        </p>
+
+        <div class="mt-10 flex flex-wrap gap-3">
+          <a href="/" class="btn btn-lime btn-md">Back to the site</a>
+          <a href="/#features" class="btn btn-ghost-ink btn-md">See what's inside</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <Footer />
+</Base>

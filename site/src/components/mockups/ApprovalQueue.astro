@@ -1,0 +1,60 @@
+---
+// Product illustrations, not screenshots. Drawn in HTML/CSS so they stay sharp
+// at any resolution and cost ~1 KB instead of a 200 KB PNG. Every label mirrors
+// a real screen in the app (app/routes/app.customers.applications.tsx).
+const rows = [
+  { name: 'Norrland Supply Co.', email: 'buyers@norrland.se', when: '2 hours ago', state: 'pending' },
+  { name: 'Casa Marés', email: 'compras@casamares.es', when: '5 hours ago', state: 'pending' },
+  { name: 'Atelier Dumont', email: 'achats@dumont.fr', when: 'Yesterday', state: 'approved' },
+  { name: 'Hale & Row', email: 'orders@haleandrow.co.uk', when: '2 days ago', state: 'approved' },
+];
+---
+
+<div class="rounded-card overflow-hidden bg-white text-[#303030] ring-1 ring-[#e4e4e1]">
+  <div class="flex items-center gap-3 border-b border-[#ececea] px-4 py-3">
+    <span class="text-[0.8125rem] font-semibold">Wholesale applications</span>
+    <span
+      class="rounded-full bg-[#fff1d6] px-2 py-0.5 text-[0.6875rem] font-semibold text-[#8a5a00]"
+      >2 pending</span
+    >
+  </div>
+
+  <ul>
+    {
+      rows.map((row) => (
+        <li class="flex items-center gap-3 border-b border-[#f2f2f0] px-4 py-3 last:border-0">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-[0.8125rem] font-medium text-[#303030]">{row.name}</p>
+            <p class="truncate text-[0.75rem] text-[#616161]">{row.email}</p>
+          </div>
+          <span class="hidden text-[0.75rem] whitespace-nowrap text-[#616161] sm:block">
+            {row.when}
+          </span>
+          {row.state === 'pending' ? (
+            <span class="flex gap-1.5">
+              <span class="rounded-md bg-[#303030] px-2.5 py-1 text-[0.75rem] font-medium text-white">
+                Approve
+              </span>
+              <span class="rounded-md px-2.5 py-1 text-[0.75rem] font-medium text-[#616161] ring-1 ring-[#d9d9d6]">
+                Reject
+              </span>
+            </span>
+          ) : (
+            <span class="flex items-center gap-1.5 rounded-full bg-[#e6f5ec] px-2.5 py-1 text-[0.75rem] font-medium text-[#15883b]">
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path
+                  d="M2.5 6.3 4.8 8.6 9.5 3.9"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Tagged
+            </span>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+</div>

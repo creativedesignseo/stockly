@@ -1,0 +1,46 @@
+---
+// Mirrors app/routes/app.volume-pricing.$id.tsx — quantity bands with a
+// discount per band. Percentages are illustrative, the structure is real.
+// Ranges pre-composed as single strings: splitting them across JSX expressions
+// makes the compiler insert whitespace ("12 –47 units").
+const bands = [
+  { range: '12–47 units', off: 20, price: '$19.20' },
+  { range: '48–143 units', off: 30, price: '$16.80' },
+  { range: '144+ units', off: 40, price: '$14.40' },
+];
+---
+
+<div class="rounded-card overflow-hidden bg-white text-[#303030] ring-1 ring-[#e4e4e1]">
+  <div class="border-b border-[#ececea] px-4 py-3">
+    <p class="text-[0.8125rem] font-semibold">Volume pricing — Ceramics collection</p>
+    <p class="mt-0.5 text-[0.75rem] text-[#616161]">Retail $24.00 · applies to 38 products</p>
+  </div>
+
+  <div class="grid grid-cols-[1fr_auto_auto] gap-x-3 px-4 py-2 text-[0.6875rem] font-semibold tracking-wide text-[#616161] uppercase">
+    <span>Quantity</span>
+    <span class="text-right">Discount</span>
+    <span class="text-right">Unit</span>
+  </div>
+
+  {
+    bands.map((band, i) => (
+      <div
+        class={`grid grid-cols-[1fr_auto_auto] items-center gap-x-3 px-4 py-2.5 text-[0.8125rem] ${
+          i === bands.length - 1 ? '' : 'border-b border-[#f2f2f0]'
+        }`}
+      >
+        <span class="text-[#303030]">{band.range}</span>
+        <span class="text-right font-medium text-[#303030]">−{band.off}%</span>
+        <span class="text-right font-semibold text-[#303030] tabular-nums">{band.price}</span>
+      </div>
+    ))
+  }
+
+  <div class="flex items-center gap-2 border-t border-[#ececea] bg-[#fafafa] px-4 py-2.5">
+    <span class="inline-block h-1.5 w-1.5 rounded-full bg-[#15883b]"></span>
+    <span class="text-[0.75rem] text-[#616161]">Live for customers tagged</span>
+    <span class="rounded bg-[#ededed] px-1.5 py-0.5 font-mono text-[0.6875rem] text-[#303030]"
+      >wholesale</span
+    >
+  </div>
+</div>

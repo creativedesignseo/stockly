@@ -1,0 +1,213 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Fonts — self-hosted Inter Variable.
+   Same approach as shopify.com: one variable woff2, preloaded in <head>,
+   font-display:optional so a slow font never shifts the layout.
+   --------------------------------------------------------------------------- */
+@font-face {
+  font-family: 'InterVariable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: optional;
+  src: url('/fonts/inter-variable.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* ---------------------------------------------------------------------------
+   Design tokens.
+   Brand: lime #C6F23E as a sparing accent over a neutral base, ink text on top.
+   Never lime-on-white for text — it fails contrast at every size.
+   --------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'InterVariable', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --color-lime: #c6f23e;
+  --color-lime-bright: #d3f95e;
+  --color-ink: #0b0b0b;
+  --color-ink-soft: #141414;
+  --color-ink-line: #232323;
+
+  --color-paper: #ffffff;
+  --color-paper-soft: #f6f6f4;
+  --color-paper-line: #e4e4e1;
+
+  --color-body: #3f3f42;
+  --color-muted: #6b6b70;
+
+  /* Button tokens — semantic, the way Shopify's brochure Tailwind theme does it
+     (rounded-button / px-button-px / text-button-size). */
+  --radius-button: 9999px;
+  --radius-card: 16px;
+  --radius-panel: 20px;
+
+  --text-display: clamp(2.75rem, 7.2vw, 5.25rem);
+  --text-display--line-height: 0.95;
+  --text-display--letter-spacing: -0.035em;
+
+  --text-h2: clamp(2rem, 4.2vw, 3.25rem);
+  --text-h2--line-height: 1.05;
+  --text-h2--letter-spacing: -0.03em;
+
+  --text-h3: clamp(1.25rem, 2vw, 1.5rem);
+  --text-h3--line-height: 1.2;
+  --text-h3--letter-spacing: -0.02em;
+
+  --text-lead: clamp(1.0625rem, 1.5vw, 1.3125rem);
+  --text-lead--line-height: 1.5;
+
+  --ease-out-brand: cubic-bezier(0.33, 0, 0.67, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* One visible focus ring for the whole site, keyboard-only. */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .on-ink :focus-visible {
+    outline-color: var(--color-lime);
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  /* -------------------------------------------------------------------------
+     Buttons. Full pill (border-radius 9999px) and weight 550, the two details
+     that give Shopify's CTAs their shape. Weight 550 is only reachable because
+     Inter is a variable font.
+     ------------------------------------------------------------------------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    max-width: 100%;
+    border-radius: var(--radius-button);
+    font-weight: 550;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+      background-color 0.15s var(--ease-out-brand),
+      color 0.15s var(--ease-out-brand),
+      transform 0.15s var(--ease-out-brand),
+      box-shadow 0.15s var(--ease-out-brand);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  .btn-sm {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  .btn-md {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9375rem;
+  }
+
+  .btn-lg {
+    padding: 1.0625rem 2rem;
+    font-size: 1.0625rem;
+  }
+
+  /* Ink button — the primary CTA on light backgrounds. */
+  .btn-ink {
+    background: var(--color-ink);
+    color: #fff;
+  }
+  .btn-ink:hover {
+    background: #2a2a2a;
+  }
+
+  /* Lime button — the primary CTA on dark backgrounds. Ink text on lime is
+     the only accessible way to use the brand colour on a control. */
+  .btn-lime {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+  .btn-lime:hover {
+    background: #d3f95e;
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-paper-line);
+  }
+  .btn-outline:hover {
+    box-shadow: inset 0 0 0 1px #c9c9c4;
+    background: var(--color-paper-soft);
+  }
+
+  .btn-ghost-ink {
+    background: transparent;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px #ffffff2e;
+  }
+  .btn-ghost-ink:hover {
+    background: #ffffff12;
+  }
+
+  /* Section rhythm — the generous vertical air that reads as "premium". */
+  .section {
+    padding-block: clamp(4.5rem, 9vw, 8.5rem);
+  }
+
+  .shell {
+    width: 100%;
+    max-width: 76rem;
+    margin-inline: auto;
+    padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 550;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+}

@@ -1,0 +1,51 @@
+---
+// The moment that matters: a cart below the minimum stopped at checkout by a
+// Shopify Validation Function, not by a theme banner a buyer can walk around.
+---
+
+<div class="rounded-card overflow-hidden bg-white text-[#303030] ring-1 ring-[#e4e4e1]">
+  <div class="border-b border-[#ececea] px-4 py-3">
+    <p class="text-[0.8125rem] font-semibold">Checkout</p>
+  </div>
+
+  <div class="space-y-2.5 px-4 pt-4">
+    <div class="flex items-center justify-between text-[0.8125rem]">
+      <span class="text-[#616161]">Subtotal · 6 items</span>
+      <span class="font-medium text-[#303030] tabular-nums">$184.00</span>
+    </div>
+    <div class="flex items-center justify-between text-[0.8125rem]">
+      <span class="text-[#616161]">Wholesale minimum</span>
+      <span class="font-medium text-[#303030] tabular-nums">$300.00</span>
+    </div>
+  </div>
+
+  <div class="mx-4 mt-3.5 flex gap-2.5 rounded-lg bg-[#fff4f4] p-3 ring-1 ring-[#ffd6d6]">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      class="mt-px shrink-0 text-[#c8262b]"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"></circle>
+      <path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
+      <circle cx="8" cy="11.3" r="0.9" fill="currentColor"></circle>
+    </svg>
+    <p class="text-[0.8125rem] leading-snug text-[#8a1c20]">
+      Your first wholesale order must reach <strong class="font-semibold">$300</strong>. Add
+      <strong class="font-semibold">$116.00</strong> to continue.
+    </p>
+  </div>
+
+  <div class="px-4 pt-3.5 pb-4">
+    <div
+      class="rounded-lg bg-[#d9d9d6] py-2.5 text-center text-[0.8125rem] font-semibold text-white"
+    >
+      Pay now
+    </div>
+    <p class="mt-2 text-center text-[0.75rem] text-[#616161]">
+      Blocked at checkout — not in the cart
+    </p>
+  </div>
+</div>

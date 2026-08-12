@@ -1,0 +1,5 @@
+# Legal pages live in the app itself (app/routes/legal.*.tsx) so there is one
+# copy to keep current, not two. These give the marketing domain clean URLs to
+# hand to the Shopify App Store listing.
+/privacy   https://stockly-production-5ccf.up.railway.app/legal/privacy   301
+/terms     https://stockly-production-5ccf.up.railway.app/legal/terms     301

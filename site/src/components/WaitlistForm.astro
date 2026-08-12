@@ -1,0 +1,63 @@
+---
+interface Props {
+  /** Dark hero variant vs light section variant. */
+  tone?: 'ink' | 'paper';
+  id?: string;
+}
+
+const { tone = 'ink', id } = Astro.props;
+const onInk = tone === 'ink';
+
+// Netlify Forms: no JavaScript, no API keys, no backend. The POST is handled
+// by the host and the submission lands in the Netlify dashboard + email.
+// The honeypot field catches the bots that would otherwise fill it.
+---
+
+<form
+  id={id}
+  name="waitlist"
+  method="POST"
+  action="/thanks"
+  data-netlify="true"
+  netlify-honeypot="company-website"
+  class="w-full max-w-md"
+>
+  <input type="hidden" name="form-name" value="waitlist" />
+  <p class="hidden">
+    <label>
+      Leave this field empty
+      <input name="company-website" tabindex="-1" autocomplete="off" />
+    </label>
+  </p>
+
+  <div
+    class={`flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-2 sm:rounded-full sm:p-1.5 ${
+      onInk ? 'sm:bg-white/8 sm:ring-1 sm:ring-white/12' : 'sm:bg-white sm:ring-1 sm:ring-[#e4e4e1]'
+    }`}
+  >
+    <label for={`email-${id ?? tone}`} class="sr-only">Your store email</label>
+    <input
+      id={`email-${id ?? tone}`}
+      type="email"
+      name="email"
+      required
+      autocomplete="email"
+      placeholder="you@yourstore.com"
+      class={`min-w-0 flex-1 rounded-full px-5 py-3.5 text-[0.9375rem] outline-none sm:py-2.5 ${
+        onInk
+          ? 'bg-white/8 text-white ring-1 ring-white/12 placeholder:text-white/50 sm:bg-transparent sm:ring-0'
+          : 'bg-white text-ink ring-1 ring-[#e4e4e1] placeholder:text-[#9a9a9e] sm:ring-0'
+      }`}
+    />
+    <button type="submit" class={`btn btn-md ${onInk ? 'btn-lime' : 'btn-ink'}`}>
+      Get early access
+    </button>
+  </div>
+
+  <p class={`mt-3 text-[0.8125rem] ${onInk ? 'text-white/55' : 'text-muted'}`}>
+    <slot>
+      Stockly is in review for the Shopify App Store. Join the list and you get the
+      install link the day it opens. No spam, one email.
+    </slot>
+  </p>
+</form>

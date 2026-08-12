@@ -1,0 +1,35 @@
+---
+import Logo from './Logo.astro';
+
+const links = [
+  { href: '/#features', label: 'Features' },
+  { href: '/#how', label: 'How it works' },
+  { href: '/#pricing', label: 'Pricing' },
+  { href: '/#faq', label: 'FAQ' },
+];
+---
+
+<header class="on-ink absolute inset-x-0 top-0 z-40">
+  <nav class="shell flex h-20 items-center justify-between" aria-label="Main">
+    <a href="/" class="text-white" aria-label="Stockly — home">
+      <Logo size={22} />
+    </a>
+
+    <ul class="hidden items-center gap-8 md:flex">
+      {
+        links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="text-[0.9375rem] text-white/70 transition-colors hover:text-white"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <a href="#waitlist" class="btn btn-lime btn-sm">Get early access</a>
+  </nav>
+</header>

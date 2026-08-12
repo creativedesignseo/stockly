@@ -1,0 +1,38 @@
+---
+// Mirrors extensions/quick-order-form — a buyer types SKUs and quantities
+// instead of walking the catalogue one product page at a time.
+const lines = [
+  { sku: 'CER-BWL-08', name: 'Stoneware bowl · Ash', qty: 48, total: '$806.40' },
+  { sku: 'CER-MUG-12', name: 'Ribbed mug · Clay', qty: 144, total: '$1,728.00' },
+  { sku: 'CER-PLT-10', name: 'Dinner plate · Ash', qty: 24, total: '$460.80' },
+];
+---
+
+<div class="rounded-card overflow-hidden bg-white text-[#303030] ring-1 ring-[#e4e4e1]">
+  <div class="border-b border-[#ececea] px-4 py-3">
+    <p class="text-[0.8125rem] font-semibold">Quick order</p>
+    <p class="mt-0.5 text-[0.75rem] text-[#616161]">Type a SKU, set a quantity, repeat.</p>
+  </div>
+
+  {
+    lines.map((line) => (
+      <div class="flex items-center gap-3 border-b border-[#f2f2f0] px-4 py-2.5">
+        <div class="min-w-0 flex-1">
+          <p class="truncate font-mono text-[0.75rem] text-[#616161]">{line.sku}</p>
+          <p class="truncate text-[0.8125rem] text-[#303030]">{line.name}</p>
+        </div>
+        <span class="rounded-md px-2 py-1 text-[0.8125rem] font-medium text-[#303030] ring-1 ring-[#d9d9d6] tabular-nums">
+          {line.qty}
+        </span>
+        <span class="w-20 text-right text-[0.8125rem] font-semibold text-[#303030] tabular-nums">
+          {line.total}
+        </span>
+      </div>
+    ))
+  }
+
+  <div class="flex items-center justify-between bg-[#fafafa] px-4 py-3">
+    <span class="text-[0.8125rem] text-[#616161]">216 units</span>
+    <span class="text-[0.9375rem] font-semibold text-[#303030] tabular-nums">$2,995.20</span>
+  </div>
+</div>
