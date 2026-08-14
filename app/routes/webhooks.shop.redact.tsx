@@ -26,8 +26,8 @@
  */
 import type { ActionFunctionArgs } from "@remix-run/node";
 
-import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { authenticateWebhook } from "../lib/webhook-auth.server";
 import { logProtectedDataAccess } from "../services/access-log.server";
 
 interface ShopRedactPayload {
@@ -36,7 +36,9 @@ interface ShopRedactPayload {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, payload, topic } = await authenticate.webhook(request);
+  // See app/lib/webhook-auth.server.ts: the SDK 500s here when the offline
+  // token cannot be refreshed, which is the normal state 48h after uninstall.
+  const { shop, payload, topic } = await authenticateWebhook(request);
   // eslint-disable-next-line no-console
   console.log(`[Stockly GDPR] ${topic} received for ${shop}`);
 

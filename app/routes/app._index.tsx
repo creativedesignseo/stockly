@@ -219,7 +219,17 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       where: { shopId: shop.id, status: "active" },
     }),
     detectStocklyEmbedEnabled(admin),
-    checkActiveSubscription(billing),
+    // Never let a billing hiccup blank the home page. `billing.check` is a
+    // live GraphQL call — a stale token, throttling or a Shopify blip would
+    // reject the whole loader and render Remix's bare "Application Error"
+    // inside the admin iframe, for a soft-gate that blocks nothing.
+    checkActiveSubscription(billing).catch((error) => {
+      console.error(
+        "[Stockly dashboard] billing check failed; rendering without it",
+        error instanceof Error ? error.message : String(error),
+      );
+      return null;
+    }),
   ]);
 
   return {
@@ -234,7 +244,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       pricingDone: shop.wholesaleBaselinePct > 0 || activeTiers > 0,
       formDone: activeForms > 0,
       embedEnabled,
-      billingDone: subscription.hasActivePayment,
+      // `subscription` is null when the billing check failed. The two uses
+      // below fall back in OPPOSITE directions on purpose: don't tick the
+      // setup step we could not confirm, and don't accuse the merchant of
+      // not paying because our own call broke.
+      billingDone: subscription?.hasActivePayment ?? false,
       // Steps the merchant marked done by hand — a step is "done" if it is
       // auto-detected OR present here. Lets them override detection and
       // complete steps that have no auto-detection (e.g. the QOF).
@@ -243,7 +257,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // Soft-gate banner input (ADR-008 billing plumbing): the dashboard
     // renders a dismissible warning Banner when there's no active/trialing
     // subscription. Never a hard redirect — see billing.server.ts docblock.
-    hasActiveSubscription: subscription.hasActivePayment,
+    hasActiveSubscription: subscription?.hasActivePayment ?? true,
   };
 };
 

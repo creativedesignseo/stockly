@@ -93,10 +93,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // page) rather than returning — it never resolves normally. The cast
   // is safe: the guard above already confirmed `plan` is one of the 3
   // known plan names.
+  // returnUrl MUST be absolute. Shopify binds it to a `URL!` GraphQL scalar,
+  // which is an RFC-3986 absolute URI — a bare path fails variable coercion
+  // and `billing.request` throws instead of redirecting, so the merchant
+  // clicking "Start trial" gets a 500. Never shipped as a relative path again.
+  const appUrl = (process.env.SHOPIFY_APP_URL ?? "").replace(/\/+$/, "");
   return billing.request({
     plan: plan as BillingPlanName,
     isTest: isTestBillingEnvironment(),
-    returnUrl: "/app/billing",
+    returnUrl: `${appUrl}/app/billing`,
   });
 };
 

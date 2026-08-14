@@ -1,18 +1,24 @@
 import type { ActionFunctionArgs } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { authenticateWebhook } from "../lib/webhook-auth.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, session, topic } = await authenticate.webhook(request);
+  // Deliberately NOT `authenticate.webhook` — see app/lib/webhook-auth.server.ts.
+  // Uninstall revokes the grant, so the SDK's offline-token refresh fails and
+  // it throws a silent 500 before this handler ever runs.
+  const { shop, session, topic } = await authenticateWebhook(request);
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
   try {
-    // Webhook requests can trigger multiple times and after an app has already been uninstalled.
-    // If this webhook already ran, the session may have been deleted previously.
-    if (session) {
-      await db.session.deleteMany({ where: { shop } });
-    }
+    // Delete unconditionally rather than `if (session)`. `deleteMany` is
+    // already idempotent — a repeat delivery is a no-op, not an error — and
+    // gating on `session` meant the rows survived in exactly the case that
+    // matters: when the SDK could not load or refresh the session, which is
+    // the normal state at uninstall. That is how the reviewer's sessions were
+    // still in the database a day later.
+    void session;
+    await db.session.deleteMany({ where: { shop } });
   } catch (error) {
     // A 5xx is the correct answer here — it tells Shopify to retry, which is
     // what we want for a transient failure. What was missing is the reason.

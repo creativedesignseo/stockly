@@ -33,8 +33,8 @@
  */
 import type { ActionFunctionArgs } from "@remix-run/node";
 
-import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { authenticateWebhook } from "../lib/webhook-auth.server";
 import { logProtectedDataAccess } from "../services/access-log.server";
 
 interface CustomerDataRequestPayload {
@@ -50,7 +50,7 @@ interface CustomerDataRequestPayload {
 }
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { shop, payload, topic } = await authenticate.webhook(request);
+  const { shop, payload, topic } = await authenticateWebhook(request);
   // eslint-disable-next-line no-console
   console.log(`[Stockly GDPR] ${topic} received for ${shop}`);
 

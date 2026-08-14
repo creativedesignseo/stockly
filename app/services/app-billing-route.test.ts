@@ -70,6 +70,7 @@ afterEach(() => {
 describe("/app/billing action — intent=subscribe", () => {
   it("calls billing.request with the submitted plan name", async () => {
     process.env.NODE_ENV = "development";
+    process.env.SHOPIFY_APP_URL = "https://example.test";
     billingRequestMock.mockResolvedValue(undefined);
 
     await action({
@@ -80,7 +81,12 @@ describe("/app/billing action — intent=subscribe", () => {
 
     expect(billingRequestMock).toHaveBeenCalledTimes(1);
     expect(billingRequestMock).toHaveBeenCalledWith(
-      expect.objectContaining({ plan: GROWTH_PLAN, returnUrl: "/app/billing" }),
+      expect.objectContaining({
+        plan: GROWTH_PLAN,
+        // Absolute, not "/app/billing". Shopify's URL scalar rejects a bare
+        // path, which made the subscribe button throw instead of redirect.
+        returnUrl: "https://example.test/app/billing",
+      }),
     );
   });
 
