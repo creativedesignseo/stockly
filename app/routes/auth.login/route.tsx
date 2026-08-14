@@ -1,15 +1,30 @@
-import { useState } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+/**
+ * Fallback entry point when a request reaches the app without Shopify's
+ * auth context.
+ *
+ * App Store requirement 2.3.1: *"Your app must not request the manual entry
+ * of a myshopify.com URL or a shop's domain during the installation or
+ * configuration flow."* The Remix template ships this route with a
+ * "Shop domain" text field and a Log in button — a well-known rejection
+ * cause. It is gone.
+ *
+ * Nothing is lost by removing it. Every legitimate arrival carries a
+ * `shop`: an App Store install, an admin link, and the recovery redirect
+ * below all do. `login(request)` sees that param in the loader and starts
+ * OAuth on its own, so the form was only ever reachable by someone typing
+ * a domain by hand — exactly the flow the requirement prohibits. What
+ * renders now is a dead end that tells the merchant where to go instead.
+ */
+import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, useActionData, useLoaderData } from "@remix-run/react";
+import { useLoaderData } from "@remix-run/react";
 import {
   AppProvider as PolarisAppProvider,
-  Button,
   Card,
-  FormLayout,
+  Layout,
   Page,
   Text,
-  TextField,
+  BlockStack,
 } from "@shopify/polaris";
 import polarisTranslations from "@shopify/polaris/locales/en.json";
 import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
@@ -23,8 +38,6 @@ import {
   readShopCookie,
   shopFromReferer,
 } from "../../lib/shop-cookie.server";
-
-import { loginErrorMessage } from "./error.server";
 
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
@@ -58,11 +71,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // When a merchant refreshes a deep admin route (e.g.
   // /app/customers/applications) the iframe reloads without Shopify's
   // search params, authenticate.admin() can't recover, and the SDK
-  // redirects us here. Before falling back to the boilerplate "Log in"
-  // form, try to recover the shop from the Referer header or our
-  // long-lived "last shop" cookie, then redirect through `/` so the
-  // root loader can re-bootstrap (which triggers a fresh id_token
-  // exchange via App Bridge — no manual login needed).
+  // redirects us here. Recover the shop from the Referer header or our
+  // long-lived "last shop" cookie, then redirect through `/` so the root
+  // loader can re-bootstrap (which triggers a fresh id_token exchange via
+  // App Bridge — no manual login needed).
   //
   // The recovery is attempted AT MOST ONCE per short window. `/app` only
   // resolves this if it can authenticate the shop; when it cannot (no
@@ -82,53 +94,45 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     });
   }
 
-  const errors = loginErrorMessage(await login(request));
+  // With a `shop` present this starts OAuth and never returns a value.
+  // Without one there is nothing to authenticate, and we fall through to
+  // the informational page below.
+  await login(request);
 
   // Clear the guard on the way out so a later genuine refresh — one where
   // the session does exist — still gets its single recovery attempt.
   return json(
-    { errors, polarisTranslations },
+    { polarisTranslations },
     looping ? { headers: { "Set-Cookie": clearRecoveryGuardCookie() } } : undefined,
   );
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const errors = loginErrorMessage(await login(request));
-
-  return {
-    errors,
-  };
-};
-
 export default function Auth() {
-  const loaderData = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
-  const [shop, setShop] = useState("");
-  const { errors } = actionData || loaderData;
+  const { polarisTranslations: translations } = useLoaderData<typeof loader>();
 
   return (
-    <PolarisAppProvider i18n={loaderData.polarisTranslations}>
+    <PolarisAppProvider i18n={translations}>
       <Page>
-        <Card>
-          <Form method="post">
-            <FormLayout>
-              <Text variant="headingMd" as="h2">
-                Log in
-              </Text>
-              <TextField
-                type="text"
-                name="shop"
-                label="Shop domain"
-                helpText="example.myshopify.com"
-                value={shop}
-                onChange={setShop}
-                autoComplete="on"
-                error={errors.shop}
-              />
-              <Button submit>Log in</Button>
-            </FormLayout>
-          </Form>
-        </Card>
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="300">
+                <Text variant="headingMd" as="h2">
+                  Open Stockly from your Shopify admin
+                </Text>
+                <Text as="p" variant="bodyMd">
+                  Stockly runs inside the Shopify admin. Open it from
+                  Settings &rsaquo; Apps and sales channels, or from the Apps
+                  menu in your admin sidebar.
+                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  If you have not installed Stockly yet, install it from its
+                  Shopify App Store listing.
+                </Text>
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        </Layout>
       </Page>
     </PolarisAppProvider>
   );
