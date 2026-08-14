@@ -81,10 +81,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // `deleteMany` on Shop is used (instead of `delete`) so the call
   // is idempotent: if shop/redact arrives twice (Shopify can retry),
   // the second call is a no-op instead of a P2025 error.
-  const [deletedSessions, deletedShops] = await prisma.$transaction([
-    prisma.session.deleteMany({ where: { shop } }),
-    prisma.shop.deleteMany({ where: { id: shop } }),
-  ]);
+  let deletedSessions: { count: number };
+  let deletedShops: { count: number };
+  try {
+    [deletedSessions, deletedShops] = await prisma.$transaction([
+      prisma.session.deleteMany({ where: { shop } }),
+      prisma.shop.deleteMany({ where: { id: shop } }),
+    ]);
+  } catch (error) {
+    // Rethrow so Shopify retries — but say why first. On 2026-08-13 this
+    // returned a silent 500 eighteen times for a reviewer's store; Shopify
+    // exhausted its retries and the shop's data survived a redaction request,
+    // which is a GDPR failure we only found by reading the database by hand.
+    // If this fires again, the reason must be in the logs.
+    console.error(
+      "[Stockly GDPR shop/redact] DELETION FAILED",
+      JSON.stringify({
+        shop,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
+    );
+    throw error;
+  }
 
   // eslint-disable-next-line no-console
   console.log(

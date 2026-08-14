@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { redirect } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
 import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import {
   AppProvider as PolarisAppProvider,
@@ -16,6 +16,9 @@ import polarisStyles from "@shopify/polaris/build/esm/styles.css?url";
 
 import { login } from "../../shopify.server";
 import {
+  buildRecoveryGuardCookie,
+  clearRecoveryGuardCookie,
+  hasRecoveryGuard,
   isValidShopDomain,
   readShopCookie,
   shopFromReferer,
@@ -60,17 +63,33 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // long-lived "last shop" cookie, then redirect through `/` so the
   // root loader can re-bootstrap (which triggers a fresh id_token
   // exchange via App Bridge — no manual login needed).
+  //
+  // The recovery is attempted AT MOST ONCE per short window. `/app` only
+  // resolves this if it can authenticate the shop; when it cannot (no
+  // session — e.g. a store that never finished installing) it redirects
+  // back here and the three hops become an infinite loop. A Shopify
+  // reviewer hit exactly that on 2026-08-13. The guard cookie makes the
+  // second arrival fall through to the page instead of redirecting again.
   const url = new URL(request.url);
   const hint = resolveShopHint(request);
-  if (hint && !url.searchParams.get("shop")) {
+  const looping = hasRecoveryGuard(request);
+
+  if (hint && !url.searchParams.get("shop") && !looping) {
     const params = new URLSearchParams(url.searchParams);
     params.set("shop", hint);
-    throw redirect(`/?${params.toString()}`);
+    throw redirect(`/?${params.toString()}`, {
+      headers: { "Set-Cookie": buildRecoveryGuardCookie() },
+    });
   }
 
   const errors = loginErrorMessage(await login(request));
 
-  return { errors, polarisTranslations };
+  // Clear the guard on the way out so a later genuine refresh — one where
+  // the session does exist — still gets its single recovery attempt.
+  return json(
+    { errors, polarisTranslations },
+    looping ? { headers: { "Set-Cookie": clearRecoveryGuardCookie() } } : undefined,
+  );
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {

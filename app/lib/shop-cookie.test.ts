@@ -5,7 +5,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildRecoveryGuardCookie,
   buildShopCookie,
+  clearRecoveryGuardCookie,
+  hasRecoveryGuard,
   isValidShopDomain,
   readShopCookie,
   shopFromReferer,
@@ -120,5 +123,48 @@ describe("shopFromReferer", () => {
     expect(shopFromReferer(null)).toBeNull();
     expect(shopFromReferer("")).toBeNull();
     expect(shopFromReferer("not a url")).toBeNull();
+  });
+});
+
+describe("recovery loop guard", () => {
+  const req = (cookie?: string) =>
+    new Request("https://example.com/auth/login", {
+      headers: cookie ? { cookie } : {},
+    });
+
+  it("is not armed on a first visit", () => {
+    expect(hasRecoveryGuard(req())).toBe(false);
+    expect(hasRecoveryGuard(req("stockly_last_shop=a.myshopify.com"))).toBe(false);
+  });
+
+  it("is armed once the guard cookie is present", () => {
+    expect(hasRecoveryGuard(req(buildRecoveryGuardCookie().split(";")[0]))).toBe(true);
+  });
+
+  it("survives alongside other cookies", () => {
+    const header = `stockly_last_shop=a.myshopify.com; ${
+      buildRecoveryGuardCookie().split(";")[0]
+    }; other=1`;
+    expect(hasRecoveryGuard(req(header))).toBe(true);
+  });
+
+  it("expires quickly — a stale guard must not block a genuine recovery", () => {
+    const maxAge = Number(
+      /Max-Age=(\d+)/.exec(buildRecoveryGuardCookie())?.[1] ?? NaN,
+    );
+    expect(maxAge).toBeGreaterThan(0);
+    expect(maxAge).toBeLessThanOrEqual(60);
+  });
+
+  it("clearing sets Max-Age=0 so the next real refresh gets its attempt", () => {
+    expect(clearRecoveryGuardCookie()).toMatch(/Max-Age=0/);
+  });
+
+  it("is sent with the attributes an embedded iframe needs", () => {
+    for (const c of [buildRecoveryGuardCookie(), clearRecoveryGuardCookie()]) {
+      expect(c).toMatch(/HttpOnly/);
+      expect(c).toMatch(/Secure/);
+      expect(c).toMatch(/SameSite=None/);
+    }
   });
 });

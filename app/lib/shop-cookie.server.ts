@@ -40,6 +40,25 @@ const COOKIE_NAME = "stockly_last_shop";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 /**
+ * Loop guard for the recovery redirect below.
+ *
+ * The recovery path assumes `/app` can complete authentication once it
+ * receives a `shop`. When it cannot — no session for that shop, which is
+ * exactly the case for a store that never finished install — the chain
+ * becomes a cycle:
+ *
+ *   /auth/login → /?shop=X → /app?shop=X → (auth fails) → /auth/login → …
+ *
+ * Observed in production on 2026-08-13 against a Shopify reviewer's store:
+ * dozens of consecutive 302s and no way out. This cookie makes the recovery
+ * redirect fire at most once per short window; the second arrival renders
+ * the page instead of redirecting again, turning an infinite loop into a
+ * dead end the merchant can actually see.
+ */
+const RECOVERY_COOKIE_NAME = "stockly_auth_recovery";
+const RECOVERY_TTL_SECONDS = 15;
+
+/**
  * Strict Shopify shop-domain validator.
  * Matches `<handle>.myshopify.com` plus the few `*.shop.dev` and
  * `*.spin.dev` variants used in Shopify-internal dev environments.
@@ -88,6 +107,39 @@ export function readShopCookie(request: Request): string | null {
     }
   }
   return null;
+}
+
+/** True when a recovery redirect already fired within the TTL window. */
+export function hasRecoveryGuard(request: Request): boolean {
+  const header = request.headers.get("cookie");
+  if (!header) return false;
+  return header
+    .split(";")
+    .some((raw) => raw.trim().split("=")[0] === RECOVERY_COOKIE_NAME);
+}
+
+/** `Set-Cookie` that arms the guard for one short window. */
+export function buildRecoveryGuardCookie(): string {
+  return [
+    `${RECOVERY_COOKIE_NAME}=1`,
+    "Path=/",
+    `Max-Age=${RECOVERY_TTL_SECONDS}`,
+    "HttpOnly",
+    "Secure",
+    "SameSite=None",
+  ].join("; ");
+}
+
+/** `Set-Cookie` that clears the guard, so a later genuine refresh can recover. */
+export function clearRecoveryGuardCookie(): string {
+  return [
+    `${RECOVERY_COOKIE_NAME}=`,
+    "Path=/",
+    "Max-Age=0",
+    "HttpOnly",
+    "Secure",
+    "SameSite=None",
+  ].join("; ");
 }
 
 /**
