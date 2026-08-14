@@ -173,16 +173,6 @@ export function RegistrationFormList() {
       filteredForms.map((f) => ({ id: f.id })) as { id: string }[],
     );
 
-  const protectBanner = (
-    <Banner tone="info" title="Protect your B2B registration page">
-      <p>
-        Lock the registration page behind a password so only invited
-        buyers can apply. (Coming soon — this is a placeholder for the
-        upcoming page-lock feature.)
-      </p>
-    </Banner>
-  );
-
   /* ----- Empty state — should not happen (default is seeded) ----- */
   if (forms.length === 0) {
     return (
@@ -199,7 +189,6 @@ export function RegistrationFormList() {
               <p>{actionError}</p>
             </Banner>
           )}
-          {protectBanner}
           <Card>
             <EmptyState
               heading="No registration forms yet"
@@ -240,7 +229,6 @@ export function RegistrationFormList() {
             <p>{actionError}</p>
           </Banner>
         )}
-        {protectBanner}
         <Card padding="0">
           <Tabs tabs={tabs} selected={tabIndex} onSelect={onTabSelect} />
           <IndexTable

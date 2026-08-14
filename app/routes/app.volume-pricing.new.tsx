@@ -49,6 +49,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
@@ -65,7 +67,7 @@ import {
 /* -------------------------------------------------------------------------- */
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
+  const { admin, shop } = await authenticateAdmin(request);
   // We need wholesaleBaselinePct to render the Preview card live
   // ("On a €100 retail product, with 55% baseline + this range 10%,
   // wholesale price is …"). Falling back to 0 keeps the math correct
@@ -74,8 +76,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     where: { id: shop.id },
     select: { wholesaleBaselinePct: true },
   });
+  // Every money label on this form (band prefixes, preview) is
+  // rendered in the store's own currency. Fails soft to bare numbers.
+  const currencyCode = await fetchShopCurrencyCode(admin, "volume-pricing.new");
   return json({
     baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
+    currencyCode,
   });
 };
 
@@ -140,12 +146,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     errors.customerEligibility = "Invalid customer eligibility";
   if (customerEligibility === "specific_customers")
     errors.customerEligibility =
-      "Specific customers mode is not available yet (Sprint 5). Pick another option.";
+      "Specific customers mode is not available yet. Pick another option.";
   if (!["all_markets", "specific_markets"].includes(marketEligibility))
     errors.marketEligibility = "Invalid market eligibility";
   if (marketEligibility === "specific_markets")
     errors.marketEligibility =
-      "Specific markets mode is not available yet (Sprint 5). Pick another option.";
+      "Specific markets mode is not available yet. Pick another option.";
 
   if (scope === "variant" && aggregation === "cart_total") {
     errors.aggregation =
@@ -361,7 +367,9 @@ const AGGREGATION_OPTIONS: Array<{
 ];
 
 export default function NewVolumePricing() {
-  const { baselinePct } = useLoaderData<typeof loader>();
+  const { baselinePct, currencyCode } = useLoaderData<typeof loader>();
+  const symbol = currencySymbolFor(currencyCode);
+  const money = moneyFormatterFor(symbol);
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
@@ -563,8 +571,8 @@ export default function NewVolumePricing() {
       : bands
           .map((b) => {
             const v = Number(b.discountValue) || 0;
-            if (b.discountType === "fixed_price") return `€${v}/unit`;
-            if (b.discountType === "fixed_amount") return `−€${v}`;
+            if (b.discountType === "fixed_price") return `${money(v)}/unit`;
+            if (b.discountType === "fixed_amount") return `−${money(v)}`;
             return `${v}%`;
           })
           .join(" · ");
@@ -883,7 +891,7 @@ export default function NewVolumePricing() {
                   <BandRangeTable
                     bands={bands}
                     onChange={setBands}
-                    currency="€"
+                    currency={symbol}
                   />
 
                   {errors.bands && (
@@ -958,15 +966,17 @@ export default function NewVolumePricing() {
                       Preview
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      On a €100 retail product at the deepest range
-                      ({bands.length === 1 ? "the only range" : `range ${bands.length}`}),
-                      what a qualifying customer pays at checkout:
+                      {`On a ${money(100)} retail product at the deepest range (${
+                        bands.length === 1
+                          ? "the only range"
+                          : `range ${bands.length}`
+                      }), what a qualifying customer pays at checkout:`}
                     </Text>
                   </BlockStack>
                   <Divider />
                   <SummaryRow
                     label="Retail price"
-                    value={`€${previewRetail.toFixed(2)}`}
+                    value={money(previewRetail.toFixed(2))}
                   />
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
@@ -986,21 +996,21 @@ export default function NewVolumePricing() {
                     }
                     value={
                       pType === "fixed_price"
-                        ? `€${pValue.toFixed(2)}`
+                        ? money(pValue.toFixed(2))
                         : pType === "fixed_amount"
-                          ? `− €${pValue.toFixed(2)}`
+                          ? `− ${money(pValue.toFixed(2))}`
                           : `× ${(1 - pValue / 100).toFixed(2)}`
                     }
                   />
                   <Divider />
                   <SummaryRow
                     label="Wholesale price"
-                    value={`€${previewWholesale.toFixed(2)}`}
+                    value={money(previewWholesale.toFixed(2))}
                     emphasis
                   />
                   <SummaryRow
                     label="Customer saves"
-                    value={`€${previewSavings.toFixed(2)}`}
+                    value={money(previewSavings.toFixed(2))}
                   />
                 </BlockStack>
               </Card>

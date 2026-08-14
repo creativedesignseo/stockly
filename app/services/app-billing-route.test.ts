@@ -36,7 +36,7 @@ vi.mock("../lib/auth.server", () => ({
 // eslint-disable-next-line import/first
 import { action } from "../routes/app.billing";
 // eslint-disable-next-line import/first
-import { GROWTH_PLAN } from "./billing-plans";
+import { STARTER_PLAN } from "./billing-plans";
 
 function buildRequest(body: Record<string, string>): Request {
   const form = new URLSearchParams(body);
@@ -74,7 +74,7 @@ describe("/app/billing action — intent=subscribe", () => {
     billingRequestMock.mockResolvedValue(undefined);
 
     await action({
-      request: buildRequest({ intent: "subscribe", plan: GROWTH_PLAN }),
+      request: buildRequest({ intent: "subscribe", plan: STARTER_PLAN }),
       params: {},
       context: {},
     } as never);
@@ -82,7 +82,7 @@ describe("/app/billing action — intent=subscribe", () => {
     expect(billingRequestMock).toHaveBeenCalledTimes(1);
     expect(billingRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        plan: GROWTH_PLAN,
+        plan: STARTER_PLAN,
         // Absolute, not "/app/billing". Shopify's URL scalar rejects a bare
         // path, which made the subscribe button throw instead of redirect.
         returnUrl: "https://example.test/app/billing",
@@ -95,7 +95,7 @@ describe("/app/billing action — intent=subscribe", () => {
     billingRequestMock.mockResolvedValue(undefined);
 
     await action({
-      request: buildRequest({ intent: "subscribe", plan: GROWTH_PLAN }),
+      request: buildRequest({ intent: "subscribe", plan: STARTER_PLAN }),
       params: {},
       context: {},
     } as never);
@@ -106,7 +106,7 @@ describe("/app/billing action — intent=subscribe", () => {
 
     process.env.NODE_ENV = "development";
     await action({
-      request: buildRequest({ intent: "subscribe", plan: GROWTH_PLAN }),
+      request: buildRequest({ intent: "subscribe", plan: STARTER_PLAN }),
       params: {},
       context: {},
     } as never);
@@ -133,7 +133,7 @@ describe("/app/billing action — intent=subscribe", () => {
     process.env.NODE_ENV = "development";
 
     const response = (await action({
-      request: buildRequest({ intent: "cancel", plan: GROWTH_PLAN }),
+      request: buildRequest({ intent: "cancel", plan: STARTER_PLAN }),
       params: {},
       context: {},
     } as never)) as Response;

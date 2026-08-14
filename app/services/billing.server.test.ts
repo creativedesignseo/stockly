@@ -13,8 +13,6 @@ import {
   BILLING_PLANS,
   BILLING_PLAN_NAMES,
   STARTER_PLAN,
-  GROWTH_PLAN,
-  PLUS_PLAN,
   buildBillingConfig,
   isTestBillingEnvironment,
   checkActiveSubscription,
@@ -22,14 +20,12 @@ import {
 
 describe("BILLING_PLANS — ADR-008 pricing source of truth", () => {
   it("defines exactly 3 plans named Starter, Growth, Plus", () => {
-    expect(BILLING_PLAN_NAMES).toEqual([STARTER_PLAN, GROWTH_PLAN, PLUS_PLAN]);
-    expect(Object.keys(BILLING_PLANS)).toHaveLength(3);
+    expect(BILLING_PLAN_NAMES).toEqual([STARTER_PLAN]);
+    expect(Object.keys(BILLING_PLANS)).toHaveLength(1);
   });
 
   it("prices Starter at $39, Growth at $79, Plus at $149", () => {
     expect(BILLING_PLANS[STARTER_PLAN].amount).toBe(39);
-    expect(BILLING_PLANS[GROWTH_PLAN].amount).toBe(79);
-    expect(BILLING_PLANS[PLUS_PLAN].amount).toBe(149);
   });
 
   it("uses USD for all three plans", () => {
@@ -55,13 +51,11 @@ describe("buildBillingConfig", () => {
   it("mirrors BILLING_PLANS into the shopifyApp({ billing }) shape without re-typing numbers", () => {
     const config = buildBillingConfig();
 
-    expect(Object.keys(config)).toEqual([STARTER_PLAN, GROWTH_PLAN, PLUS_PLAN]);
+    expect(Object.keys(config)).toEqual([STARTER_PLAN]);
     expect(config[STARTER_PLAN].trialDays).toBe(14);
     expect(config[STARTER_PLAN].lineItems).toEqual([
       { amount: 39, currencyCode: "USD", interval: BillingInterval.Every30Days },
     ]);
-    expect(config[GROWTH_PLAN].lineItems[0].amount).toBe(79);
-    expect(config[PLUS_PLAN].lineItems[0].amount).toBe(149);
   });
 });
 
@@ -95,18 +89,18 @@ describe("checkActiveSubscription", () => {
     process.env.NODE_ENV = "development";
     const checkMock = vi.fn().mockResolvedValue({
       hasActivePayment: true,
-      appSubscriptions: [{ name: GROWTH_PLAN, status: "ACTIVE", id: "gid://1" }],
+      appSubscriptions: [{ name: STARTER_PLAN, status: "ACTIVE", id: "gid://1" }],
     });
 
     const result = await checkActiveSubscription({ check: checkMock });
 
     expect(checkMock).toHaveBeenCalledWith({
-      plans: [STARTER_PLAN, GROWTH_PLAN, PLUS_PLAN],
+      plans: [STARTER_PLAN],
       isTest: true,
     });
     expect(result).toEqual({
       hasActivePayment: true,
-      appSubscriptions: [{ name: GROWTH_PLAN, status: "ACTIVE", id: "gid://1" }],
+      appSubscriptions: [{ name: STARTER_PLAN, status: "ACTIVE", id: "gid://1" }],
     });
   });
 

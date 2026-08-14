@@ -301,7 +301,7 @@ export default function Dashboard() {
   return (
     <Page
       title="Dashboard"
-      subtitle={shop.id}
+      subtitle="Wholesale pricing, buyer approvals and order minimums"
       primaryAction={{
         content: "Re-run setup",
         url: "/app/onboarding?force=1",

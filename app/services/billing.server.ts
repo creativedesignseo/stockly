@@ -29,8 +29,6 @@ import {
 
 export {
   STARTER_PLAN,
-  GROWTH_PLAN,
-  PLUS_PLAN,
   BILLING_PLAN_NAMES,
   BILLING_PLANS,
   type BillingPlanName,

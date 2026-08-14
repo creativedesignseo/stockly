@@ -57,9 +57,10 @@ import {
   Select,
 } from "@shopify/polaris";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
@@ -83,44 +84,9 @@ const GATE_LOGICS: readonly GateCombinedLogic[] = ["and", "or"];
 /*                                  LOADER                                    */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Read the shop's ISO 4217 currency code from the Admin API.
- *
- * Deliberately NOT stored on the Shop row: a merchant can change their
- * store currency at any time and a cached column would go stale
- * silently. This is a single cheap field on a page the merchant opens
- * rarely.
- *
- * Fails soft: any transport/GraphQL error returns null and the UI falls
- * back to symbol-free amounts. A currency lookup must never take the
- * settings screen down.
- */
-async function fetchShopCurrencyCode(
-  admin: AdminApiContext,
-): Promise<string | null> {
-  try {
-    const response = await admin.graphql(
-      `#graphql
-      query ShopCurrencyCode {
-        shop {
-          currencyCode
-        }
-      }`,
-    );
-    const body = (await response.json()) as {
-      data?: { shop?: { currencyCode?: string | null } | null } | null;
-    };
-    return body.data?.shop?.currencyCode ?? null;
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[settings.pricing] shop currency lookup failed:", err);
-    return null;
-  }
-}
-
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
-  const currencyCode = await fetchShopCurrencyCode(admin);
+  const currencyCode = await fetchShopCurrencyCode(admin, "settings.pricing");
   return json({ shop, currencyCode });
 };
 
@@ -359,28 +325,6 @@ const COMBINED_LOGIC_OPTIONS = [
   { label: "OR — either is enough", value: "or" },
 ];
 
-/**
- * Best-effort currency symbol for an ISO 4217 code, e.g. "USD" → "$".
- *
- * Returns null only when we have no code at all, so callers can render
- * a bare number instead of inventing a symbol. An unrecognised code is
- * echoed back verbatim ("XYZ 100") — still honest, just less pretty.
- */
-function currencySymbolFor(code: string | null): string | null {
-  if (!code) return null;
-  try {
-    const parts = new Intl.NumberFormat("en", {
-      style: "currency",
-      currency: code,
-      currencyDisplay: "narrowSymbol",
-    }).formatToParts(0);
-    return parts.find((part) => part.type === "currency")?.value ?? code;
-  } catch {
-    // Unsupported code or an ICU build without `narrowSymbol`.
-    return code;
-  }
-}
-
 export default function PricingSettings() {
   const { shop, currencyCode } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
@@ -397,8 +341,7 @@ export default function PricingSettings() {
    * hardcoded currency.
    */
   const symbol = currencySymbolFor(currencyCode);
-  const money = (value: string | number) =>
-    symbol ? `${symbol}${value}` : `${value}`;
+  const money = moneyFormatterFor(symbol);
   const currencyHelp = currencyCode
     ? `Amount is in your store's currency (${currencyCode}).`
     : "Amount is in your store's currency.";

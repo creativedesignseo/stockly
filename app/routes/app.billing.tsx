@@ -48,8 +48,6 @@ import {
 import {
   BILLING_PLAN_NAMES,
   BILLING_PLANS,
-  GROWTH_PLAN,
-  PLUS_PLAN,
   STARTER_PLAN,
   type BillingPlanName,
 } from "../services/billing-plans";
@@ -110,20 +108,6 @@ const PLAN_BLURBS: Record<BillingPlanName, string[]> = {
     "Volume tiers (multiplicative pricing)",
     "Wholesale registration form + approval queue",
     "Quick Order Form storefront block",
-  ],
-  [GROWTH_PLAN]: [
-    "Everything in Starter",
-    "Variant-level pricing overrides (coming soon)",
-    "Quantity increments — sets of 3/6/12 (coming soon)",
-    "Max order limits (coming soon)",
-  ],
-  [PLUS_PLAN]: [
-    "Everything in Growth",
-    "Net payment terms — 30/60/90 (coming soon)",
-    "Quote system via Draft Orders (coming soon)",
-    "Manual orders by staff (coming soon)",
-    "Custom fields on orders (coming soon)",
-    "Public APIs (coming soon)",
   ],
 };
 

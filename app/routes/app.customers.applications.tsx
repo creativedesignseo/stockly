@@ -186,11 +186,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         );
         if (accessDenied) {
           message =
-            "Stockly needs 'Protected customer data access' approved for this app. " +
-            "Run `npx shopify app deploy` from the project root to sync the access " +
-            "request to Partners Dashboard, then approve it under " +
-            "App → Configuration → Protected customer data. " +
-            `Original Shopify message: ${accessDenied.message}`;
+            "Stockly does not have permission to create customer records on " +
+            "this store yet. Nothing you did is wrong and no data was lost — " +
+            "please contact support@stocklygo.site and we will sort it out. " +
+            `(Reference: ${accessDenied.message})`;
         } else {
           message = `Shopify rejected: ${gqlErrors.map((e) => e.message).join("; ").slice(0, 400)}`;
         }
@@ -435,7 +434,9 @@ async function actionImpl(request: Request) {
       const code = e.extensions?.code;
       const friendlyMsg =
         code === "ACCESS_DENIED"
-          ? "Stockly needs 'Protected customer data access' approved in Shopify Partners Dashboard → API access → Protected customer data. Without it, the app cannot create or read Customer records. See https://shopify.dev/docs/apps/launch/protected-customer-data"
+          ? "Stockly does not have permission to read or create customer " +
+            "records on this store yet. Nothing you did is wrong — please " +
+            "contact support@stocklygo.site and we will sort it out."
           : e.message;
       return { ok: false, error: friendlyMsg } as const;
     }

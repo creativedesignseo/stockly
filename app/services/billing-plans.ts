@@ -16,11 +16,18 @@
 import { BillingInterval } from "@shopify/shopify-app-remix/server";
 
 export const STARTER_PLAN = "Starter";
-export const GROWTH_PLAN = "Growth";
-export const PLUS_PLAN = "Plus";
 
-/** Plan names in display order — reused by the UI to render one card per plan. */
-export const BILLING_PLAN_NAMES = [STARTER_PLAN, GROWTH_PLAN, PLUS_PLAN] as const;
+/**
+ * Plan names in display order — reused by the UI to render one card per plan.
+ *
+ * Starter only, deliberately. Growth ($79) and Plus ($149) existed here with
+ * three of four and five of six of their bullets marked "(coming soon)" —
+ * variant pricing, quantity increments, Net terms, quotes, public APIs. None
+ * of it is built. Listing a purchasable plan whose entire differentiator is
+ * unbuilt is a direct App Store rejection, and charging for it would be worse.
+ * Add them back the day they ship; new plans do not need another review.
+ */
+export const BILLING_PLAN_NAMES = [STARTER_PLAN] as const;
 export type BillingPlanName = (typeof BILLING_PLAN_NAMES)[number];
 
 export interface BillingPlanDefinition {
@@ -32,28 +39,14 @@ export interface BillingPlanDefinition {
 }
 
 /**
- * The 3 Stockly plans (ADR-008). All USD, billed every 30 days, all
- * with a 14-day trial. Amounts are dollars (Shopify Billing API takes
- * a decimal amount, not cents).
+ * USD, billed every 30 days, 14-day trial. Amounts are dollars (the Shopify
+ * Billing API takes a decimal amount, not cents). ADR-008 planned three
+ * tiers; only this one is deliverable today — see BILLING_PLAN_NAMES.
  */
 export const BILLING_PLANS: Record<BillingPlanName, BillingPlanDefinition> = {
   [STARTER_PLAN]: {
     name: STARTER_PLAN,
     amount: 39,
-    currencyCode: "USD",
-    interval: BillingInterval.Every30Days,
-    trialDays: 14,
-  },
-  [GROWTH_PLAN]: {
-    name: GROWTH_PLAN,
-    amount: 79,
-    currencyCode: "USD",
-    interval: BillingInterval.Every30Days,
-    trialDays: 14,
-  },
-  [PLUS_PLAN]: {
-    name: PLUS_PLAN,
-    amount: 149,
     currencyCode: "USD",
     interval: BillingInterval.Every30Days,
     trialDays: 14,

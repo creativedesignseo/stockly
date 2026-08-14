@@ -122,7 +122,12 @@ export function BandRangeTable({
 }: {
   bands: Band[];
   onChange: (next: Band[]) => void;
-  currency: string;
+  /**
+   * Store currency symbol used as the value prefix on non-percentage
+   * bands. null when the shop currency lookup failed — the field then
+   * renders with no prefix rather than a guessed one.
+   */
+  currency: string | null;
 }) {
   const update = (id: string, patch: Partial<Band>) =>
     onChange(bands.map((b) => (b.id === id ? { ...b, ...patch } : b)));
@@ -163,7 +168,8 @@ export function BandRangeTable({
 
       {bands.map((band, idx) => {
         const isLast = idx === bands.length - 1;
-        const valuePrefix = band.discountType === "percentage" ? undefined : currency;
+        const valuePrefix =
+          band.discountType === "percentage" ? undefined : (currency ?? undefined);
         const valueSuffix = band.discountType === "percentage" ? "%" : undefined;
         return (
           <InlineGrid key={band.id} columns={GRID_COLUMNS} gap="200">

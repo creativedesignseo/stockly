@@ -52,6 +52,9 @@ import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import type { MoneyFormatter } from "../lib/currency";
+import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
@@ -88,12 +91,15 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
-  const [resolved, shopRow] = await Promise.all([
+  // currencyCode labels every money value on this form; fails soft to
+  // bare numbers so a lookup error never blocks the edit screen.
+  const [resolved, shopRow, currencyCode] = await Promise.all([
     resolveTierOrGroup(id, shop.id),
     prisma.shop.findUnique({
       where: { id: shop.id },
       select: { wholesaleBaselinePct: true },
     }),
+    fetchShopCurrencyCode(admin, "pricing.$id"),
   ]);
   if (!resolved)
     throw new Response("Wholesale pricing not found", { status: 404 });
@@ -215,6 +221,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     },
     baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
     scopeItems,
+    currencyCode,
   });
 };
 
@@ -290,12 +297,12 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.customerEligibility = "Invalid customer eligibility";
   if (customerEligibility === "specific_customers")
     errors.customerEligibility =
-      "Specific customers mode is not available yet (Sprint 5). Pick another option.";
+      "Specific customers mode is not available yet. Pick another option.";
   if (!["all_markets", "specific_markets"].includes(marketEligibility))
     errors.marketEligibility = "Invalid market eligibility";
   if (marketEligibility === "specific_markets")
     errors.marketEligibility =
-      "Specific markets mode is not available yet (Sprint 5). Pick another option.";
+      "Specific markets mode is not available yet. Pick another option.";
 
   if (!["percentage", "fixed_amount", "fixed_price"].includes(discountType))
     errors.discountType = "Invalid discount type";
@@ -456,31 +463,41 @@ const MARKET_ELIGIBILITY_OPTIONS: Array<{
   },
 ];
 
-const DISCOUNT_TYPE_OPTIONS: Array<{
+/**
+ * Discount-type radio options. A function, not a const, because the two
+ * example amounts must be labelled in the store's own currency — the
+ * merchant may well not be on EUR.
+ */
+function discountTypeOptions(money: MoneyFormatter): Array<{
   value: TierDiscountType;
   title: string;
   description: string;
-}> = [
-  {
-    value: "percentage",
-    title: "Percentage off",
-    description: "Example: 65% off the line price.",
-  },
-  {
-    value: "fixed_amount",
-    title: "Fixed amount off per unit",
-    description: "Example: €10 off each unit.",
-  },
-  {
-    value: "fixed_price",
-    title: "Fixed price per unit",
-    description: "Example: each unit costs exactly €25.",
-  },
-];
+}> {
+  return [
+    {
+      value: "percentage",
+      title: "Percentage off",
+      description: "Example: 65% off the line price.",
+    },
+    {
+      value: "fixed_amount",
+      title: "Fixed amount off per unit",
+      description: `Example: ${money(10)} off each unit.`,
+    },
+    {
+      value: "fixed_price",
+      title: "Fixed price per unit",
+      description: `Example: each unit costs exactly ${money(25)}.`,
+    },
+  ];
+}
 
 export default function EditWholesalePricing() {
-  const { rule, baselinePct, scopeItems: initialScopeItems } =
+  const { rule, baselinePct, scopeItems: initialScopeItems, currencyCode } =
     useLoaderData<typeof loader>();
+  const symbol = currencySymbolFor(currencyCode);
+  const money = moneyFormatterFor(symbol);
+  const discountTypeOptionList = discountTypeOptions(money);
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting =
@@ -668,11 +685,11 @@ export default function EditWholesalePricing() {
   const discountSummary =
     discountType === "fixed_price"
       ? tierFixedPrice
-        ? `€${tierFixedPrice}/unit`
+        ? `${money(tierFixedPrice)}/unit`
         : "—"
       : discountType === "fixed_amount"
         ? tierAmount
-          ? `€${tierAmount} off per unit`
+          ? `${money(tierAmount)} off per unit`
           : "—"
         : tierPct
           ? `${tierPct}% off`
@@ -945,7 +962,7 @@ export default function EditWholesalePricing() {
                   </BlockStack>
 
                   <InlineGrid columns={{ xs: 1, sm: 3 }} gap="300">
-                    {DISCOUNT_TYPE_OPTIONS.map((opt) => (
+                    {discountTypeOptionList.map((opt) => (
                       <ChoiceCard
                         key={opt.value}
                         selected={discountType === opt.value}
@@ -984,7 +1001,7 @@ export default function EditWholesalePricing() {
                       value={discountAmount}
                       onChange={setDiscountAmount}
                       error={errors.discountAmount}
-                      prefix="€"
+                      prefix={symbol ?? undefined}
                       helpText="Flat amount subtracted from each unit AFTER the baseline applies. Use shop-currency value."
                       placeholder="10.00"
                       requiredIndicator
@@ -1001,7 +1018,7 @@ export default function EditWholesalePricing() {
                       value={discountFixedPrice}
                       onChange={setDiscountFixedPrice}
                       error={errors.discountFixedPrice}
-                      prefix="€"
+                      prefix={symbol ?? undefined}
                       helpText="Each unit costs exactly this amount. The shop baseline is ignored for fixed-price rules."
                       placeholder="25.00"
                       requiredIndicator
@@ -1093,14 +1110,13 @@ export default function EditWholesalePricing() {
                       Preview
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      On a €100 retail product, what a qualifying customer
-                      pays at checkout:
+                      {`On a ${money(100)} retail product, what a qualifying customer pays at checkout:`}
                     </Text>
                   </BlockStack>
                   <Divider />
                   <SummaryRow
                     label="Retail price"
-                    value={`€${previewRetail.toFixed(2)}`}
+                    value={money(previewRetail.toFixed(2))}
                   />
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
@@ -1120,21 +1136,21 @@ export default function EditWholesalePricing() {
                     }
                     value={
                       discountType === "fixed_price"
-                        ? `€${tierFixedPrice.toFixed(2)}`
+                        ? money(tierFixedPrice.toFixed(2))
                         : discountType === "fixed_amount"
-                          ? `− €${tierAmount.toFixed(2)}`
+                          ? `− ${money(tierAmount.toFixed(2))}`
                           : `× ${(1 - tierPct / 100).toFixed(2)}`
                     }
                   />
                   <Divider />
                   <SummaryRow
                     label="Wholesale price"
-                    value={`€${previewWholesale.toFixed(2)}`}
+                    value={money(previewWholesale.toFixed(2))}
                     emphasis
                   />
                   <SummaryRow
                     label="Customer saves"
-                    value={`€${previewSavings.toFixed(2)}`}
+                    value={money(previewSavings.toFixed(2))}
                   />
                 </BlockStack>
               </Card>

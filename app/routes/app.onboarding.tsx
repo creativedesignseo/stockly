@@ -50,6 +50,8 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { currencySymbolFor } from "../lib/currency";
+import { fetchShopCurrencyCode } from "../lib/currency.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
   PRESETS,
@@ -68,7 +70,7 @@ import {
 /* -------------------------------------------------------------------------- */
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { shop } = await authenticateAdmin(request);
+  const { admin, shop } = await authenticateAdmin(request);
 
   // If already onboarded, send them to the dashboard. They can still come
   // back via the nav link — that path skips this redirect by virtue of
@@ -79,7 +81,11 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     throw redirect("/app");
   }
 
-  return { shop, presets: PRESETS };
+  // The FPQ copy names a money threshold; label it in the store's own
+  // currency, never a hardcoded "€". Fails soft to no symbol at all.
+  const currencyCode = await fetchShopCurrencyCode(admin, "onboarding");
+
+  return { shop, presets: PRESETS, currencyCode };
 };
 
 /* -------------------------------------------------------------------------- */
@@ -221,7 +227,8 @@ interface Step3Answers {
 }
 
 export default function OnboardingWizard() {
-  const { shop, presets } = useLoaderData<typeof loader>();
+  const { shop, presets, currencyCode } = useLoaderData<typeof loader>();
+  const currencySymbol = currencySymbolFor(currencyCode);
   const submit = useSubmit();
   const navigation = useNavigation();
   const fetcher = useFetcher<typeof action>();
@@ -402,6 +409,7 @@ export default function OnboardingWizard() {
 
         {step === 2 && (
           <StepPreset
+            currencySymbol={currencySymbol}
             recommendedKey={recommendedPreset}
             activeKey={activePresetKey}
             activePreset={activePreset}
@@ -521,6 +529,7 @@ function StepSegment({
 /* -------------------------------------------------------------------------- */
 
 function StepPreset({
+  currencySymbol,
   recommendedKey,
   activeKey,
   activePreset,
@@ -543,6 +552,8 @@ function StepPreset({
   onBack,
   onContinue,
 }: {
+  /** Store currency symbol, or null when the Admin lookup failed. */
+  currencySymbol: string | null;
   recommendedKey: PresetKey;
   activeKey: PresetKey;
   activePreset: OnboardingPreset;
@@ -670,7 +681,12 @@ function StepPreset({
               options={[
                 { label: `Use preset (${activePreset.fpqMode})`, value: "" },
                 { label: "None — no first-order gate", value: "none" },
-                { label: "Amount — first order must reach a € threshold", value: "amount" },
+                {
+                  label: `Amount — first order must reach a ${
+                    currencySymbol ? `${currencySymbol} ` : ""
+                  }threshold`,
+                  value: "amount",
+                },
                 { label: "Quantity — first order must reach a unit count", value: "quantity" },
                 { label: "Combined — amount AND/OR quantity", value: "combined" },
               ]}
@@ -803,10 +819,9 @@ function StepFirstAction({
             Want a hand from the team?
           </Text>
           <Text as="p" variant="bodyMd" tone="subdued">
-            Adspubli is Barcelona-based. We can do a 30-min onboarding
-            call to walk you through your Stockly setup — review your
-            preset choice, sanity-check your tiers, and help you wire up
-            the storefront block on your theme. No upsell, no obligation.
+            Tell us how you would like to be reached and we will help you
+            finish setting up Stockly — reviewing your preset, checking
+            your tiers, and adding the storefront block to your theme.
           </Text>
         </BlockStack>
 

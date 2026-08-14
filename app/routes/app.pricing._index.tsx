@@ -60,9 +60,11 @@ import {
   useIndexResourceState,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import type { MoneyFormatter } from "../lib/currency";
+import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { listRules } from "../services/tiers.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
@@ -116,38 +118,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return json({ ok: true, groupId, active: nextActive });
 };
 
-/**
- * Read the shop's ISO 4217 currency code from the Admin API.
- *
- * Money labels on this page used to hardcode "€" while the stored
- * values are plain numbers compared against the cart's real currency at
- * checkout — so only the label was wrong. Fails soft: on any error we
- * return null and the UI renders amounts with no symbol rather than
- * guessing the wrong one.
- */
-async function fetchShopCurrencyCode(
-  admin: AdminApiContext,
-): Promise<string | null> {
-  try {
-    const response = await admin.graphql(
-      `#graphql
-      query ShopCurrencyCode {
-        shop {
-          currencyCode
-        }
-      }`,
-    );
-    const body = (await response.json()) as {
-      data?: { shop?: { currencyCode?: string | null } | null } | null;
-    };
-    return body.data?.shop?.currencyCode ?? null;
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("[pricing._index] shop currency lookup failed:", err);
-    return null;
-  }
-}
-
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
   // Three queries in parallel: the rules to show in the table, the
@@ -172,7 +142,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         minOrderValue: true,
       },
     }),
-    fetchShopCurrencyCode(admin),
+    fetchShopCurrencyCode(admin, "pricing._index"),
   ]);
   return {
     rules,
@@ -200,11 +170,7 @@ export default function PricingList() {
    * currency. See fetchShopCurrencyCode above.
    */
   const symbol = currencySymbolFor(currencyCode);
-  const money = useMemo(
-    () => (value: string | number) =>
-      symbol ? `${symbol}${value}` : `${value}`,
-    [symbol],
-  );
+  const money = useMemo(() => moneyFormatterFor(symbol), [symbol]);
 
   /* ----- Tab filter (driven by ?status= query param) -----
    * setSearchParams (not window.location.assign) — same reason as
@@ -282,11 +248,6 @@ export default function PricingList() {
             action={{
               content: "Create new wholesale pricing",
               url: "/app/pricing/new",
-            }}
-            secondaryAction={{
-              content: "Learn how it works",
-              url: "https://shopify.dev/docs/apps/build/discount-functions",
-              external: true,
             }}
             image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
           >
@@ -557,30 +518,6 @@ function SettingRow({ label, value }: { label: string; value: string }) {
 }
 
 /** Renders an amount with the store's currency symbol, or bare. */
-type MoneyFormatter = (value: string | number) => string;
-
-/**
- * Best-effort currency symbol for an ISO 4217 code, e.g. "USD" → "$".
- *
- * Returns null only when we have no code at all, so callers can render
- * a bare number instead of inventing a symbol. An unrecognised code is
- * echoed back verbatim ("XYZ 100") — still honest, just less pretty.
- */
-function currencySymbolFor(code: string | null): string | null {
-  if (!code) return null;
-  try {
-    const parts = new Intl.NumberFormat("en", {
-      style: "currency",
-      currency: code,
-      currencyDisplay: "narrowSymbol",
-    }).formatToParts(0);
-    return parts.find((part) => part.type === "currency")?.value ?? code;
-  } catch {
-    // Unsupported code or an ICU build without `narrowSymbol`.
-    return code;
-  }
-}
-
 /**
  * Human-readable summary of the shop's FPQ configuration — the gate on
  * the customer's FIRST order only.

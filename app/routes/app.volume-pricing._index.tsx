@@ -181,11 +181,6 @@ export default function VolumePricingList() {
               content: "Create volume pricing",
               url: "/app/volume-pricing/new",
             }}
-            secondaryAction={{
-              content: "Learn how it works",
-              url: "https://shopify.dev/docs/apps/build/discount-functions",
-              external: true,
-            }}
             image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
           >
             <Text as="p" variant="bodyMd">

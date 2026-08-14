@@ -45,6 +45,8 @@ import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import {
@@ -91,12 +93,15 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const id = params.id;
   if (!id) throw new Response("Rule id is required", { status: 400 });
 
-  const [tier, shopRow] = await Promise.all([
+  // currencyCode labels every money value on this form; fails soft to
+  // bare numbers so a lookup error never blocks the edit screen.
+  const [tier, shopRow, currencyCode] = await Promise.all([
     resolveTierOrGroup(id, shop.id),
     prisma.shop.findUnique({
       where: { id: shop.id },
       select: { wholesaleBaselinePct: true },
     }),
+    fetchShopCurrencyCode(admin, "volume-pricing.$id"),
   ]);
   if (!tier)
     throw new Response("Volume pricing not found", { status: 404 });
@@ -203,6 +208,7 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     groupId,
     baselinePct: shopRow?.wholesaleBaselinePct ?? 0,
     scopeItems,
+    currencyCode,
   });
 };
 
@@ -302,12 +308,12 @@ export const action = async ({ params, request }: ActionFunctionArgs) => {
     errors.customerEligibility = "Invalid customer eligibility";
   if (customerEligibility === "specific_customers")
     errors.customerEligibility =
-      "Specific customers mode is not available yet (Sprint 5). Pick another option.";
+      "Specific customers mode is not available yet. Pick another option.";
   if (!["all_markets", "specific_markets"].includes(marketEligibility))
     errors.marketEligibility = "Invalid market eligibility";
   if (marketEligibility === "specific_markets")
     errors.marketEligibility =
-      "Specific markets mode is not available yet (Sprint 5). Pick another option.";
+      "Specific markets mode is not available yet. Pick another option.";
 
   if (!Array.isArray(rawBands) || rawBands.length === 0) {
     errors.bands = "Add at least one quantity range";
@@ -504,8 +510,10 @@ const AGGREGATION_OPTIONS: Array<{
 ];
 
 export default function EditVolumePricing() {
-  const { rule, baselinePct, scopeItems: initialScopeItems } =
+  const { rule, baselinePct, scopeItems: initialScopeItems, currencyCode } =
     useLoaderData<typeof loader>();
+  const symbol = currencySymbolFor(currencyCode);
+  const money = moneyFormatterFor(symbol);
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting =
@@ -688,8 +696,8 @@ export default function EditVolumePricing() {
       : bands
           .map((b) => {
             const v = Number(b.discountValue) || 0;
-            if (b.discountType === "fixed_price") return `€${v}/unit`;
-            if (b.discountType === "fixed_amount") return `−€${v}`;
+            if (b.discountType === "fixed_price") return `${money(v)}/unit`;
+            if (b.discountType === "fixed_amount") return `−${money(v)}`;
             return `${v}%`;
           })
           .join(" · ");
@@ -992,7 +1000,7 @@ export default function EditVolumePricing() {
                     </Text>
                   </BlockStack>
 
-                  <BandRangeTable bands={bands} onChange={setBands} currency="€" />
+                  <BandRangeTable bands={bands} onChange={setBands} currency={symbol} />
 
                   {errors.bands && (
                     <Banner tone="critical">
@@ -1086,14 +1094,13 @@ export default function EditVolumePricing() {
                       Preview
                     </Text>
                     <Text variant="bodySm" as="p" tone="subdued">
-                      On a €100 retail product, what a qualifying customer
-                      pays at checkout:
+                      {`On a ${money(100)} retail product, what a qualifying customer pays at checkout:`}
                     </Text>
                   </BlockStack>
                   <Divider />
                   <SummaryRow
                     label="Retail price"
-                    value={`€${previewRetail.toFixed(2)}`}
+                    value={money(previewRetail.toFixed(2))}
                   />
                   <SummaryRow
                     label={`Baseline (${baselinePct}%)`}
@@ -1113,21 +1120,21 @@ export default function EditVolumePricing() {
                     }
                     value={
                       pType === "fixed_price"
-                        ? `€${pValue.toFixed(2)}`
+                        ? money(pValue.toFixed(2))
                         : pType === "fixed_amount"
-                          ? `− €${pValue.toFixed(2)}`
+                          ? `− ${money(pValue.toFixed(2))}`
                           : `× ${(1 - pValue / 100).toFixed(2)}`
                     }
                   />
                   <Divider />
                   <SummaryRow
                     label="Wholesale price"
-                    value={`€${previewWholesale.toFixed(2)}`}
+                    value={money(previewWholesale.toFixed(2))}
                     emphasis
                   />
                   <SummaryRow
                     label="Customer saves"
-                    value={`€${previewSavings.toFixed(2)}`}
+                    value={money(previewSavings.toFixed(2))}
                   />
                 </BlockStack>
               </Card>
