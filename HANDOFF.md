@@ -60,6 +60,33 @@ Prior 2026-08-13 — **🚀 SUBMITTED TO THE SHOPIFY APP STORE. Status "Enviada"
 
 ---
 
+## The other thing that is live: the marketing site
+
+**`https://stocklygo.site` — LIVE, source in `site/`.** Verified 2026-08-15:
+apex and `stocklygo.netlify.app` both `200`. This is the project's second
+production asset and it is independent of the Railway app — it can be
+deployed, broken or fixed without touching Stockly itself.
+
+- **Astro 5 + Tailwind v4, static, on Netlify** (project `stocklygo`, team
+  AdsPubli). Ships **0 KB of JavaScript**: the FAQ is native `<details>`, the
+  waitlist is a native form POST. DNS is Cloudflare, **grey cloud / DNS only**
+  — the orange proxy blocks Netlify's Let's Encrypt validation.
+- `/privacy` and `/terms` **301 to the Railway legal pages**, so those two
+  URLs have one source of truth. The App Store listing points at
+  `stocklygo.site/privacy`.
+- **The waitlist form works end to end** (Netlify form detection had to be
+  enabled by API and the site redeployed — detection happens at deploy time).
+- **⚠️ Two things still wrong on it:** `hello@stocklygo.site` is printed in
+  the footer and **does not exist** — create the alias or change the address;
+  and two test submissions (`test-deploy-check@`, `test-browser-path@`) are
+  sitting in the Netlify form inbox and should be deleted by hand.
+- **⏳ The day the app is approved, swap the CTA.** The primary call to
+  action is an early-access waitlist, not an install button. Checklist at the
+  end of `site/README.md`.
+
+Content rules, deploy notes and the Netlify/Cloudflare gotchas hit while
+setting it up are in `site/README.md` and `docs/handoff-archive.md`.
+
 ## Older entries
 
 Everything before 2026-08-12 lives in **`docs/handoff-archive.md`** — the
