@@ -380,7 +380,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1786804621.301782,
+    "mtime": 1786732693.7957518,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -390,7 +390,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1786804621.039228,
+    "mtime": 1786732693.5521429,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -400,7 +400,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1786804621.813905,
+    "mtime": 1786732694.3039553,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -410,7 +410,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1786804621.5576847,
+    "mtime": 1786732694.0498235,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -1055,8 +1055,8 @@
     "semantic_hash": "6f60a4159dad79c0e35d001a01daf29b"
   },
   "tasks/current.md": {
-    "mtime": 1786804737.5802667,
-    "ast_hash": "1edf59fd2e30b379ebafcccbfd826fab",
+    "mtime": 1786491897.2466545,
+    "ast_hash": "f8e3d74d0bec22894e32506af44bb35e",
     "semantic_hash": ""
   },
   "docs/competitive/assets/sami-registration-form/sami-01-landing.png": {
@@ -1672,11 +1672,6 @@
   "app/lib/currency.ts": {
     "mtime": 1786732086.0931864,
     "ast_hash": "6f89373b902d0f4b2630c3332b64227c",
-    "semantic_hash": ""
-  },
-  "progress/2026-08-14-app-store-submission-and-hardening.md": {
-    "mtime": 1786804778.318464,
-    "ast_hash": "07c5b07d6cbf12f2cab13b0006d30721",
     "semantic_hash": ""
   }
 }
