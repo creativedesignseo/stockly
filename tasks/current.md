@@ -25,13 +25,18 @@ active is a guaranteed rejection:
   re-consent on every install.
 - Do NOT edit the listing or ship a large refactor.
 
-### The one test that would still de-risk this
+### ✅ Done — the billing button is proven
 
-- [ ] **Press "Start 14-day trial" on `adspubli-wholesale-test`.** The
-  returnUrl fix (relative → absolute) is correct per Shopify's `URL!` scalar
-  and the unit test asserts it, but **nobody has ever pressed that button
-  against real Shopify**, before or after the fix. Dev stores are never
-  actually charged, so this costs nothing. The reviewer will press it.
+Pressed on `adspubli-wholesale-test` 2026-08-14. Reaches Shopify's approval
+screen: *Stockly de Adspubli · Plan: Starter · 39,00 $ USD cada 30 días · 14-day
+free trial*. Not approved on purpose — reaching the screen is the proof.
+
+⚠️ On that screen **"Aprobar" is greyed out**: *"No tienes ninguna forma de pago
+guardada"*, on a dev store, because `isTestBillingEnvironment()` returns
+`NODE_ENV !== "production"` and the container is always production. A reviewer
+lands on this same screen. Left alone deliberately: forcing `test: true` in
+production would mean no real merchant is ever charged. One line and one env
+var if the reviewer reports it.
 
 ### When the verdict arrives
 
