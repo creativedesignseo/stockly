@@ -4,46 +4,46 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-14 — **🚀 SUBMITTED TO THE SHOPIFY APP STORE, status "Enviada", visibility LIMITED (unlisted), reviewer being assigned.** Then a hardening pass fixed the two defects the reviewer actually hit on 13 Aug plus four more found by audit. Verified this session: `verify.sh` green (**155 app tests**, 14 + 8 fixtures, both builds); production `/healthz`, `/`, `/legal/privacy`, `/legal/terms`, `/auth/login` all **200**; App Bridge served from Shopify's CDN; **no "Shop domain" field**; `/auth/login` resolves in **1 hop**; all four mandatory webhooks **200** and a forged HMAC **401**. Full detail in HANDOFF.md's two 2026-08-14 entries.
+**Last updated:** 2026-08-20 — **📩 VERDICT: CHANGES REQUESTED (ref 129441), and both issues are already FIXED AND DEPLOYED (`7466026`).** Issue 1 (1.2.2): billing `returnUrl` sent the merchant outside the admin after approving — now the documented `admin.shopify.com/...` pattern. Issue 2 (2.1.1): zombie "Unsaved changes" bar after creating a volume pricing rule (+ dead Delete via `window.confirm`) — fixed via `useManagedSaveBar` in all six forms + Polaris confirm Modals. `verify.sh` green (159 app tests), adversarial 3-agent review passed. **Deadline: respond before 2026-09-03 or the submission is paused.**
 
-## P0 — Waiting on Shopify. Do not touch the app.
+## P0 — Close the review loop (human steps, ~15 min)
 
-Nothing here needs doing. Shopify emails `info@adspubli.com`; realistic
-window is **2–4 weeks** from 2026-08-13.
+1. **Record the proof-of-resolution screencast** on
+   `adspubli-wholesale-test` — the exact 90-second script is in
+   `progress/2026-08-20-reviewer-response-drafts.md`. Upload unlisted to
+   YouTube.
+2. **Mark both issues resolved** in Partner Dashboard → Revisión App
+   Store → Ver comentarios ("Show resolved state" + the screencast URL +
+   the drafted English responses in the same file).
+3. **Press "Enviar correcciones"** (resubmit).
 
-**Frozen until there is a verdict** — a broken install while a reviewer is
-active is a guaranteed rejection:
+Also verify while recording: after approving the (test) subscription you
+land back INSIDE the app on Billing with "Current plan" visible, and after
+saving a volume pricing rule the "Unsaved changes" bar is gone and admin
+navigation works.
 
-- Do NOT press "Make fully visible". Limited→full is one click at any time;
-  App Store reviews are permanent and weigh heavily in ranking. On Basic
-  plans Stockly always renders struck-through retail + discount rather than a
-  clean wholesale price (Cart Transform `update` is Plus-only), and only
-  Starter is deliverable — both are reasons to stay unlisted through the
-  first real merchants.
-- Do NOT change access scopes (three are declared but unused —
-  `write_products`, `write_publications`, `read_orders`). Changing them forces
-  re-consent on every install.
+**Still frozen while a reviewer is active:**
+
+- Do NOT press "Make fully visible" (limited→full is one click later; on
+  Basic plans the storefront shows struck-through retail + discount, and
+  only Starter is deliverable — stay unlisted through the first merchants).
+- Do NOT change access scopes (`write_products`, `write_publications`,
+  `read_orders` declared-but-unused; changing forces re-consent).
 - Do NOT edit the listing or ship a large refactor.
 
-### ✅ Done — the billing button is proven
+### When the next verdict arrives
 
-Pressed on `adspubli-wholesale-test` 2026-08-14. Reaches Shopify's approval
-screen: *Stockly de Adspubli · Plan: Starter · 39,00 $ USD cada 30 días · 14-day
-free trial*. Not approved on purpose — reaching the screen is the proof.
-
-⚠️ On that screen **"Aprobar" is greyed out**: *"No tienes ninguna forma de pago
-guardada"*, on a dev store, because `isTestBillingEnvironment()` returns
-`NODE_ENV !== "production"` and the container is always production. A reviewer
-lands on this same screen. Left alone deliberately: forcing `test: true` in
-production would mean no real merchant is ever charged. One line and one env
-var if the reviewer reports it.
-
-### When the verdict arrives
-
-- If **changes requested**: fix, then resubmit. Nothing is lost.
+- If **changes requested again**: same loop — read, fix, resubmit.
 - If **approved**: (1) reinstall on `piroaccessories` — Piro has been down
   since the credential switch; (2) rotate the client secret (see below);
   (3) re-enable `customers/update` in `shopify.app.public.toml`.
+
+### Retired 2026-08-20 — the greyed-out "Aprobar" fear
+
+The reviewer APPROVED a Starter test charge on their dev store (Partner
+activity log: activated 15:26, cancelled 16:34, "Testing multiple apps").
+The missing-payment-method dead end never materialized;
+`isTestBillingEnvironment()` stays as is.
 
 ### Deferred on purpose, with reasons
 

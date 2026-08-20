@@ -3,17 +3,36 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-> **Where this project stands, in one paragraph.** Stockly is submitted to the
-> Shopify App Store and waiting on a reviewer. Nothing is pending on our side.
-> A reviewer tested it on 13 Aug and the product worked — the Discount Function
-> ran ten times without error. Two real defects surfaced around that session and
-> were fixed; four more were then found by audit and fixed **before** anyone
-> reported them. The listing and the code now say the same thing. Everything
-> claimed here was checked against production or the database, not assumed.
-> The only things left are Shopify's answer, and two items deliberately parked
-> until after approval (rotate the client secret, reinstall Piro).
+> **Where this project stands, in one paragraph.** Shopify's verdict arrived
+> 2026-08-20: **changes requested**, two issues, both screencasted by the
+> reviewer, **14-day deadline (2026-09-03)**. Both root causes were identified
+> from the reviewer's own screencasts plus the shipped App Bridge source, fixed,
+> adversarially re-reviewed, and deployed the same day (`7466026`). What remains
+> is human-only: record the proof-of-resolution screencast on the test store,
+> mark both issues resolved in the Partner Dashboard, and press "Enviar
+> correcciones". The reviewer's billing session also retired an old fear: they
+> APPROVED a test charge (activated 15:26, cancelled 16:34) — the greyed-out
+> "Aprobar" button never blocked them.
 
-**Last updated:** 2026-08-14 (later) — **🛠️ HARDENING PASS FOR THE ACTIVE REVIEW. Three parallel audits ran against the install path, the admin screens and the webhook/billing paths. The 2026-08-13 webhook mystery is SOLVED and fixed; four more rejection-grade defects were found and fixed; 43 hardcoded euro symbols are gone. All four mandatory webhooks return 200 in production and 401 to a forged HMAC. `verify.sh` green, deployed `2dff4a1`.**
+**Last updated:** 2026-08-20 — **🔧 REVIEWER FEEDBACK FIXED AND DEPLOYED. Two
+issues (ref 129441): (1.2.2) after approving the subscription the merchant
+landed OUTSIDE the admin — the `returnUrl` pointed at our host; now the
+documented `admin.shopify.com/store/{handle}/apps/{client-id}/app/billing`
+pattern. (2.1.1) creating a volume pricing rule left a ZOMBIE "Unsaved
+changes" bar that blocked all admin navigation — App Bridge's host is synced
+only by a bubbling event from the in-iframe element, so any hide scheduled
+after unmount can never reach it; a new `useManagedSaveBar` hook hides during
+the navigation's "loading" render (still mounted) in all six save-bar forms.
+Also fixed while in there: both $id Delete buttons were dead (`window.confirm`
+is inert in the sandboxed iframe → Polaris Modal), failed validation used to
+hide the save bar (pristine baselines), a phantom-dirty bar on legacy rules,
+the billing loader crashing on a failed subscription check (the likely 13 Aug
+"Application Error"), and root/app ErrorBoundaries so nothing renders Remix's
+raw error page. `verify.sh` green (159 app tests), 3-agent adversarial review
+passed, deployed `7466026`. NEXT: screencast → mark resolved → resubmit.
+Details and reviewer-response drafts: `progress/2026-08-20-*.md`.**
+
+Prior 2026-08-14 (later) — **🛠️ HARDENING PASS FOR THE ACTIVE REVIEW. Three parallel audits ran against the install path, the admin screens and the webhook/billing paths. The 2026-08-13 webhook mystery is SOLVED and fixed; four more rejection-grade defects were found and fixed; 43 hardcoded euro symbols are gone. All four mandatory webhooks return 200 in production and 401 to a forged HMAC. `verify.sh` green, deployed `2dff4a1`.**
 
   - **✅ ROOT CAUSE OF THE SILENT 500s — found and fixed.** It was never in the handlers. `shopify.server.ts` sets `expiringOfflineAccessTokens: true` (~1h TTL), so `authenticate.webhook` refreshes the token on delivery; the SDK's refresh helper re-throws only `InvalidJwtError` and a 400 `invalid_subject_token` and turns **everything else into a bare `Response(500)` with no body**. Uninstall revokes the grant, so the refresh runs against a permission Shopify just destroyed. The reviewer used the admin until 14:46 and uninstalled at 16:04 — token long expired — hence 18 silent 500s each. It was unreproducible afterwards because a never-seen shop has no session to refresh and a freshly seeded one is not expired: the only two cases tested. **Yesterday's logging sat one line too late to ever see it.** Fix: `app/lib/webhook-auth.server.ts` verifies the HMAC itself when the SDK throws and proceeds without a session — none of the four mandatory webhooks need an admin client. Forged webhooks still get 401 (verified). This also defuses the refresh token's own **2026-09-22 expiry**, which would otherwise have 500'd every webhook until someone reopened the app.
   - **✅ `app/uninstalled` deleted sessions only `if (session)`** — false in exactly the case that matters, which is why the reviewer's sessions were still in the database a day later. `deleteMany` is idempotent; it now runs unconditionally.
