@@ -1,6 +1,12 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, Outlet, useLoaderData, useRouteError } from "@remix-run/react";
+import {
+  Link,
+  Outlet,
+  isRouteErrorResponse,
+  useLoaderData,
+  useRouteError,
+} from "@remix-run/react";
 import { boundary } from "@shopify/shopify-app-remix/server";
 import { AppProvider } from "@shopify/shopify-app-remix/react";
 import { NavMenu } from "@shopify/app-bridge-react";
@@ -67,9 +73,49 @@ export default function App() {
   );
 }
 
-// Shopify needs Remix to catch some thrown responses, so that their headers are included in the response.
+// Shopify needs Remix to catch some thrown responses, so that their headers
+// are included in the response. Deliberate `throw new Response(...)` errors
+// from child routes ("Volume pricing not found" 404s, "Unknown form intent"
+// 400s) get a styled page with a way back instead of boundary.error's raw
+// dangerouslySetInnerHTML dump (App Store 2.1.1). Everything else — notably
+// the SDK's auth redirect Responses — still goes through boundary.error,
+// which knows how to handle them.
 export function ErrorBoundary() {
-  return boundary.error(useRouteError());
+  const error = useRouteError();
+  if (
+    isRouteErrorResponse(error) &&
+    error.status >= 400 &&
+    error.status < 500
+  ) {
+    return (
+      <div
+        style={{
+          maxWidth: "26rem",
+          margin: "15vh auto 0",
+          padding: "1.5rem",
+          fontFamily:
+            "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+          background: "#ffffff",
+          border: "1px solid #e1e3e5",
+          borderRadius: "0.75rem",
+          color: "#202223",
+        }}
+      >
+        <h1 style={{ fontSize: "1.05rem", margin: "0 0 0.5rem" }}>
+          {error.status === 404 ? "Not found" : "Something went wrong"}
+        </h1>
+        <p style={{ fontSize: "0.85rem", lineHeight: 1.5, margin: "0 0 1rem" }}>
+          {typeof error.data === "string" && error.data.length > 0
+            ? error.data
+            : "The page you asked for is not available."}
+        </p>
+        <Link to="/app" style={{ fontSize: "0.85rem" }}>
+          Back to dashboard
+        </Link>
+      </div>
+    );
+  }
+  return boundary.error(error);
 }
 
 export const headers: HeadersFunction = (headersArgs) => {

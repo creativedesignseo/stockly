@@ -40,7 +40,7 @@ import {
   useLoaderData,
   useNavigation,
 } from "@remix-run/react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Page,
   Layout,
@@ -56,11 +56,12 @@ import {
   InlineGrid,
   Select,
 } from "@shopify/polaris";
-import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { SaveBar, TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
 import { fetchShopCurrencyCode } from "../lib/currency.server";
+import { useManagedSaveBar } from "../lib/use-managed-save-bar";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
@@ -330,7 +331,6 @@ export default function PricingSettings() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
-  const shopify = useAppBridge();
 
   const errors =
     actionData && "errors" in actionData ? actionData.errors : {};
@@ -438,16 +438,9 @@ export default function PricingSettings() {
   const SAVE_BAR_ID = "settings-pricing-save-bar";
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (isDirty) {
-      shopify.saveBar.show(SAVE_BAR_ID);
-    } else {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    }
-    return () => {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    };
-  }, [isDirty, shopify]);
+  // Show while dirty; hide BEFORE navigation unmounts the route — see
+  // use-managed-save-bar.ts for the zombie-bar failure this prevents.
+  useManagedSaveBar(SAVE_BAR_ID, isDirty);
 
   const handleDiscard = () => {
     setBaseline(initial.baseline);

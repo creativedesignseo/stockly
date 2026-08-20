@@ -30,7 +30,7 @@ import {
   useLoaderData,
   useNavigation,
 } from "@remix-run/react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   Page,
   Layout,
@@ -47,11 +47,13 @@ import {
   InlineGrid,
   Thumbnail,
   Icon,
+  Modal,
 } from "@shopify/polaris";
 import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 
 import { authenticateAdmin } from "../lib/auth.server";
+import { useManagedSaveBar } from "../lib/use-managed-save-bar";
 import type { MoneyFormatter } from "../lib/currency";
 import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
 import { fetchShopCurrencyCode } from "../lib/currency.server";
@@ -593,16 +595,9 @@ export default function EditWholesalePricing() {
   const SAVE_BAR_ID = "pricing-edit-save-bar";
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (isDirty) {
-      shopify.saveBar.show(SAVE_BAR_ID);
-    } else {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    }
-    return () => {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    };
-  }, [isDirty, shopify]);
+  // Show while dirty; hide BEFORE navigation unmounts the route — see
+  // use-managed-save-bar.ts for the zombie-bar failure this prevents.
+  useManagedSaveBar(SAVE_BAR_ID, isDirty);
 
   const handleDiscard = () => {
     setName(initial.name);
@@ -634,16 +629,23 @@ export default function EditWholesalePricing() {
     setScopeItems((prev) => prev.filter((s) => s.id !== id));
   };
 
-  /* ----- Delete fetcher (intent=delete, separate from SaveBar) ----- */
+  /* ----- Delete fetcher (intent=delete, separate from SaveBar) -----
+   * Confirmation is a Polaris Modal, NOT window.confirm(): the embedded
+   * admin iframe is sandboxed without allow-modals, so confirm() returns
+   * false immediately and a confirm()-gated delete is a dead button
+   * (App Store 2.1.1). Mirrors DeleteCell in RegistrationFormList.tsx.
+   */
   const deleteFetcher = useFetcher<typeof action>();
   const deleting = deleteFetcher.state !== "idle";
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const handleDelete = () => {
-    if (
-      !confirm(
-        `Permanently delete "${rule.name}"?\n\nThis cannot be undone. To keep history, toggle the rule to Draft instead.`,
-      )
-    )
-      return;
+    setConfirmDeleteOpen(false);
+    // Deleting abandons any unsaved edits by definition, so drop the
+    // save bar NOW, while the element is still mounted. If the delete
+    // action THROWS, the router swaps in the error boundary with
+    // navigation still "idle" — the one path where useManagedSaveBar
+    // never sees a "loading" render and a dirty bar would zombify.
+    shopify.saveBar.hide(SAVE_BAR_ID).catch(() => {});
     const fd = new FormData();
     fd.append("intent", "delete");
     deleteFetcher.submit(fd, { method: "POST" });
@@ -1044,7 +1046,7 @@ export default function EditWholesalePricing() {
                     <Button
                       tone="critical"
                       variant="primary"
-                      onClick={handleDelete}
+                      onClick={() => setConfirmDeleteOpen(true)}
                       loading={deleting}
                     >
                       Delete this wholesale pricing
@@ -1052,6 +1054,30 @@ export default function EditWholesalePricing() {
                   </InlineStack>
                 </BlockStack>
               </Card>
+              <Modal
+                open={confirmDeleteOpen}
+                onClose={() => setConfirmDeleteOpen(false)}
+                title={`Delete "${rule.name}"?`}
+                primaryAction={{
+                  content: "Delete",
+                  destructive: true,
+                  loading: deleting,
+                  onAction: handleDelete,
+                }}
+                secondaryActions={[
+                  {
+                    content: "Cancel",
+                    onAction: () => setConfirmDeleteOpen(false),
+                  },
+                ]}
+              >
+                <Modal.Section>
+                  <Text as="p">
+                    This cannot be undone. To keep history, toggle the rule to
+                    Draft instead.
+                  </Text>
+                </Modal.Section>
+              </Modal>
             </BlockStack>
           </Layout.Section>
 

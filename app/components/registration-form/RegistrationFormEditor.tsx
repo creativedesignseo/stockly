@@ -33,7 +33,7 @@ import {
   Text,
   Box,
 } from "@shopify/polaris";
-import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { SaveBar, TitleBar } from "@shopify/app-bridge-react";
 import {
   forwardRef,
   useEffect,
@@ -52,6 +52,7 @@ import {
   TEMPLATES,
   TEMPLATE_META,
 } from "../../lib/registrationForm/seeds";
+import { useManagedSaveBar } from "../../lib/use-managed-save-bar";
 import { FIELD_ICON, FIELD_TYPE_LABEL } from "./field-icons";
 
 import { LeftRail, type LeftRailSection } from "./LeftRail";
@@ -110,7 +111,6 @@ export const RegistrationFormEditor = forwardRef<
   const fetcher = useFetcher<
     { ok: true; savedAt: string } | { ok: false; error: string }
   >();
-  const shopify = useAppBridge();
   const isModal = chrome === "modal";
 
   const [form, setForm] = useState<EditorState>(() =>
@@ -142,15 +142,12 @@ export const RegistrationFormEditor = forwardRef<
 
   useImperativeHandle(ref, () => ({ save: handleSave, discard: handleDiscard }));
 
-  // Page chrome only: drive the global App Bridge SaveBar.
-  useEffect(() => {
-    if (isModal) return;
-    if (isDirty) shopify.saveBar.show(SAVE_BAR_ID);
-    else shopify.saveBar.hide(SAVE_BAR_ID);
-    return () => {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    };
-  }, [isDirty, isModal, shopify]);
+  // Page chrome only: drive the global App Bridge SaveBar. In modal
+  // mode the parent owns Save/Discard, so the bar is kept hidden
+  // (`isDirty && !isModal` is false). The hook also hides the bar
+  // BEFORE any navigation unmounts this editor — see
+  // use-managed-save-bar.ts for the zombie-bar failure this prevents.
+  useManagedSaveBar(SAVE_BAR_ID, isDirty && !isModal);
 
   useEffect(() => {
     onDirtyChange?.(isDirty);

@@ -45,11 +45,12 @@ import {
 } from "@shopify/polaris";
 import { ImageIcon, XSmallIcon } from "@shopify/polaris-icons";
 import { SaveBar, TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import type { MoneyFormatter } from "../lib/currency";
 import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { useManagedSaveBar } from "../lib/use-managed-save-bar";
 import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
@@ -369,23 +370,24 @@ export default function NewWholesalePricing() {
 
   const errors = actionData?.errors ?? {};
 
-  /* ----- Save bar (sticky top, App Bridge style) ----- */
+  /* ----- Save bar (sticky top, App Bridge style) -----
+   * `initial` is the PRISTINE new-form state, never actionData.values:
+   * deriving it from actionData made a failed validation round-trip
+   * count as "clean", hiding the save bar while the error banner and
+   * the unsaved form were still on screen (and turning Discard into a
+   * reset-to-the-bad-values no-op). A new form's baseline is the empty
+   * form, always.
+   */
   const initial = {
-    name: actionData?.values?.name ?? "",
-    scope: (actionData?.values?.scope as TierScope) ?? ("all" as TierScope),
-    scopeIds: actionData?.values?.scopeIds ?? ([] as string[]),
-    discountType:
-      (actionData?.values?.discountType as TierDiscountType) ??
-      ("percentage" as TierDiscountType),
-    discountPct: actionData?.values?.discountPctStr ?? "65",
-    discountAmount: actionData?.values?.discountAmountStr ?? "",
-    discountFixedPrice: actionData?.values?.discountFixedPriceStr ?? "",
-    customerEligibility:
-      (actionData?.values?.customerEligibility as TierCustomerEligibility) ??
-      ("wholesale_tagged" as TierCustomerEligibility),
-    marketEligibility:
-      (actionData?.values?.marketEligibility as TierMarketEligibility) ??
-      ("all_markets" as TierMarketEligibility),
+    name: "",
+    scope: "all" as TierScope,
+    scopeIds: [] as string[],
+    discountType: "percentage" as TierDiscountType,
+    discountPct: "65",
+    discountAmount: "",
+    discountFixedPrice: "",
+    customerEligibility: "wholesale_tagged" as TierCustomerEligibility,
+    marketEligibility: "all_markets" as TierMarketEligibility,
   };
   const currentScopeIds = scopeItems.map((s) => s.id);
   const isDirty =
@@ -402,16 +404,9 @@ export default function NewWholesalePricing() {
   const SAVE_BAR_ID = "pricing-new-save-bar";
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (isDirty) {
-      shopify.saveBar.show(SAVE_BAR_ID);
-    } else {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    }
-    return () => {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    };
-  }, [isDirty, shopify]);
+  // Show while dirty; hide BEFORE navigation unmounts the route — see
+  // use-managed-save-bar.ts for the zombie-bar failure this prevents.
+  useManagedSaveBar(SAVE_BAR_ID, isDirty);
 
   const handleDiscard = () => {
     setName(initial.name);

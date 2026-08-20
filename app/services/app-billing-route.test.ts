@@ -48,6 +48,7 @@ function buildRequest(body: Record<string, string>): Request {
 }
 
 const originalNodeEnv = process.env.NODE_ENV;
+const originalApiKey = process.env.SHOPIFY_API_KEY;
 
 beforeEach(() => {
   authenticateAdminMock.mockReset();
@@ -56,6 +57,7 @@ beforeEach(() => {
 
   authenticateAdminMock.mockResolvedValue({
     shop: { id: "shop-1" },
+    session: { shop: "example-store.myshopify.com" },
     billing: {
       request: billingRequestMock,
       check: billingCheckMock,
@@ -65,12 +67,14 @@ beforeEach(() => {
 
 afterEach(() => {
   process.env.NODE_ENV = originalNodeEnv;
+  if (originalApiKey === undefined) delete process.env.SHOPIFY_API_KEY;
+  else process.env.SHOPIFY_API_KEY = originalApiKey;
 });
 
 describe("/app/billing action — intent=subscribe", () => {
   it("calls billing.request with the submitted plan name", async () => {
     process.env.NODE_ENV = "development";
-    process.env.SHOPIFY_APP_URL = "https://example.test";
+    process.env.SHOPIFY_API_KEY = "test-api-key";
     billingRequestMock.mockResolvedValue(undefined);
 
     await action({
@@ -83,9 +87,15 @@ describe("/app/billing action — intent=subscribe", () => {
     expect(billingRequestMock).toHaveBeenCalledWith(
       expect.objectContaining({
         plan: STARTER_PLAN,
-        // Absolute, not "/app/billing". Shopify's URL scalar rejects a bare
-        // path, which made the subscribe button throw instead of redirect.
-        returnUrl: "https://example.test/app/billing",
+        // The returnUrl must land the merchant back INSIDE the embedded
+        // admin. Shopify's approval page redirects the TOP-LEVEL window
+        // to this URL: our own host (absolute or not) loads outside the
+        // admin with no host/embedded params and dead-ends on the public
+        // index — a reviewer screencasted exactly that (1.2.2). The
+        // admin.shopify.com/store/{handle}/apps/{client-id}/… shape is
+        // the official docs' pattern and the SDK's own default.
+        returnUrl:
+          "https://admin.shopify.com/store/example-store/apps/test-api-key/app/billing",
       }),
     );
   });

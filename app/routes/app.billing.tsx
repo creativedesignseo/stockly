@@ -55,8 +55,27 @@ import {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticateAdmin(request);
 
-  const { hasActivePayment, appSubscriptions } =
-    await checkActiveSubscription(billing);
+  // billing.check is a live Shopify GraphQL call. Unguarded, one blip
+  // (stale token, throttle) rejected the whole loader and rendered
+  // Remix's bare "Application Error" inside the admin iframe — on the
+  // billing page, in front of a reviewer (App Store 1.2.2/2.1.1).
+  // Degrade to "no active subscription": the plan cards still render
+  // and the merchant can retry; never crash the page over a status
+  // read. Thrown Response objects are NOT errors, they are the SDK's
+  // reauth control flow (exit-iframe 302 / App Bridge 401-reauthorize
+  // on a revoked access token) and MUST propagate for auth recovery to
+  // work — swallowing one would silently render a paying merchant as
+  // unsubscribed instead of re-authing.
+  const { hasActivePayment, appSubscriptions } = await checkActiveSubscription(
+    billing,
+  ).catch((error) => {
+    if (error instanceof Response) throw error;
+    console.error(
+      "[billing] checkActiveSubscription failed, rendering plans without a current subscription:",
+      error,
+    );
+    return { hasActivePayment: false, appSubscriptions: [] };
+  });
 
   // Shopify reports both fully active and trialing subscriptions
   // inside `appSubscriptions` with `hasActivePayment: true` — no
@@ -74,7 +93,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { billing } = await authenticateAdmin(request);
+  const { billing, session } = await authenticateAdmin(request);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
   const plan = String(form.get("plan") ?? "");
@@ -89,17 +108,28 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // billing.request() throws (redirects to Shopify's confirmation
   // page) rather than returning — it never resolves normally. The cast
-  // is safe: the guard above already confirmed `plan` is one of the 3
+  // is safe: the guard above already confirmed `plan` is one of the
   // known plan names.
-  // returnUrl MUST be absolute. Shopify binds it to a `URL!` GraphQL scalar,
-  // which is an RFC-3986 absolute URI — a bare path fails variable coercion
-  // and `billing.request` throws instead of redirecting, so the merchant
-  // clicking "Start trial" gets a 500. Never shipped as a relative path again.
-  const appUrl = (process.env.SHOPIFY_APP_URL ?? "").replace(/\/+$/, "");
+  //
+  // returnUrl MUST be an admin.shopify.com URL, not our own host.
+  // Shopify's "Approve subscription" page is TOP-LEVEL (not framed);
+  // after approval it redirects the top-level window to returnUrl.
+  // Our first fix pointed it at `${SHOPIFY_APP_URL}/app/billing`, which
+  // loads the Railway host outside the admin with no host/embedded
+  // params — authenticate.admin cannot bounce that back into the admin,
+  // and the merchant dead-ends on the public "Open Stockly from your
+  // Shopify admin" page. A Shopify reviewer screencasted exactly that
+  // (App Store 1.2.2, 2026-08-20). The admin URL below is the pattern
+  // from the official billing docs and matches the SDK's own default
+  // (`session.shop` minus ".myshopify.com", plus the app's client id);
+  // it lands the merchant back inside the embedded app on the billing
+  // page, where the new subscription renders as "Current plan".
+  const storeHandle = session.shop.replace(".myshopify.com", "");
+  const apiKey = process.env.SHOPIFY_API_KEY ?? "";
   return billing.request({
     plan: plan as BillingPlanName,
     isTest: isTestBillingEnvironment(),
-    returnUrl: `${appUrl}/app/billing`,
+    returnUrl: `https://admin.shopify.com/store/${storeHandle}/apps/${apiKey}/app/billing`,
   });
 };
 

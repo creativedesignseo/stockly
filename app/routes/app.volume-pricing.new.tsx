@@ -46,10 +46,11 @@ import {
   rawBandToEditorBand,
   type Band,
 } from "../components/pricing/band-range-table";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { authenticateAdmin } from "../lib/auth.server";
 import { currencySymbolFor, moneyFormatterFor } from "../lib/currency";
+import { useManagedSaveBar } from "../lib/use-managed-save-bar";
 import { fetchShopCurrencyCode } from "../lib/currency.server";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
@@ -421,26 +422,27 @@ export default function NewVolumePricing() {
    * the standard Remix <Form> POST flow runs (action validates,
    * creates the rule, redirects to /app/volume-pricing).
    * Discard resets all state back to the initial values.
+   *
+   * `initial` is the PRISTINE new-form state, never actionData.values:
+   * deriving it from actionData made a failed validation round-trip
+   * count as "clean" (submitted values === baseline), which hid the
+   * save bar while the error banner and the unsaved form were still on
+   * screen — and turned Discard into a no-op that "reset" to the bad
+   * values. A new form's baseline is the empty form, always.
    */
   const initial = {
-    name: actionData?.values?.name ?? "",
-    scope: (actionData?.values?.scope as TierScope) ?? ("all" as TierScope),
-    scopeIds: actionData?.values?.scopeIds ?? ([] as string[]),
-    aggregation:
-      (actionData?.values?.aggregation as TierAggregation) ??
-      ("per_line" as TierAggregation),
-    customerEligibility:
-      (actionData?.values?.customerEligibility as TierCustomerEligibility) ??
-      ("wholesale_tagged" as TierCustomerEligibility),
-    marketEligibility:
-      (actionData?.values?.marketEligibility as TierMarketEligibility) ??
-      ("all_markets" as TierMarketEligibility),
+    name: "",
+    scope: "all" as TierScope,
+    scopeIds: [] as string[],
+    aggregation: "per_line" as TierAggregation,
+    customerEligibility: "wholesale_tagged" as TierCustomerEligibility,
+    marketEligibility: "all_markets" as TierMarketEligibility,
   };
   // Serialize bands for the hidden input + dirty check. One default
   // band = "pristine"; any edit/add/remove flips dirty.
   const bandsPayload = JSON.stringify(bands.map(editorBandToRawBand));
   const initialBandsPayload = JSON.stringify(
-    (actionData?.values?.bands ?? [defaultBandRaw()]).map((b) => ({
+    [defaultBandRaw()].map((b) => ({
       minQty: Number(b.minQty),
       quantityTo:
         b.quantityTo === null || b.quantityTo === undefined
@@ -463,28 +465,16 @@ export default function NewVolumePricing() {
   const SAVE_BAR_ID = "volume-pricing-new-save-bar";
   const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
-    if (isDirty) {
-      shopify.saveBar.show(SAVE_BAR_ID);
-    } else {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    }
-    // The cleanup hides the bar when the component unmounts — keeps
-    // the global Shopify admin state clean on navigation.
-    return () => {
-      shopify.saveBar.hide(SAVE_BAR_ID);
-    };
-  }, [isDirty, shopify]);
+  // Show while dirty, and guarantee the bar is hidden BEFORE any
+  // navigation unmounts this route — see use-managed-save-bar.ts for
+  // the zombie-bar failure mode this prevents (App Store 2.1.1).
+  useManagedSaveBar(SAVE_BAR_ID, isDirty);
 
   const handleDiscard = () => {
     setName(initial.name);
     setScope(initial.scope);
     setScopeItems(initial.scopeIds.map((id) => ({ id, title: "" })));
-    setBands(
-      actionData?.values?.bands && actionData.values.bands.length > 0
-        ? actionData.values.bands.map(rawBandToEditorBand)
-        : [defaultBand()],
-    );
+    setBands([defaultBand()]);
     setAggregation(initial.aggregation);
     setCustomerEligibility(initial.customerEligibility);
     setMarketEligibility(initial.marketEligibility);
@@ -594,8 +584,10 @@ export default function NewVolumePricing() {
             // Do NOT hide the bar optimistically: if server-side
             // validation fails (e.g. missing name), the action returns
             // json (no redirect) and the bar must stay visible so the
-            // merchant knows it was NOT saved. On success the redirect
-            // unmounts this route and the useEffect cleanup hides it.
+            // merchant knows it was NOT saved. On a successful redirect
+            // useManagedSaveBar hides it during navigation, while the
+            // ui-save-bar element is still mounted — hiding any later
+            // strands a zombie bar in the admin (App Store 2.1.1).
             formRef.current?.requestSubmit();
           }}
           loading={submitting ? "" : undefined}
