@@ -223,7 +223,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     // live GraphQL call — a stale token, throttling or a Shopify blip would
     // reject the whole loader and render Remix's bare "Application Error"
     // inside the admin iframe, for a soft-gate that blocks nothing.
-    checkActiveSubscription(billing).catch((error) => {
+    checkActiveSubscription(billing, shop.id).catch((error) => {
       console.error(
         "[Stockly dashboard] billing check failed; rendering without it",
         error instanceof Error ? error.message : String(error),

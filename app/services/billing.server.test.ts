@@ -61,9 +61,12 @@ describe("buildBillingConfig", () => {
 
 describe("isTestBillingEnvironment", () => {
   const originalNodeEnv = process.env.NODE_ENV;
+  const originalTestShops = process.env.BILLING_TEST_SHOPS;
 
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    if (originalTestShops === undefined) delete process.env.BILLING_TEST_SHOPS;
+    else process.env.BILLING_TEST_SHOPS = originalTestShops;
   });
 
   it("is true when NODE_ENV is not 'production' (dev/test safety default)", () => {
@@ -74,9 +77,30 @@ describe("isTestBillingEnvironment", () => {
     expect(isTestBillingEnvironment()).toBe(true);
   });
 
-  it("is false only when NODE_ENV is exactly 'production'", () => {
+  it("is false in production for any shop not on the allowlist", () => {
     process.env.NODE_ENV = "production";
+    delete process.env.BILLING_TEST_SHOPS;
     expect(isTestBillingEnvironment()).toBe(false);
+    expect(isTestBillingEnvironment("real-merchant.myshopify.com")).toBe(false);
+
+    // A configured allowlist must NEVER leak test billing to other shops.
+    process.env.BILLING_TEST_SHOPS = "adspubli-wholesale-test.myshopify.com";
+    expect(isTestBillingEnvironment("real-merchant.myshopify.com")).toBe(false);
+    expect(isTestBillingEnvironment()).toBe(false);
+  });
+
+  it("is true in production for shops on the BILLING_TEST_SHOPS allowlist", () => {
+    process.env.NODE_ENV = "production";
+    process.env.BILLING_TEST_SHOPS =
+      "adspubli-wholesale-test.myshopify.com, other-dev.myshopify.com";
+    expect(
+      isTestBillingEnvironment("adspubli-wholesale-test.myshopify.com"),
+    ).toBe(true);
+    expect(isTestBillingEnvironment("other-dev.myshopify.com")).toBe(true);
+    // Case-insensitive: Shopify domains are lowercase, but don't bet on it.
+    expect(
+      isTestBillingEnvironment("Adspubli-Wholesale-Test.myshopify.com"),
+    ).toBe(true);
   });
 });
 

@@ -53,7 +53,7 @@ import {
 } from "../services/billing-plans";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { billing } = await authenticateAdmin(request);
+  const { billing, session } = await authenticateAdmin(request);
 
   // billing.check is a live Shopify GraphQL call. Unguarded, one blip
   // (stale token, throttle) rejected the whole loader and rendered
@@ -68,6 +68,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // unsubscribed instead of re-authing.
   const { hasActivePayment, appSubscriptions } = await checkActiveSubscription(
     billing,
+    session.shop,
   ).catch((error) => {
     if (error instanceof Response) throw error;
     console.error(
@@ -128,7 +129,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const apiKey = process.env.SHOPIFY_API_KEY ?? "";
   return billing.request({
     plan: plan as BillingPlanName,
-    isTest: isTestBillingEnvironment(),
+    isTest: isTestBillingEnvironment(session.shop),
     returnUrl: `https://admin.shopify.com/store/${storeHandle}/apps/${apiKey}/app/billing`,
   });
 };

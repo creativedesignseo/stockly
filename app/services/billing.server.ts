@@ -65,15 +65,29 @@ export function buildBillingConfig(): Record<
  * money changes hands — required for dev stores and safe to leave on
  * for any non-production environment).
  *
- * Derived from `NODE_ENV`, mirroring the existing convention in
- * `app/db.server.ts` (`NODE_ENV !== "production"` gates the Prisma
- * dev-singleton). This must NEVER be a hardcoded literal: hardcoding
- * `true` would silently stop detecting real subscriptions once
- * Stockly ships to production; hardcoding `false` would create real
- * charges against dev/test stores.
+ * Two triggers:
+ *   1. `NODE_ENV !== "production"` — mirrors the existing convention in
+ *      `app/db.server.ts` (the Prisma dev-singleton gate).
+ *   2. The shop is listed in `BILLING_TEST_SHOPS` (comma-separated
+ *      myshopify.com domains). The production container always runs
+ *      NODE_ENV=production, so without this our OWN dev stores got REAL
+ *      charges — which a development store cannot approve ("No tienes
+ *      ninguna forma de pago guardada", greyed-out Approve button,
+ *      2026-08-21). The allowlist flips ONLY the named test stores to
+ *      test charges; every unlisted (real) merchant keeps real billing.
+ *
+ * This must NEVER be a hardcoded literal: hardcoding `true` would
+ * silently stop charging (and stop detecting real subscriptions);
+ * hardcoding `false` would create real charges against dev/test stores.
  */
-export function isTestBillingEnvironment(): boolean {
-  return process.env.NODE_ENV !== "production";
+export function isTestBillingEnvironment(shopDomain?: string): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  if (!shopDomain) return false;
+  const testShops = (process.env.BILLING_TEST_SHOPS ?? "")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return testShops.includes(shopDomain.toLowerCase());
 }
 
 /**
@@ -112,13 +126,18 @@ export interface ActiveSubscriptionSummary {
  *
  * `billing.check` reports both fully active and trialing subscriptions
  * as active (Shopify's `hasActivePayment` already covers "on trial").
+ *
+ * `shopDomain` feeds the BILLING_TEST_SHOPS allowlist: a listed test
+ * store subscribes with test charges, so its check must also look at
+ * test subscriptions or the dashboard would deny an active plan.
  */
 export async function checkActiveSubscription(
   billing: BillingContextLike,
+  shopDomain?: string,
 ): Promise<ActiveSubscriptionSummary> {
   const result = await billing.check({
     plans: [...BILLING_PLAN_NAMES],
-    isTest: isTestBillingEnvironment(),
+    isTest: isTestBillingEnvironment(shopDomain),
   });
 
   return {
