@@ -65,6 +65,7 @@ export default function App() {
         <Link to="/app/volume-pricing">Volume Pricing</Link>
         <Link to="/app/registration-form">Registration form</Link>
         <Link to="/app/customers/applications">Applications</Link>
+        <Link to="/app/customers/import">Import customers</Link>
         <Link to="/app/qualify-customer">Qualify customer</Link>
         <Link to="/app/billing">Billing</Link>
       </NavMenu>
