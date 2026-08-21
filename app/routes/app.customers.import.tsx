@@ -3,13 +3,14 @@
  *
  * URL: /app/customers/import
  *
- * Onboarding for a shop that already sells wholesale. Stockly's order
- * minimums only apply to customers it has a `WholesaleCustomer` row for
- * — the Validation Function fails open on anyone else — while wholesale
- * PRICING is granted by the shop's tag alone. A merchant who installs
+ * Onboarding for a TAG-BASED wholesale shop. On the tag track, order
+ * minimums only apply to customers with a `WholesaleCustomer` row — the
+ * Validation Function's fallback path fails open on anyone else — while
+ * wholesale PRICING is granted by the tag alone. A merchant who installs
  * Stockly with 100 already-tagged customers therefore gets wholesale
  * prices for all 100 and minimums for none of them, which looks exactly
- * like a broken minimum.
+ * like a broken minimum. (Native-B2B company buyers are gated by the
+ * company-first path automatically and need no import.)
  *
  * `customers/update` cannot close that gap: it fires on change, so it
  * only ever sees customers tagged AFTER the install. This screen is the
@@ -156,11 +157,13 @@ export default function ImportWholesaleCustomers() {
                   Why this matters
                 </Text>
                 <Text variant="bodyMd" as="p">
-                  Stockly enforces order minimums only for customers it
-                  knows about. Customers who already carry your
-                  &quot;{wholesaleTag}&quot; tag see wholesale prices, but
-                  until you import them their carts skip the minimums —
-                  which looks like the minimum is not working.
+                  This screen is for tag-based wholesale: customers who
+                  carry your &quot;{wholesaleTag}&quot; tag see wholesale
+                  prices, but until you import them their carts skip the
+                  order minimums — which looks like the minimum is not
+                  working. Buyers who purchase through a Shopify B2B
+                  company are covered automatically and do not need
+                  importing.
                 </Text>
               </BlockStack>
             </Card>

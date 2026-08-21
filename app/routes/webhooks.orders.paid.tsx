@@ -16,6 +16,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
+import { ensureCompanyQualified } from "../services/company-qualification.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
 
@@ -33,6 +34,8 @@ interface OrdersPaidPayload {
   };
   total_price?: string;
   current_total_price?: string;
+  subtotal_price?: string;
+  current_subtotal_price?: string;
   line_items?: Array<{
     quantity?: number;
   }>;
@@ -95,6 +98,67 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   const order = payload as OrdersPaidPayload;
   const customerGid = order.customer?.admin_graphql_api_id;
+  // B2B order payloads carry a top-level `company` object ({id,
+  // location_id}); null for DTC orders. Verified on the pilot shop that
+  // B2B orders ALSO carry a customer, but do not bet checkout state on
+  // it — a company order must qualify its company even customer-less.
+  const companyId = (order as { company?: { id?: number | string } })
+    .company?.id;
+  if (!customerGid && !companyId) {
+    return new Response();
+  }
+
+  const shopRow = await prisma.shop.findUnique({ where: { id: shop } });
+  if (!shopRow) return new Response();
+
+  // ONE FpqRule and ONE set of order metrics for both tracks (company
+  // and customer) — duplicated rules drift. The amount prefers
+  // subtotal_price to match what the checkout Validation gates on
+  // (cart merchandise subtotal, not total with shipping/tax);
+  // total_price stays as last-resort fallback only.
+  const fpqRule: FpqRule = {
+    mode: shopRow.fpqMode,
+    amount: shopRow.fpqAmount,
+    quantity: shopRow.fpqQuantity,
+    combinedLogic: shopRow.fpqCombinedLogic,
+  };
+  const orderAmount = Number(
+    order.current_subtotal_price ??
+      order.subtotal_price ??
+      order.current_total_price ??
+      order.total_price ??
+      0,
+  );
+  const orderQty = (order.line_items ?? []).reduce(
+    (sum, li) => sum + (li.quantity ?? 0),
+    0,
+  );
+
+  // ---- Company-first qualification (native B2B, 2026-08-21) --------
+  // A paid B2B order that meets the FPQ marks the COMPANY qualified via
+  // its app-owned metafield — the one bit of state both checkout
+  // Functions read. This is the entire qualification flow for
+  // native-B2B shops: no lists, no sync. `ensure` reads before writing
+  // so webhook retries and later qualifying orders never overwrite the
+  // FIRST qualification timestamp. Fail-open on any error: recovery is
+  // automatic (the company's next qualifying paid order re-fires this),
+  // and a webhook must never 500 over a metafield write.
+  if (companyId && evaluateFpq(fpqRule, orderAmount, orderQty)) {
+    try {
+      await ensureCompanyQualified(
+        admin,
+        `gid://shopify/Company/${companyId}`,
+      );
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        "[Stockly webhook orders/paid] company qualification failed:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  }
+
+  // Customer-track qualification (tag-based shops) needs a customer.
   if (!customerGid) {
     return new Response();
   }
@@ -102,9 +166,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // Extract the Shopify numeric customer ID — our WholesaleCustomer
   // table stores this as a String (matches what App Proxy gives us).
   const customerId = customerGid.split("/").pop() ?? "";
-
-  const shopRow = await prisma.shop.findUnique({ where: { id: shop } });
-  if (!shopRow) return new Response();
 
   // ──────────────────────────────────────────────────────────────
   // Order tagging (BSS Essential parity feature)
@@ -159,13 +220,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
   }
 
-  const fpqRule: FpqRule = {
-    mode: shopRow.fpqMode,
-    amount: shopRow.fpqAmount,
-    quantity: shopRow.fpqQuantity,
-    combinedLogic: shopRow.fpqCombinedLogic,
-  };
-
   // Find or create the WholesaleCustomer row. If they paid an order
   // and the shop's wholesale tag check passed when they viewed the
   // store, they're already implicitly approved; we just need to know
@@ -184,16 +238,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return new Response();
   }
 
-  // Compute order metrics from the payload.
-  const orderAmount = Number(
-    order.current_total_price ?? order.total_price ?? 0,
-  );
-  const orderQty = (order.line_items ?? []).reduce(
-    (sum, li) => sum + (li.quantity ?? 0),
-    0,
-  );
-
-  // Does this order qualify?
+  // Does this order qualify? (Metrics hoisted above, shared with the
+  // company track.)
   const meets = evaluateFpq(fpqRule, orderAmount, orderQty);
   if (!meets) {
     return new Response();

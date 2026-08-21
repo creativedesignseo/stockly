@@ -13,10 +13,13 @@
  *   - PRICING (`isEligible`, and the Discount Function's
  *     `wholesale_tagged` rule) accepts the shop's wholesale TAG on its
  *     own. A tagged customer gets wholesale prices with no row here.
- *   - ORDER MINIMUMS (the Validation Function) only ever sees GIDs that
- *     `opening-order-sync` reads out of `WholesaleCustomer`, and it fails
- *     open on anyone it does not recognise — deliberately, so a bug can
- *     never block a legitimate sale.
+ *   - ORDER MINIMUMS for TAG-BASED buyers (the Validation Function's
+ *     fallback path) only see GIDs that `opening-order-sync` reads out
+ *     of `WholesaleCustomer`, and fail open on anyone unrecognised —
+ *     deliberately, so a bug can never block a legitimate sale. (Buyers
+ *     purchasing through a native-B2B company are handled by the
+ *     company-first path and need no import — see
+ *     company-qualification.server.ts.)
  *
  * So a tagged-but-unimported customer gets the discount and skips the
  * minimum: the worst possible half of each. Importing them is what makes

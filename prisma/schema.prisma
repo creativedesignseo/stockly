@@ -105,6 +105,11 @@ model Shop {
   /// rule were all configured at once — retail × 0.35³ = 95.7% off.
   pricingSource String @default("stockly")
 
+  /// When the one-off backfill that grandfathers existing B2B companies
+  /// (ordersCount > 0 -> qualified metafield) ran for this shop. Null =
+  /// not yet run; see services/company-qualification.server.ts.
+  companiesBackfilledAt DateTime?
+
   /// Universal wholesale discount on retail price (ADR-006).
   /// 0 = no baseline (default: wholesale customers see retail prices,
   /// only tiers apply). 65 means "wholesale customers see retail × 0.35".

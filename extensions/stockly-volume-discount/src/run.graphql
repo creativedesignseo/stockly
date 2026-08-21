@@ -23,6 +23,17 @@ query RunInput {
         id
         hasAnyTag(tags: ["wholesale"])
       }
+      purchasingCompany {
+        company {
+          id
+          # Same app-owned qualification flag the Validation Function
+          # reads: written by the backend when the company completes its
+          # first qualifying order (or is backfilled as established).
+          metafield(namespace: "$app:stockly", key: "qualified") {
+            value
+          }
+        }
+      }
     }
   }
   discountNode {

@@ -9,12 +9,12 @@
         "buyerIdentity": {
           "customer": null,
           "purchasingCompany": {
-            "company": { "id": "gid://shopify/Company/77" },
+            "company": { "id": "gid://shopify/Company/77", "metafield": null },
             "location": { "id": "gid://shopify/CompanyLocation/88" }
           }
         }
       },
-      "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":200,\"pendingCustomers\":[\"gid://shopify/CompanyLocation/88\"]}" } }
+      "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":200,\"pendingCustomers\":[\"gid://shopify/Customer/8383447760975\"]}" } }
     },
     "output": { "operations": [{ "validationAdd": { "errors": [{ "message": "Your first wholesale order must meet the opening-order minimum before checkout.", "target": "$.cart" }] } }] }
   }

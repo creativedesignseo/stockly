@@ -4,7 +4,7 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-21 (night) — **🛡️ Single source of wholesale discount shipped (`pricingSource`); Piro set to `catalog` after finding three stacked 65% discounts. `customers/update` deployed as app version `stockly-3`.** Prior: **🎉 APPROVED AND PUBLISHED on the Shopify App Store. Listing live at https://apps.shopify.com/stockly-2, visibility deliberately still LIMITED. The review saga is over; the post-approval queue below is the real work now.**
+**Last updated:** 2026-08-22 — **🏗️ COMPANY-FIRST MINIMUMS BUILT + THE BUG THAT DISABLED EVERY MINIMUM FIXED. The checkout Validation had NEVER been created on any shop (apiType string mismatch, congenital since 2026-06-03). Identity is now company-first: `purchasingCompany` + an app metafield on the Company picks opening vs recurring gate; tag/list flow stays as fallback. orders/paid ENABLED. 211 tests green. PENDING: deploy backend+extensions, bootstrap Piro, live E2E.** Prior: 2026-08-21 (night) — **🛡️ Single source of wholesale discount shipped (`pricingSource`); Piro set to `catalog` after finding three stacked 65% discounts. `customers/update` deployed as app version `stockly-3`.** Prior: **🎉 APPROVED AND PUBLISHED on the Shopify App Store. Listing live at https://apps.shopify.com/stockly-2, visibility deliberately still LIMITED. The review saga is over; the post-approval queue below is the real work now.**
 
 ## P0 — Post-approval queue
 

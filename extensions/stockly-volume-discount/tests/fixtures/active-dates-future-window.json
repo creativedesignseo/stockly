@@ -1,5 +1,5 @@
 {
-  "_comment": "ADR-012 guardrail: a tier with startsAt = 2099-01-01 must NOT apply. Catches a regression where the active-date filter falls back to a broken clock (e.g. Date.now(), which is epoch-0 inside the Function's deterministic sandbox) instead of shop.localTime.date — if that happened, 'today' would read as 1970 and the comparison would silently let this future tier through.",
+  "_comment": "ADR-012 guardrail: a tier with startsAt = 2099-01-01 must NOT apply. Catches a regression where the active-date filter falls back to a broken clock (e.g. Date.now(), which is epoch-0 inside the Function's deterministic sandbox) instead of shop.localTime.date \u2014 if that happened, 'today' would read as 1970 and the comparison would silently let this future tier through.",
   "payload": {
     "export": "run",
     "target": "purchase.product-discount.run",
@@ -27,7 +27,8 @@
           "customer": {
             "id": "gid://shopify/Customer/1",
             "hasAnyTag": true
-          }
+          },
+          "purchasingCompany": null
         }
       },
       "discountNode": {

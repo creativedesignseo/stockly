@@ -331,8 +331,17 @@ export function run(input: RunInput): FunctionRunResult {
   //    becomes 0 for customers without the tag, so they only get the
   //    tier's discountPct/discountAmount (no baseline composition).
   const customer = input.cart.buyerIdentity?.customer;
-  const customerHasWholesaleTag = customer?.hasAnyTag === true;
-  const customerLoggedIn = !!customer?.id;
+  // Company-first identity (2026-08-21): a buyer purchasing on behalf
+  // of a native-B2B company IS wholesale — the merchant approved that
+  // company explicitly in Shopify. No tag required; tags stay as the
+  // signal for shops without native B2B. This is what lets the 92-of-98
+  // untagged company contacts on the pilot shop see wholesale pricing
+  // without anyone maintaining tags or lists.
+  const purchasingCompany = input.cart.buyerIdentity?.purchasingCompany;
+  const isCompanyBuyer = !!purchasingCompany?.company?.id;
+  const customerHasWholesaleTag =
+    customer?.hasAnyTag === true || isCompanyBuyer;
+  const customerLoggedIn = !!customer?.id || isCompanyBuyer;
 
   function tierMatchesCustomer(tier: ConfiguredTier): boolean {
     const elig = tier.customerEligibility ?? "wholesale_tagged";
@@ -521,14 +530,24 @@ export function run(input: RunInput): FunctionRunResult {
     0,
   );
 
-  // 4. First-Purchase Qualifier gate. The customer is "qualified" if
-  //    Stockly has recorded their qualifying purchase — we store the
-  //    list of qualified customer GIDs in the shop-level config
-  //    metafield (see comment on FunctionConfig.qualifiedCustomers).
+  // 4. First-Purchase Qualifier gate. Two qualification sources:
+  //    - Company-first (native B2B): the app-owned metafield on the
+  //      purchasing COMPANY, written by the backend when the company
+  //      completes its first qualifying order. State lives on the
+  //      entity itself — no list, no sync, no staleness.
+  //    - Fallback (tag-based shops): the qualified customer GID list
+  //      in the shop-level config metafield, as before.
+  const companyQualifiedValue =
+    purchasingCompany?.company?.metafield?.value ?? "";
+  const companyIsQualified =
+    isCompanyBuyer &&
+    companyQualifiedValue.trim().length > 0 &&
+    !["false", "0", "null"].includes(companyQualifiedValue.trim().toLowerCase());
   const customerGid = customer?.id ?? "";
   const qualifiedList = config.qualifiedCustomers ?? [];
   const alreadyQualified =
-    customerGid.length > 0 && qualifiedList.includes(customerGid);
+    companyIsQualified ||
+    (customerGid.length > 0 && qualifiedList.includes(customerGid));
 
   if (!alreadyQualified) {
     if (!fpqMet(config.fpq, cartWholesaleSubtotal, cartTotalQty)) {

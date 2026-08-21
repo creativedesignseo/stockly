@@ -46,39 +46,24 @@
  * actually pay). Mirrors the Discount Function's `fpqMet` logic so the two
  * gates agree.
  *
- * Buyer identity — READ THIS BEFORE CHANGING `buyerIdentifiers()`:
+ * Buyer identity — company-first (2026-08-22 rearchitecture):
  *
- * We build a SET of candidate identifiers (customer, company, company
- * location) and match if ANY appears in the relevant list. Two facts about
- * that, both verified rather than assumed (2026-08-11):
+ *   PRIMARY: a cart carrying `buyerIdentity.purchasingCompany` is a
+ *   wholesale cart, full stop — Shopify only populates it for buyers
+ *   acting for a native-B2B company the merchant approved. Which gate
+ *   applies is read from the COMPANY's own app-owned metafield
+ *   (`$app:stockly` / `qualified`, written by orders/paid or the
+ *   install backfill): present → recurring gate, absent → opening
+ *   gate. No lists, no sync, no staleness. One precedence rule: a
+ *   customer present in `qualifiedCustomers` wins over a pending
+ *   company (mirrors the Discount Function, protects merchants
+ *   migrating from tag-based wholesale to native B2B).
  *
- *   1. `buyerIdentity.customer.id` IS populated in native B2B checkout.
- *      Checked against the pilot merchant's live Admin API: of 12 real
- *      orders, all 12 carried a `customer`, including the three whose
- *      `purchasingEntity` is a `PurchasingCompany`. So customer-id matching
- *      alone is sufficient today, and this Function was NOT silently letting
- *      company buyers through before the candidate set existed. (Caveat:
- *      that is Order data, not cart `buyerIdentity` — strong evidence, not
- *      proof. A real B2B test checkout is still the definitive check.)
- *
- *   2. The company and location candidates are currently INERT. The only
- *      producer of `pendingCustomers` / `qualifiedCustomers` is
- *      `app/services/opening-order-sync.server.ts`, which emits exclusively
- *      `gid://shopify/Customer/<id>` — `WholesaleCustomer` has no column
- *      holding a company or location id, so there is nothing to emit. The
- *      extra candidates therefore cannot match anything. They are kept as
- *      cheap defence-in-depth for the case where `customer` is null, not as
- *      a working company-level match.
- *
- * ⚠️ If you ever make the sync emit Company/CompanyLocation GIDs, resolve
- * this FIRST: identity becomes two-level, and the "pending wins" precedence
- * below was written for a one-level world. A buyer could then match
- * `pendingCustomers` by their location id while matching `qualifiedCustomers`
- * by their own customer id — and would be blocked by the opening-order
- * minimum because a COLLEAGUE at the same location has not ordered yet.
- * That is a legitimate sale blocked by design, which violates the golden
- * rule below. The natural fix is customer identity winning over company
- * identity, not "pending wins".
+ *   FALLBACK (no purchasingCompany): the original customer-GID lists,
+ *   unchanged, for shops that run wholesale on tags without native
+ *   B2B. `buyerIdentifiers()` is customer-only — company/location ids
+ *   in the lists could never be reached once the primary path exists,
+ *   and the sync only ever emitted Customer GIDs anyway.
  *
  * Golden rule: FAIL OPEN on every unknown, malformed or unexpected path.
  * This code runs in a real store's checkout — blocking a legitimate sale
@@ -127,20 +112,17 @@ const DEFAULT_POST_QUALIFICATION_MESSAGE =
   "This order must meet the minimum for wholesale orders.";
 
 /**
- * Every identifier the buyer could be listed under. In a native B2B
- * checkout the customer id may be absent while the company / location ids
- * are present, so all three are candidates.
+ * Identifiers the buyer could be listed under in the customer lists.
+ * Customer id only: since the company-first path (2026-08-22) any cart
+ * carrying `purchasingCompany` returns from the primary branch before
+ * the list fallback runs, so company/location ids in these lists could
+ * never match — they were removed as dead-by-architecture. The sync
+ * side has only ever emitted `gid://shopify/Customer/...` values.
  */
 function buyerIdentifiers(input: CartValidationsGenerateRunInput): string[] {
   const buyer = input.cart.buyerIdentity;
-  const candidates = [
-    buyer?.customer?.id,
-    buyer?.purchasingCompany?.company?.id,
-    buyer?.purchasingCompany?.location?.id,
-  ];
-  return candidates.filter(
-    (id): id is string => typeof id === "string" && id.length > 0,
-  );
+  const id = buyer?.customer?.id;
+  return typeof id === "string" && id.length > 0 ? [id] : [];
 }
 
 /** True when ANY candidate identifier appears in the given list. */
@@ -205,6 +187,42 @@ function applyGate(
   return { operations: [{ validationAdd: { errors } }] };
 }
 
+/**
+ * Company-first identity (2026-08-21 rearchitecture).
+ *
+ * A cart that carries `buyerIdentity.purchasingCompany` IS a wholesale
+ * cart — Shopify only populates it for buyers purchasing on behalf of a
+ * native-B2B company, which the merchant explicitly approved. No tag, no
+ * enrolment list, no sync can add or remove that fact, so it is the most
+ * truthful signal available and it can never go stale.
+ *
+ * Which gate applies is read from the COMPANY itself: an app-owned
+ * metafield (`$app:stockly` / `qualified`) that the backend writes when
+ * the company completes its first qualifying order (orders/paid webhook)
+ * or when it is backfilled as an established customer (ordersCount > 0
+ * at enablement). Metafield present and truthy → the recurring
+ * post-qualification minimum; absent → the opening-order minimum. State
+ * lives where the entity lives — nothing to keep in sync, no list to
+ * outgrow, and Shopify's own docs bless Company metafields as Function
+ * input (the field is NOT deprecated, unlike everything Market-shaped).
+ *
+ * Customer-list identity remains as the fallback for shops that run
+ * wholesale on tags without native B2B — behaviour unchanged for them.
+ */
+function companyQualified(
+  input: CartValidationsGenerateRunInput,
+): boolean {
+  const value =
+    input.cart.buyerIdentity?.purchasingCompany?.company?.metafield?.value;
+  if (typeof value !== "string") return false;
+  const v = value.trim().toLowerCase();
+  // The backend writes an ISO timestamp; accept legacy boolean-ish
+  // values defensively. Anything non-empty that isn't an explicit
+  // negative counts as qualified — misreading "qualified" as "pending"
+  // would wrongly gate an established buyer, the worse failure.
+  return v.length > 0 && v !== "false" && v !== "0" && v !== "null";
+}
+
 export function cartValidationsGenerateRun(
   input: CartValidationsGenerateRunInput,
 ): CartValidationsGenerateRunResult {
@@ -222,6 +240,42 @@ export function cartValidationsGenerateRun(
     return NO_ERRORS;
   }
 
+  const subtotal = Number(input.cart.cost.subtotalAmount.amount);
+  const quantity = input.cart.lines.reduce(
+    (sum, line) => sum + line.quantity,
+    0,
+  );
+
+  // ---- Primary path: native-B2B company buyer -----------------------
+  // The company's own qualification metafield picks the gate. This
+  // needs no lists, so it covers every company from the moment the
+  // merchant approves it in Shopify.
+  //
+  // Precedence when the company is PENDING but the CUSTOMER is in
+  // `qualifiedCustomers`: the customer wins and gets the recurring
+  // gate. This mirrors the Discount Function, which ORs company
+  // qualification with the customer list — without it the two engines
+  // disagree on the same cart (adversarial-review find, 2026-08-22):
+  // a merchant migrating from tag-based wholesale to native B2B would
+  // show a released buyer wholesale prices while blocking their
+  // checkout with the opening-order gate they already cleared.
+  const company = input.cart.buyerIdentity?.purchasingCompany?.company;
+  if (company?.id) {
+    const qualifiedViaCustomerList = matchesList(
+      buyerIdentifiers(input),
+      config.qualifiedCustomers,
+    );
+    return companyQualified(input) || qualifiedViaCustomerList
+      ? applyGate(
+          config.postQualification,
+          subtotal,
+          quantity,
+          DEFAULT_POST_QUALIFICATION_MESSAGE,
+        )
+      : applyGate(config, subtotal, quantity, DEFAULT_OPENING_ORDER_MESSAGE);
+  }
+
+  // ---- Fallback path: tag-based shops (customer lists) --------------
   // Guests, retail buyers and anyone we can't identify pass untouched.
   const candidates = buyerIdentifiers(input);
   if (candidates.length === 0) return NO_ERRORS;
@@ -230,12 +284,6 @@ export function cartValidationsGenerateRun(
   const isQualified =
     !isPending && matchesList(candidates, config.qualifiedCustomers);
   if (!isPending && !isQualified) return NO_ERRORS;
-
-  const subtotal = Number(input.cart.cost.subtotalAmount.amount);
-  const quantity = input.cart.lines.reduce(
-    (sum, line) => sum + line.quantity,
-    0,
-  );
 
   // The opening-order gate wins: a buyer is never subject to both.
   return isPending

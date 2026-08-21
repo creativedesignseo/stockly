@@ -32,9 +32,30 @@ import type { AdminApiContext } from "@shopify/shopify-app-remix/server";
 import prisma from "../db.server";
 
 const FUNCTION_HANDLE = "stockly-opening-order";
-const VALIDATION_API_TYPE = "cart_and_checkout_validation";
+/**
+ * The apiType string Shopify's Admin API actually returns for Cart &
+ * Checkout Validation functions. NOT "cart_and_checkout_validation" —
+ * that string (with "and", matching the marketing name) shipped in the
+ * original 2026-06-03 commit and NEVER matched anything, so
+ * `validationCreate` never ran and no Validation object ever existed on
+ * any shop. The checkout minimum was silently disabled for its entire
+ * life; a $82.60 B2B order sailed past a $300 FPQ on 2026-08-21, which
+ * is how this was finally caught. Verified against the live API on
+ * 2025-01, 2025-04 and 2025-07: all return "cart_checkout_validation".
+ * `matchesValidationApiType` below also accepts any future
+ * "*validation*" apiType so a Shopify rename degrades to the title
+ * check instead of silently disabling checkout enforcement again.
+ */
+const VALIDATION_API_TYPE = "cart_checkout_validation";
 const METAFIELD_NAMESPACE = "$app:stockly-opening-order";
 const METAFIELD_KEY = "function-configuration";
+
+/** Exported for tests — the string above must never drift again. */
+export function matchesValidationApiType(apiType: string): boolean {
+  return (
+    apiType === VALIDATION_API_TYPE || apiType.toLowerCase().includes("validation")
+  );
+}
 
 /** Find the Function ID for our `stockly-opening-order` handle. */
 async function findValidationFunctionId(
@@ -62,7 +83,7 @@ async function findValidationFunctionId(
   const nodes = json.data?.shopifyFunctions?.nodes ?? [];
   const match = nodes.find(
     (n) =>
-      n.apiType === VALIDATION_API_TYPE &&
+      matchesValidationApiType(n.apiType) &&
       (n.title === FUNCTION_HANDLE ||
         n.title.toLowerCase().includes("opening")),
   );

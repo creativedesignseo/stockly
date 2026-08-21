@@ -27,7 +27,8 @@
           "customer": {
             "id": "gid://shopify/Customer/1",
             "hasAnyTag": true
-          }
+          },
+          "purchasingCompany": null
         }
       },
       "discountNode": {

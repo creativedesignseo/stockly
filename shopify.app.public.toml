@@ -98,22 +98,16 @@ api_version = "2025-01"
   uri = "/webhooks/customers/update"
   topics = [ "customers/update" ]
 
-# orders/paid webhook (ADR-004 FPQ qualification) is intentionally
-# NOT registered here yet. Shopify treats every orders/* topic as
-# "protected customer data" and refuses to register the subscription
-# until the app declares + gets approved for that data access via:
-#   Partner Dashboard → App → Configuration → Protected customer data
-# That step needs a Privacy Policy URL and is part of pre-launch
-# setup. For now, the qualification flow is exercised manually:
-#   - The handler code lives at app/routes/webhooks.orders.paid.tsx
-#   - Stockly admin will get a "Mark customer as qualified" button
-#     that writes both the DB row and the customer metafield
-#     (same effect as the webhook handler would have).
-# Once protected-customer-data approval lands, re-enable below:
-#
-#   [[webhooks.subscriptions]]
-#   uri = "/webhooks/orders/paid"
-#   topics = [ "orders/paid" ]
+# orders/paid (ADR-004 FPQ qualification + company-first qualification).
+# ENABLED 2026-08-22: protected customer data access was approved with
+# the App Store approval ("Approved, Aug 21, 2026" in Partners → API
+# access requests), which is the condition that had kept this commented
+# out since pre-launch. The handler at app/routes/webhooks.orders.paid.tsx
+# now also marks the purchasing COMPANY qualified (native B2B) via its
+# app-owned metafield — the state both checkout Functions read.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/orders/paid"
+  topics = [ "orders/paid" ]
 
 [auth]
 redirect_urls = [

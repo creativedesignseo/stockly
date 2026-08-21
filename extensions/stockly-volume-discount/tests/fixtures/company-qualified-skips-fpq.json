@@ -1,0 +1,44 @@
+{
+  "payload": {
+    "export": "run",
+    "target": "purchase.product-discount.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/0",
+            "quantity": 10,
+            "cost": { "amountPerQuantity": { "amount": "10.00" } },
+            "merchandise": {
+              "__typename": "ProductVariant",
+              "id": "gid://shopify/ProductVariant/1",
+              "product": { "id": "gid://shopify/Product/1" }
+            }
+          }
+        ],
+        "buyerIdentity": {
+          "customer": { "id": "gid://shopify/Customer/1", "hasAnyTag": false },
+          "purchasingCompany": {
+            "company": { "id": "gid://shopify/Company/9", "metafield": { "value": "2026-08-22T00:00:00.000Z" } }
+          }
+        }
+      },
+      "discountNode": {
+        "metafield": {
+          "value": "{\"wholesaleBaselinePct\":0,\"fpq\":{\"mode\":\"amount\",\"amount\":300},\"qualifiedCustomers\":[],\"tiers\":[{\"scope\":\"all\",\"scopeIds\":[],\"groupId\":\"g_c2\",\"minQty\":10,\"quantityTo\":null,\"discountPct\":10,\"discountType\":\"percentage\",\"aggregation\":\"per_line\",\"customerEligibility\":\"wholesale_tagged\"}]}"
+        }
+      },
+      "shop": { "localTime": { "date": "2026-08-22" } }
+    },
+    "output": {
+      "discountApplicationStrategy": "ALL",
+      "discounts": [
+        {
+          "targets": [{ "cartLine": { "id": "gid://shopify/CartLine/0" } }],
+          "value": { "percentage": { "value": "10" } },
+          "message": "Wholesale 0% + 10% volume (10+ units)"
+        }
+      ]
+    }
+  }
+}

@@ -65,6 +65,7 @@ import { useManagedSaveBar } from "../lib/use-managed-save-bar";
 import prisma from "../db.server";
 import { syncTiersToFunction } from "../services/discount-function-sync.server";
 import { syncOpeningOrderValidation } from "../services/opening-order-sync.server";
+import { backfillEstablishedCompanies } from "../services/company-qualification.server";
 
 /**
  * Both gates (first-purchase and post-qualification) share the same
@@ -260,6 +261,21 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // checkout Validation so the new min/mode takes effect. Internally
   // fail-safe (never throws).
   await syncOpeningOrderValidation(admin, shop.id);
+
+  // Company-first (2026-08-22): grandfather existing B2B companies on
+  // the first save after upgrade — shops installed before the afterAuth
+  // bootstrap existed never ran it. Fire-and-forget: on a company-heavy
+  // shop the paged loop could hold this user-facing POST for tens of
+  // seconds (adversarial-review find). One-off via the
+  // companiesBackfilledAt gate; a failure must not fail the save.
+  void backfillEstablishedCompanies(admin, shop.id).catch(
+    (error: unknown) => {
+      console.error(
+        "[settings.pricing] company backfill failed:",
+        error instanceof Error ? error.message : String(error),
+      );
+    },
+  );
 
   return json({ ok: true } as const);
 };

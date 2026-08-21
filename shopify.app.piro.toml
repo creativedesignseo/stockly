@@ -10,6 +10,10 @@ embedded = true
 # write_customers — needed to write the wholesale-status metafield on
 # customers from the orders/paid webhook handler (ADR-004 FPQ flow).
 # read_orders     — Shopify requires this scope to subscribe to the
+# NOTE (2026-08-22): this config INTENTIONALLY lags shopify.app.public.toml,
+# where orders/paid is ENABLED (protected-data approval landed with the App
+# Store approval). This app config has no such approval, so the block stays
+# commented here.
 # orders/paid webhook (otherwise app config update fails with
 # "Missing scope for webhook topic: orders/paid").
 # write_validations — create/update the Cart & Checkout Validation that

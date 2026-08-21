@@ -15,6 +15,14 @@ query CartValidationsGenerateRunInput {
       purchasingCompany {
         company {
           id
+          # App-owned qualification flag written by the backend when the
+          # company completes its first qualifying order (orders/paid
+          # webhook) or is backfilled as an established customer. The
+          # namespace resolves to this app's reserved namespace, so no
+          # other app can spoof it.
+          metafield(namespace: "$app:stockly", key: "qualified") {
+            value
+          }
         }
         location {
           id
