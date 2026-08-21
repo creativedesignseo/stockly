@@ -1,16 +1,16 @@
 # Graph Report - stockly  (2026-08-22)
 
 ## Corpus Check
-- 294 files · ~282,997 words
+- 293 files · ~282,593 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3137 nodes · 3740 edges · 321 communities (234 shown, 87 thin omitted)
+- 3137 nodes · 3739 edges · 321 communities (234 shown, 87 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 31 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f444de55`
+- Built from commit: `bf957910`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -358,7 +358,7 @@ Nodes (12): 2026-08-11 — Stockly goes live on Piro + post-qualification minimu
 
 ### Community 1 - "Volume Discount Shopify API"
 Cohesion: 0.02
-Nodes (120): Attribute, BuyerIdentity, BuyerJourney, BuyerJourneyStep, Cart, CartAttributeArgs, CartCost, CartDeliveryGroup (+112 more)
+Nodes (120): Attribute, BuyerIdentity, Cart, CartAttributeArgs, CartCost, CartDeliveryGroup, CartDeliveryGroupType, CartDeliveryOption (+112 more)
 
 ### Community 2 - "FPQ Banner Storefront"
 Cohesion: 0.06
@@ -749,7 +749,7 @@ Cohesion: 0.09
 Nodes (22): 1.1 List view (`/volume-pricing`), 1.2 Create / edit form (`/volume-pricing/new`), 1. UI map, 2. Implied data model, 3. Merchant flow, 4. Gap analysis vs Stockly today, 5. Shopify API / scope requirements, 6. Suggested implementation phases (for the planning agent) (+14 more)
 
 ### Community 185 - "Community 185"
-Cohesion: 0.10
+Cohesion: 0.12
 Nodes (16): shopify, authenticateWebhook(), safeEqual(), WebhookContext, action(), action(), CustomerDataRequestPayload, action() (+8 more)
 
 ### Community 186 - "Community 186"
@@ -1141,7 +1141,7 @@ Cohesion: 0.29
 Nodes (6): 2026-08-22 — Company-first B2B minimums, and the bug that disabled every minimum, Adversarial review (3 agents) — all findings fixed, Still open, The headline finding, The rearchitecture (per Jonatan's design decision), Verified
 
 ## Knowledge Gaps
-- **1887 isolated node(s):** `Maybe`, `InputMaybe`, `Exact`, `MakeOptional`, `MakeMaybe` (+1882 more)
+- **1887 isolated node(s):** `PricingSource`, `GateMode`, `GateCombinedLogic`, `GATE_MODES`, `GATE_LOGICS` (+1882 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **87 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -1149,12 +1149,12 @@ Nodes (6): 2026-08-22 — Company-first B2B minimums, and the bug that disabled 
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `authenticateAdmin()` connect `Community 177` to `Module 34`, `Admin Pricing Routes`, `Community 201`, `Registration Form UI Components`, `Onboarding Wizard`, `Volume Pricing Band UI`, `Shopify Auth & DB`, `Auth Login Flow`, `Wholesale Approval Queue`, `Community 307`, `Wholesale Pricing CRUD`, `Prisma & SSR Entry`, `Community 314`, `Module 30`, `Community 319`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **Why does `layoutFieldsIntoRows()` connect `Community 313` to `Registration Form System`?**
   _High betweenness centrality (0.007) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `StocklyProductPanel` (e.g. with `Multiplicative pricing composition (baseline × tier)` and `Tier resolution (scope precedence: product > collection > all)`) actually correct?**
   _`StocklyProductPanel` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `Maybe`, `InputMaybe`, `Exact` to the rest of the system?**
+- **What connects `PricingSource`, `GateMode`, `GateCombinedLogic` to the rest of the system?**
   _1908 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Volume Discount Shopify API` be split into smaller, more focused modules?**
   _Cohesion score 0.01652892561983471 - nodes in this community are weakly interconnected._

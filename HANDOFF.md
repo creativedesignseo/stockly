@@ -4,16 +4,76 @@
 > Single source of truth for current state + resume instructions.
 
 > **Where this project stands, in one paragraph.** **Stockly is APPROVED and
-> published on the Shopify App Store** (2026-08-21, 18:30 UTC) — less than 24
-> hours after the reviewer requested changes. The listing is live at
-> **https://apps.shopify.com/stockly-2** and returns 200. Visibility is still
-> **Limited** on purpose: the listing is reachable only by direct URL until the
-> first merchants leave reviews. Protected customer data access was approved the
-> same day. The post-approval queue is now the real work: rotate the client
-> secret (only Jonatan can — see below), deploy the re-enabled
-> `customers/update` webhook, and reinstall on Piro.
+> published** (https://apps.shopify.com/stockly-2, visibility Limited on
+> purpose). The 2026-08-22 session then found and killed the product's biggest
+> latent defect — the checkout minimum had NEVER worked on any shop (a one-string
+> apiType bug meant the Validation was never created) — and rebuilt B2B identity
+> company-first: `purchasingCompany` + one app metafield on the Company picks
+> opening vs recurring minimum, no lists, no sync. Verified END-TO-END by a real
+> buyer on Piro: cart builds freely, checkout blocks under $300 with the
+> opening-order message, unblocks at $301, re-blocks when the cart drops. The
+> one remaining unverified link is the automatic company qualification on a PAID
+> order (Jonatan's test purchase is still unpaid). Post-approval queue: rotate
+> the client secret, tell Ana, and productize the B2B setup fixes done by hand
+> today.
 
-**Last updated:** 2026-08-21 (night) — **🛡️ ONE SOURCE OF WHOLESALE DISCOUNT.
+**Last updated:** 2026-08-22 (close-out) — **🏗️ COMPANY-FIRST B2B MINIMUMS LIVE
+AND PROVEN BY A REAL BUYER. Everything below was checked against code and
+production this session, not assumed.**
+
+  - **🔴→✅ THE MINIMUM NEVER WORKED, ANYWHERE, EVER — found and fixed.**
+    `opening-order-sync` filtered functions by apiType
+    `"cart_and_checkout_validation"`; the API returns
+    `"cart_checkout_validation"`. The filter never matched, so
+    `validationCreate` never ran since the feature was born (2026-06-03).
+    Verified live before the fix: functions deployed, `validations(first:50)`
+    EMPTY. After: **`Validation/136216655` exists and is enabled on Piro** —
+    the first Validation object in the product's history. Guarded by
+    `matchesValidationApiType` + tests.
+  - **✅ Identity is company-first now.** A cart with
+    `buyerIdentity.purchasingCompany` IS wholesale; the gate (opening vs
+    recurring) is read from app metafield `$app:stockly/qualified` ON THE
+    COMPANY. Writers: `orders/paid` (ensure-guarded) + a one-off backfill
+    (`ordersCount > 0` → qualified; stamps only clean runs). Verified on Piro:
+    99 companies scanned, 5 with orders → 5 qualified, 0 errors. Tag/list flow
+    unchanged as fallback. Precedence: customer in `qualifiedCustomers` beats a
+    pending company (mirrors the Discount Function; fixture-pinned).
+  - **✅ Cart building is free; only checkout gates.** First live test rejected
+    the very first add-to-cart (validations run on every cart mutation and
+    block the mutation). Fixed with `buyerJourney.step`: pass on
+    CART_INTERACTION, gate on CHECKOUT_*. Deployed as app version
+    **stockly-5**.
+  - **✅ E2E PROVEN BY A REAL BUYER on Piro (Jonatan, company
+    `creativedesignseo`, pending):** 43 items added freely → checkout at
+    $291.20 BLOCKED with the opening-order message → $301.00 unblocked →
+    dropping to $257.25 re-blocked live. **Still unverified: automatic company
+    qualification on payment** — the test order is unpaid; when it is paid,
+    `orders/paid` should write the company metafield. Watch the Railway logs on
+    the next paid B2B order.
+  - **✅ afterAuth bootstrap works in production:** opening the app on Piro
+    fired it (Railway logs: `Running afterAuth hook`, then
+    `[company-backfill] scanned=99 qualified=5 errors=0`) — installs and token
+    refreshes now arm the Validation and run the backfill with no human steps.
+  - **⚠️ B2B onboarding gaps found live, fixed BY HAND on Jonatan's company
+    only, and now product backlog:** companies created by Piro's request form
+    have NO location address and `editableShippingAddress: false` → new
+    wholesale buyers hit "(No address)" with nowhere to type one. Also
+    `companyLocationUpdate` RESETS omitted `buyerExperienceConfiguration`
+    fields (learned by accidentally flipping Jonatan's checkout from
+    submit-for-review to pay-now — restored, then set to pay-now deliberately
+    at his request; always send ALL fields). The other 98 Piro companies are
+    untouched — Ana's call. Productize as a "B2B setup check" in Stockly.
+  - **Verified this close-out:** `verify.sh` green (179 app + 22 validation +
+    11 discount = 212 tests); production `/healthz` `/` `/auth/login` 200; all
+    FIVE webhook routes (incl. `orders/paid`, now subscribed) 401 to forged
+    HMAC; Railway `794693d8` SUCCESS; Shopify app version `stockly-5` active;
+    Piro: Validation enabled, 5/99 companies qualified, Jonatan's pending.
+  - **Deferred/backlog:** message with amounts ("add $X more"), cart-progress
+    theme block, B2B setup check, bulk `editableShippingAddress` for Piro (ask
+    Ana), catalog-price-list auto-detection, client secret rotation (Jonatan
+    only), graphify LLM key.
+
+Prior 2026-08-21 (night) — **🛡️ ONE SOURCE OF WHOLESALE DISCOUNT.
 Piro had THREE 65% discounts configured at once — a Shopify B2B catalog price
 list, Stockly's baseline, and an active Stockly rule. They compose
 multiplicatively: a $28 bracelet would have hit checkout at $28 × 0.35³ =

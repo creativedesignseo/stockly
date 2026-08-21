@@ -380,7 +380,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1787353958.629429,
+    "mtime": 1787351181.4816427,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -390,7 +390,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1787353958.3620417,
+    "mtime": 1787351181.2333417,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -400,7 +400,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1787353959.1822102,
+    "mtime": 1787351181.9802172,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -410,7 +410,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1787353958.8953,
+    "mtime": 1787351181.731703,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -425,8 +425,8 @@
     "semantic_hash": "1f0e58b833fc63bf34c4ede8e32b014e"
   },
   "extensions/stockly-opening-order/generated/api.ts": {
-    "mtime": 1787353876.8598099,
-    "ast_hash": "29ea6d0c962a4cb5af11fe3615a0ef1b",
+    "mtime": 1787349679.5927327,
+    "ast_hash": "6c29931e3949dd78aec6575649fbe192",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/locales/en.default.json": {
@@ -440,8 +440,8 @@
     "semantic_hash": "55b5dc3361a0cfe50b0ce8c4bbf3d311"
   },
   "extensions/stockly-opening-order/src/cart_validations_generate_run.ts": {
-    "mtime": 1787353874.6414719,
-    "ast_hash": "3ec188de8f52c9dc3613b7323f4d1e47",
+    "mtime": 1787350919.5005643,
+    "ast_hash": "41f781c2208051a97804d86a8f5f19c0",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/src/index.ts": {
@@ -455,28 +455,28 @@
     "semantic_hash": "a439c36ea885722e13459068f5da3358"
   },
   "extensions/stockly-opening-order/tests/fixtures/mode-none-no-block.json": {
-    "mtime": 1787353911.4309113,
-    "ast_hash": "e0fcae7d5792cd57624c90012a55c8ac",
+    "mtime": 1786454729.0678525,
+    "ast_hash": "ee57dd525ba0fc7c6de40102f13644bf",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/not-pending-no-block.json": {
-    "mtime": 1787353911.4261358,
-    "ast_hash": "d843600ca5ea98395e2d1c21f8c0b40a",
+    "mtime": 1786454729.0680478,
+    "ast_hash": "3eea83f944e597806176a5a2bef21b8a",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/pending-below-amount-blocks.json": {
-    "mtime": 1787353911.4292328,
-    "ast_hash": "f24e8951ef512104fb403262642dd0bc",
+    "mtime": 1786454729.0682411,
+    "ast_hash": "9ac06762e94aef8b2c216706ed810e81",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/pending-below-quantity-blocks.json": {
-    "mtime": 1787353911.4282038,
-    "ast_hash": "03d8c06df5e35f85cbe83078cff576d7",
+    "mtime": 1786454729.068435,
+    "ast_hash": "0a4a233e18afbd7382559c7a4b71a5ff",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/pending-meets-amount-passes.json": {
-    "mtime": 1787353911.4277809,
-    "ast_hash": "d0822d0a2daecedfba6116adb20fff82",
+    "mtime": 1786454729.068881,
+    "ast_hash": "f35485655b364a41b4d94d2b62f91773",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/vite.config.js": {
@@ -1170,38 +1170,38 @@
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/malformed-config-no-block.json": {
-    "mtime": 1787353911.4264362,
-    "ast_hash": "78ffdef4e6393d73a71ef7abff437d62",
+    "mtime": 1786454745.6238585,
+    "ast_hash": "f915b893b0b501f7b3aef007e8c2b346",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/qualified-below-amount-blocks.json": {
-    "mtime": 1787353911.4306347,
-    "ast_hash": "4e678f1d11471d20f20c8e25e0bd1411",
+    "mtime": 1786454745.6145976,
+    "ast_hash": "0451c432db806e150aaf5b20e1994a5a",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/qualified-below-quantity-blocks.json": {
-    "mtime": 1787353911.4268167,
-    "ast_hash": "6e2414d513bd1400ba86411d0076774c",
+    "mtime": 1786454745.6162167,
+    "ast_hash": "719255393a7d87b451f698d62dc2dc5c",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/qualified-combined-and-amount-only-blocks.json": {
-    "mtime": 1787353911.4311924,
-    "ast_hash": "38686477329a9fba8d87d1e9249539e3",
+    "mtime": 1786454745.6191683,
+    "ast_hash": "ac24ac13d6b1740df57cc7f760d94db7",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/qualified-combined-and-meets-both-passes.json": {
-    "mtime": 1787353911.4280581,
-    "ast_hash": "b3cc98e3ebc56a76a3d58459fa7ee629",
+    "mtime": 1786454745.6177256,
+    "ast_hash": "36a24b8ac2da864297962a4814e63fed",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/qualified-combined-or-amount-only-passes.json": {
-    "mtime": 1787353911.4315927,
-    "ast_hash": "2fe77b64e469b7ee3d21f3d60ff4660f",
+    "mtime": 1786454745.6206145,
+    "ast_hash": "d07a2345e04d4e560aa94c39226d6b7a",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/qualified-postqual-none-passes.json": {
-    "mtime": 1787353911.4288442,
-    "ast_hash": "4aa88efd5ecb2f7498dcbb3486990486",
+    "mtime": 1786454745.6223514,
+    "ast_hash": "a33d536bcbf3706f401baf1d92f6316e",
     "semantic_hash": ""
   },
   "progress/2026-08-11-piro-live-and-post-qualification-minimums.md": {
@@ -1740,48 +1740,48 @@
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-buyer-without-customer-id-still-gated.json": {
-    "mtime": 1787353911.4294782,
-    "ast_hash": "d43d6f39da34cc83308bceba5bbbb412",
+    "mtime": 1787350117.624798,
+    "ast_hash": "9dc3cc0d764370f15f6c8c6f5c7e259a",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-empty-config-fails-open.json": {
-    "mtime": 1787353911.4283946,
-    "ast_hash": "f87054197fae13efc6fbd1b438d6ba8d",
+    "mtime": 1787350919.507325,
+    "ast_hash": "6dce878a6124932a93b12087cab9367c",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-pending-below-opening-minimum-blocks.json": {
-    "mtime": 1787353911.4330263,
-    "ast_hash": "b886399603477672159bf86a09d0011d",
+    "mtime": 1787350019.9309058,
+    "ast_hash": "6eb3aa83c02e16bd52e01c1006c7b22e",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-pending-but-customer-qualified-gets-recurring-gate.json": {
-    "mtime": 1787353911.4286616,
-    "ast_hash": "2719efd3996b3efd58d1b7fb4583f225",
+    "mtime": 1787350919.5092564,
+    "ast_hash": "82f9cc00795d39f05ed84e41c1be4f84",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-pending-meets-opening-minimum-passes.json": {
-    "mtime": 1787353911.427257,
-    "ast_hash": "f8c079e13d27dcd3ccd8374ecad27f5b",
+    "mtime": 1787350019.9325912,
+    "ast_hash": "742064d69bcd6e5455d14546753b4b7e",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-qualified-below-recurring-minimum-blocks.json": {
-    "mtime": 1787353911.4275656,
-    "ast_hash": "3fdb62bd5db7f2715ccd0d4fea9eeae4",
+    "mtime": 1787350019.9341714,
+    "ast_hash": "ecc05713b2dd3a02114f16027fb6c7fd",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-qualified-meets-recurring-minimum-passes.json": {
-    "mtime": 1787353911.4297118,
-    "ast_hash": "9fd17e5e136aa1191f0f8e00b7c6c384",
+    "mtime": 1787350019.935911,
+    "ast_hash": "77c67f70783fca0481dbcceff3356e2c",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-qualified-no-recurring-rule-passes.json": {
-    "mtime": 1787353911.429029,
-    "ast_hash": "e5df5d8200926ef5573954ec48e154f4",
+    "mtime": 1787350019.937518,
+    "ast_hash": "1a721a25791dc9b83284c0119d37e34f",
     "semantic_hash": ""
   },
   "extensions/stockly-opening-order/tests/fixtures/company-unlisted-in-lists-still-gated.json": {
-    "mtime": 1787353911.4313686,
-    "ast_hash": "6db8133919a8a83eb5ea9b9ef0318251",
+    "mtime": 1787350019.9392085,
+    "ast_hash": "2aa7c64995902f0b6b8f39cf1d0033e3",
     "semantic_hash": ""
   },
   "extensions/stockly-volume-discount/tests/fixtures/company-buyer-untagged-gets-discount.json": {
@@ -1802,11 +1802,6 @@
   "progress/2026-08-22-company-first-minimums.md": {
     "mtime": 1787351239.4034972,
     "ast_hash": "559e286847d06c993d24c532866d93d4",
-    "semantic_hash": ""
-  },
-  "extensions/stockly-opening-order/tests/fixtures/cart-interaction-below-minimum-passes.json": {
-    "mtime": 1787353911.4374185,
-    "ast_hash": "d79c85b1b5cd08b64ad23fa84403fa2a",
     "semantic_hash": ""
   }
 }

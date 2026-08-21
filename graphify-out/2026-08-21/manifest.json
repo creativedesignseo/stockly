@@ -210,8 +210,8 @@
     "semantic_hash": "d9e9deef1cd5f9e94b83088dba9ec980"
   },
   "app/routes/app.settings.pricing.tsx": {
-    "mtime": 1787260150.4692652,
-    "ast_hash": "c0df6a05a2f517677807ec077fe48185",
+    "mtime": 1787344635.8506246,
+    "ast_hash": "9ef93913ee3108e867b36a82a60ef140",
     "semantic_hash": ""
   },
   "app/routes/app.tsx": {
@@ -315,14 +315,14 @@
     "semantic_hash": "055d6928d3d6ee8190deebd3c19f7c08"
   },
   "app/services/discount-function-sync.server.ts": {
-    "mtime": 1780443619.97886,
-    "ast_hash": "690375e535d434fc9d8b87aae75bc220",
-    "semantic_hash": "690375e535d434fc9d8b87aae75bc220"
+    "mtime": 1787344496.8501642,
+    "ast_hash": "2de30d6c6a648e62ad2cc66627453d0b",
+    "semantic_hash": ""
   },
   "app/services/discount-function-sync.test.ts": {
-    "mtime": 1780443578.9374657,
-    "ast_hash": "4fcbb1ab0f72233c3751b88d94a623bc",
-    "semantic_hash": "4fcbb1ab0f72233c3751b88d94a623bc"
+    "mtime": 1787344540.0450087,
+    "ast_hash": "26baaff679efef0c84e8cb029e537d50",
+    "semantic_hash": ""
   },
   "app/services/onboarding.server.ts": {
     "mtime": 1779621598.1257157,
@@ -380,7 +380,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1787343001.3756466,
+    "mtime": 1787344652.990151,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -390,7 +390,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1787343001.104169,
+    "mtime": 1787344652.7412884,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -400,7 +400,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1787343001.8698545,
+    "mtime": 1787344653.4919043,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -410,7 +410,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1787343001.6219692,
+    "mtime": 1787344653.2404416,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -715,8 +715,8 @@
     "semantic_hash": "df1b9dd43c67241173dee00bc39ec3dd"
   },
   "HANDOFF.md": {
-    "mtime": 1787343072.233544,
-    "ast_hash": "ce3562ac33ecaff55098cf2dd735dc15",
+    "mtime": 1787345461.9008071,
+    "ast_hash": "050703bcd8d1d6aedef4a41eb72490af",
     "semantic_hash": ""
   },
   "PROJECT.md": {
@@ -1055,8 +1055,8 @@
     "semantic_hash": "6f60a4159dad79c0e35d001a01daf29b"
   },
   "tasks/current.md": {
-    "mtime": 1787343112.8237863,
-    "ast_hash": "bb231a691aa9061aa7ff7eca9d85a1fc",
+    "mtime": 1787345499.1665227,
+    "ast_hash": "819bfdde44370c3a73551373dbeda840",
     "semantic_hash": ""
   },
   "docs/competitive/assets/sami-registration-form/sami-01-landing.png": {
@@ -1717,6 +1717,11 @@
   "progress/2026-08-21-approval-and-post-approval-fixes.md": {
     "mtime": 1787343149.5801382,
     "ast_hash": "3a2ac3f5c0f4959b2819951122c1d9de",
+    "semantic_hash": ""
+  },
+  "progress/2026-08-21-single-pricing-source.md": {
+    "mtime": 1787345499.1706161,
+    "ast_hash": "e47a68567a1583590641a6663fbde9ea",
     "semantic_hash": ""
   }
 }

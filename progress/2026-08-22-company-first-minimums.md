@@ -93,3 +93,33 @@ Store approval). Dev/piro tomls intentionally lag, with notes.
 - Catalog double-discount exposure widened by company-as-wholesale when
   `pricingSource=stockly` AND a live catalog price list exists
   (documented; auto-detection of catalog price lists is backlog).
+
+## Addendum — live E2E session (same day, evening)
+
+Real-buyer verification on Piro (Jonatan, pending company
+`creativedesignseo`), step by step:
+
+1. **Add-to-cart initially REJECTED** — validations run on every cart
+   mutation and block the mutation, so a below-minimum cart could never
+   be assembled. Fixed with `buyerJourney.step` (pass CART_INTERACTION,
+   gate CHECKOUT_*), deployed as app version `stockly-5`. Fixture pins
+   it. 22/22.
+2. **Checkout at $291.20 BLOCKED** with the opening-order message; at
+   $301.00 unblocked; dropping to $257.25 re-blocked. The gate evaluates
+   live. Modal-vs-banner question answered: the banner IS Shopify's
+   native render for validation errors; nothing else is injectable into
+   checkout.
+3. **"(No address)" dead end**: form-created companies have no location
+   address and `editableShippingAddress: false`. Enabled it for
+   Jonatan's location via `companyLocationUpdate` — which RESET
+   `checkoutToDraft` (omitted fields are cleared, learned the hard way:
+   his checkout flipped to pay-now with retail gateways
+   Afterpay/Affirm). Restored, then set to pay-now DELIBERATELY at his
+   request. Rule recorded: always send every buyerExperienceConfiguration
+   field.
+4. Afterpay in a B2B checkout is platform behaviour (pay-now B2B shows
+   the store's gateways; no per-company filter exists).
+
+**Still unverified: `orders/paid` → company qualification.** The test
+order is unpaid. That is the only link not yet seen firing in
+production.
