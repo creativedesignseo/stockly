@@ -302,124 +302,14 @@
   },
   "nodes": [
     {
-      "label": "HANDOFF.md",
-      "file_type": "document",
-      "source_file": "HANDOFF.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "handoff",
-      "community": 132,
-      "norm_label": "handoff.md"
-    },
-    {
-      "label": "HANDOFF \u2014 Resume work hands-off",
-      "file_type": "document",
-      "source_file": "HANDOFF.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "handoff_handoff_resume_work_hands_off",
-      "community": 132,
-      "norm_label": "handoff \u2014 resume work hands-off"
-    },
-    {
-      "label": "The other thing that is live: the marketing site",
-      "file_type": "document",
-      "source_file": "HANDOFF.md",
-      "source_location": "L92",
-      "_origin": "ast",
-      "id": "handoff_the_other_thing_that_is_live_the_marketing_site",
-      "community": 132,
-      "norm_label": "the other thing that is live: the marketing site"
-    },
-    {
-      "label": "Older entries",
-      "file_type": "document",
-      "source_file": "HANDOFF.md",
-      "source_location": "L119",
-      "_origin": "ast",
-      "id": "handoff_older_entries",
-      "community": 132,
-      "norm_label": "older entries"
-    },
-    {
-      "label": "current.md",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tasks_current",
-      "community": 51,
-      "norm_label": "current.md"
-    },
-    {
-      "label": "tasks/current.md \u2014 Stockly active task queue",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "tasks_current_tasks_current_md_stockly_active_task_queue",
-      "community": 51,
-      "norm_label": "tasks/current.md \u2014 stockly active task queue"
-    },
-    {
-      "label": "P0 \u2014 \u2705 DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again.",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L9",
-      "_origin": "ast",
-      "id": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "community": 51,
-      "norm_label": "p0 \u2014 \u2705 done 2026-08-21: corrections resubmitted. waiting on shopify again."
-    },
-    {
-      "label": "When the next verdict arrives",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L29",
-      "_origin": "ast",
-      "id": "tasks_current_when_the_next_verdict_arrives",
-      "community": 51,
-      "norm_label": "when the next verdict arrives"
-    },
-    {
-      "label": "Retired 2026-08-20 \u2014 the greyed-out \"Aprobar\" fear",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L36",
-      "_origin": "ast",
-      "id": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear",
-      "community": 51,
-      "norm_label": "retired 2026-08-20 \u2014 the greyed-out \"aprobar\" fear"
-    },
-    {
-      "label": "Deferred on purpose, with reasons",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L43",
-      "_origin": "ast",
-      "id": "tasks_current_deferred_on_purpose_with_reasons",
-      "community": 51,
-      "norm_label": "deferred on purpose, with reasons"
-    },
-    {
-      "label": "Known and NOT fixed (audited 2026-08-14, deliberately left)",
-      "file_type": "document",
-      "source_file": "tasks/current.md",
-      "source_location": "L58",
-      "_origin": "ast",
-      "id": "tasks_current_known_and_not_fixed_audited_2026_08_14_deliberately_left",
-      "community": 51,
-      "norm_label": "known and not fixed (audited 2026-08-14, deliberately left)"
-    },
-    {
       "label": "app._index.tsx",
       "file_type": "code",
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "routes_app_index",
       "community": 23,
-      "norm_label": "app._index.tsx",
-      "id": "routes_app_index"
+      "norm_label": "app._index.tsx"
     },
     {
       "label": "stripJsonComments()",
@@ -427,9 +317,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L51",
       "_origin": "ast",
+      "id": "routes_app_index_stripjsoncomments",
       "community": 23,
-      "norm_label": "stripjsoncomments()",
-      "id": "routes_app_index_stripjsoncomments"
+      "norm_label": "stripjsoncomments()"
     },
     {
       "label": "detectStocklyEmbedEnabled()",
@@ -437,9 +327,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L113",
       "_origin": "ast",
+      "id": "routes_app_index_detectstocklyembedenabled",
       "community": 23,
-      "norm_label": "detectstocklyembedenabled()",
-      "id": "routes_app_index_detectstocklyembedenabled"
+      "norm_label": "detectstocklyembedenabled()"
     },
     {
       "label": "loader()",
@@ -447,9 +337,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L186",
       "_origin": "ast",
+      "id": "routes_app_index_loader",
       "community": 23,
-      "norm_label": "loader()",
-      "id": "routes_app_index_loader"
+      "norm_label": "loader()"
     },
     {
       "label": "SETUP_STEP_KEYS",
@@ -457,9 +347,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L265",
       "_origin": "ast",
+      "id": "routes_app_index_setup_step_keys",
       "community": 23,
-      "norm_label": "setup_step_keys",
-      "id": "routes_app_index_setup_step_keys"
+      "norm_label": "setup_step_keys"
     },
     {
       "label": "action()",
@@ -467,9 +357,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L271",
       "_origin": "ast",
+      "id": "routes_app_index_action",
       "community": 23,
-      "norm_label": "action()",
-      "id": "routes_app_index_action"
+      "norm_label": "action()"
     },
     {
       "label": "Dashboard()",
@@ -477,9 +367,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L294",
       "_origin": "ast",
+      "id": "routes_app_index_dashboard",
       "community": 23,
-      "norm_label": "dashboard()",
-      "id": "routes_app_index_dashboard"
+      "norm_label": "dashboard()"
     },
     {
       "label": "StatCard()",
@@ -487,9 +377,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L414",
       "_origin": "ast",
+      "id": "routes_app_index_statcard",
       "community": 23,
-      "norm_label": "statcard()",
-      "id": "routes_app_index_statcard"
+      "norm_label": "statcard()"
     },
     {
       "label": "NavCard()",
@@ -497,9 +387,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L449",
       "_origin": "ast",
+      "id": "routes_app_index_navcard",
       "community": 23,
-      "norm_label": "navcard()",
-      "id": "routes_app_index_navcard"
+      "norm_label": "navcard()"
     },
     {
       "label": "SetupStepData",
@@ -507,9 +397,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L483",
       "_origin": "ast",
+      "id": "routes_app_index_setupstepdata",
       "community": 23,
-      "norm_label": "setupstepdata",
-      "id": "routes_app_index_setupstepdata"
+      "norm_label": "setupstepdata"
     },
     {
       "label": "SetupGuide()",
@@ -517,9 +407,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L494",
       "_origin": "ast",
+      "id": "routes_app_index_setupguide",
       "community": 23,
-      "norm_label": "setupguide()",
-      "id": "routes_app_index_setupguide"
+      "norm_label": "setupguide()"
     },
     {
       "label": "StepIcon()",
@@ -527,9 +417,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L600",
       "_origin": "ast",
+      "id": "routes_app_index_stepicon",
       "community": 23,
-      "norm_label": "stepicon()",
-      "id": "routes_app_index_stepicon"
+      "norm_label": "stepicon()"
     },
     {
       "label": "Chevron()",
@@ -537,9 +427,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L645",
       "_origin": "ast",
+      "id": "routes_app_index_chevron",
       "community": 23,
-      "norm_label": "chevron()",
-      "id": "routes_app_index_chevron"
+      "norm_label": "chevron()"
     },
     {
       "label": "SetupStep()",
@@ -547,9 +437,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L670",
       "_origin": "ast",
+      "id": "routes_app_index_setupstep",
       "community": 23,
-      "norm_label": "setupstep()",
-      "id": "routes_app_index_setupstep"
+      "norm_label": "setupstep()"
     },
     {
       "label": "Tip",
@@ -557,9 +447,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L776",
       "_origin": "ast",
+      "id": "routes_app_index_tip",
       "community": 23,
-      "norm_label": "tip",
-      "id": "routes_app_index_tip"
+      "norm_label": "tip"
     },
     {
       "label": "buildTips()",
@@ -567,9 +457,9 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L784",
       "_origin": "ast",
+      "id": "routes_app_index_buildtips",
       "community": 23,
-      "norm_label": "buildtips()",
-      "id": "routes_app_index_buildtips"
+      "norm_label": "buildtips()"
     },
     {
       "label": "app.billing.tsx",
@@ -577,9 +467,9 @@
       "source_file": "app/routes/app.billing.tsx",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "routes_app_billing",
       "community": 23,
-      "norm_label": "app.billing.tsx",
-      "id": "routes_app_billing"
+      "norm_label": "app.billing.tsx"
     },
     {
       "label": "loader()",
@@ -587,9 +477,9 @@
       "source_file": "app/routes/app.billing.tsx",
       "source_location": "L55",
       "_origin": "ast",
+      "id": "routes_app_billing_loader",
       "community": 23,
-      "norm_label": "loader()",
-      "id": "routes_app_billing_loader"
+      "norm_label": "loader()"
     },
     {
       "label": "action()",
@@ -597,9 +487,9 @@
       "source_file": "app/routes/app.billing.tsx",
       "source_location": "L96",
       "_origin": "ast",
+      "id": "routes_app_billing_action",
       "community": 23,
-      "norm_label": "action()",
-      "id": "routes_app_billing_action"
+      "norm_label": "action()"
     },
     {
       "label": "PLAN_BLURBS",
@@ -607,9 +497,9 @@
       "source_file": "app/routes/app.billing.tsx",
       "source_location": "L137",
       "_origin": "ast",
+      "id": "routes_app_billing_plan_blurbs",
       "community": 23,
-      "norm_label": "plan_blurbs",
-      "id": "routes_app_billing_plan_blurbs"
+      "norm_label": "plan_blurbs"
     },
     {
       "label": "Billing()",
@@ -617,9 +507,9 @@
       "source_file": "app/routes/app.billing.tsx",
       "source_location": "L145",
       "_origin": "ast",
+      "id": "routes_app_billing_billing",
       "community": 23,
-      "norm_label": "billing()",
-      "id": "routes_app_billing_billing"
+      "norm_label": "billing()"
     },
     {
       "label": "billing.server.test.ts",
@@ -627,9 +517,9 @@
       "source_file": "app/services/billing.server.test.ts",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "services_billing_server_test",
       "community": 23,
-      "norm_label": "billing.server.test.ts",
-      "id": "services_billing_server_test"
+      "norm_label": "billing.server.test.ts"
     },
     {
       "label": "billing.server.ts",
@@ -637,9 +527,9 @@
       "source_file": "app/services/billing.server.ts",
       "source_location": "L1",
       "_origin": "ast",
+      "id": "services_billing_server",
       "community": 23,
-      "norm_label": "billing.server.ts",
-      "id": "services_billing_server"
+      "norm_label": "billing.server.ts"
     },
     {
       "label": "buildBillingConfig()",
@@ -647,9 +537,9 @@
       "source_file": "app/services/billing.server.ts",
       "source_location": "L42",
       "_origin": "ast",
+      "id": "services_billing_server_buildbillingconfig",
       "community": 23,
-      "norm_label": "buildbillingconfig()",
-      "id": "services_billing_server_buildbillingconfig"
+      "norm_label": "buildbillingconfig()"
     },
     {
       "label": "isTestBillingEnvironment()",
@@ -657,9 +547,9 @@
       "source_file": "app/services/billing.server.ts",
       "source_location": "L83",
       "_origin": "ast",
+      "id": "services_billing_server_istestbillingenvironment",
       "community": 23,
-      "norm_label": "istestbillingenvironment()",
-      "id": "services_billing_server_istestbillingenvironment"
+      "norm_label": "istestbillingenvironment()"
     },
     {
       "label": "BillingContextLike",
@@ -667,9 +557,9 @@
       "source_file": "app/services/billing.server.ts",
       "source_location": "L102",
       "_origin": "ast",
+      "id": "services_billing_server_billingcontextlike",
       "community": 23,
-      "norm_label": "billingcontextlike",
-      "id": "services_billing_server_billingcontextlike"
+      "norm_label": "billingcontextlike"
     },
     {
       "label": "ActiveSubscriptionSummary",
@@ -677,9 +567,9 @@
       "source_file": "app/services/billing.server.ts",
       "source_location": "L115",
       "_origin": "ast",
+      "id": "services_billing_server_activesubscriptionsummary",
       "community": 23,
-      "norm_label": "activesubscriptionsummary",
-      "id": "services_billing_server_activesubscriptionsummary"
+      "norm_label": "activesubscriptionsummary"
     },
     {
       "label": "checkActiveSubscription()",
@@ -687,9 +577,119 @@
       "source_file": "app/services/billing.server.ts",
       "source_location": "L134",
       "_origin": "ast",
+      "id": "services_billing_server_checkactivesubscription",
       "community": 23,
-      "norm_label": "checkactivesubscription()",
-      "id": "services_billing_server_checkactivesubscription"
+      "norm_label": "checkactivesubscription()"
+    },
+    {
+      "label": "HANDOFF.md",
+      "file_type": "document",
+      "source_file": "HANDOFF.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 132,
+      "norm_label": "handoff.md",
+      "id": "handoff"
+    },
+    {
+      "label": "HANDOFF \u2014 Resume work hands-off",
+      "file_type": "document",
+      "source_file": "HANDOFF.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 132,
+      "norm_label": "handoff \u2014 resume work hands-off",
+      "id": "handoff_handoff_resume_work_hands_off"
+    },
+    {
+      "label": "The other thing that is live: the marketing site",
+      "file_type": "document",
+      "source_file": "HANDOFF.md",
+      "source_location": "L82",
+      "_origin": "ast",
+      "community": 132,
+      "norm_label": "the other thing that is live: the marketing site",
+      "id": "handoff_the_other_thing_that_is_live_the_marketing_site"
+    },
+    {
+      "label": "Older entries",
+      "file_type": "document",
+      "source_file": "HANDOFF.md",
+      "source_location": "L109",
+      "_origin": "ast",
+      "community": 132,
+      "norm_label": "older entries",
+      "id": "handoff_older_entries"
+    },
+    {
+      "label": "current.md",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "current.md",
+      "id": "tasks_current"
+    },
+    {
+      "label": "tasks/current.md \u2014 Stockly active task queue",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "tasks/current.md \u2014 stockly active task queue",
+      "id": "tasks_current_tasks_current_md_stockly_active_task_queue"
+    },
+    {
+      "label": "P0 \u2014 Close the review loop (human steps, ~15 min)",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "p0 \u2014 close the review loop (human steps, ~15 min)",
+      "id": "tasks_current_p0_close_the_review_loop_human_steps_15_min"
+    },
+    {
+      "label": "When the next verdict arrives",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L34",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "when the next verdict arrives",
+      "id": "tasks_current_when_the_next_verdict_arrives"
+    },
+    {
+      "label": "Retired 2026-08-20 \u2014 the greyed-out \"Aprobar\" fear",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L41",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "retired 2026-08-20 \u2014 the greyed-out \"aprobar\" fear",
+      "id": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear"
+    },
+    {
+      "label": "Deferred on purpose, with reasons",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L48",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "deferred on purpose, with reasons",
+      "id": "tasks_current_deferred_on_purpose_with_reasons"
+    },
+    {
+      "label": "Known and NOT fixed (audited 2026-08-14, deliberately left)",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L63",
+      "_origin": "ast",
+      "community": 51,
+      "norm_label": "known and not fixed (audited 2026-08-14, deliberately left)",
+      "id": "tasks_current_known_and_not_fixed_audited_2026_08_14_deliberately_left"
     },
     {
       "label": "RegistrationFormEditor.tsx",
@@ -32579,96 +32579,6 @@
   ],
   "links": [
     {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "HANDOFF.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "handoff",
-      "target": "handoff_handoff_resume_work_hands_off"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "HANDOFF.md",
-      "source_location": "L63",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "handoff_handoff_resume_work_hands_off",
-      "target": "handoff_older_entries"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "HANDOFF.md",
-      "source_location": "L63",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "handoff_handoff_resume_work_hands_off",
-      "target": "handoff_the_other_thing_that_is_live_the_marketing_site"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tasks/current.md",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tasks_current",
-      "target": "tasks_current_tasks_current_md_stockly_active_task_queue"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tasks/current.md",
-      "source_location": "L58",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "tasks_current_tasks_current_md_stockly_active_task_queue",
-      "target": "tasks_current_known_and_not_fixed_audited_2026_08_14_deliberately_left"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tasks/current.md",
-      "source_location": "L9",
-      "weight": 1.0,
-      "source": "tasks_current_tasks_current_md_stockly_active_task_queue",
-      "target": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tasks/current.md",
-      "source_location": "L43",
-      "weight": 1.0,
-      "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_deferred_on_purpose_with_reasons",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tasks/current.md",
-      "source_location": "L36",
-      "weight": 1.0,
-      "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "tasks/current.md",
-      "source_location": "L29",
-      "weight": 1.0,
-      "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_when_the_next_verdict_arrives",
-      "confidence_score": 1.0
-    },
-    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -33377,6 +33287,96 @@
       "confidence_score": 1.0,
       "source": "services_billing_server_checkactivesubscription",
       "target": "services_billing_server_istestbillingenvironment"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "HANDOFF.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "handoff",
+      "target": "handoff_handoff_resume_work_hands_off"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "HANDOFF.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "handoff_handoff_resume_work_hands_off",
+      "target": "handoff_older_entries"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "HANDOFF.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "handoff_handoff_resume_work_hands_off",
+      "target": "handoff_the_other_thing_that_is_live_the_marketing_site"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tasks_current",
+      "target": "tasks_current_tasks_current_md_stockly_active_task_queue"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L58",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tasks_current_tasks_current_md_stockly_active_task_queue",
+      "target": "tasks_current_known_and_not_fixed_audited_2026_08_14_deliberately_left"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tasks_current_tasks_current_md_stockly_active_task_queue",
+      "target": "tasks_current_p0_close_the_review_loop_human_steps_15_min"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L48",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tasks_current_p0_close_the_review_loop_human_steps_15_min",
+      "target": "tasks_current_deferred_on_purpose_with_reasons"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L41",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tasks_current_p0_close_the_review_loop_human_steps_15_min",
+      "target": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L34",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "tasks_current_p0_close_the_review_loop_human_steps_15_min",
+      "target": "tasks_current_when_the_next_verdict_arrives"
     },
     {
       "relation": "imports_from",
@@ -70414,5 +70414,5 @@
       "source_file": "docs/design/prototypes/quick-order-form.html"
     }
   ],
-  "built_at_commit": "7bd02792506d31b03e8a53845524d9b188c40fdf"
+  "built_at_commit": "e70c406257d444848c1367c88bc2558fdc449dfd"
 }

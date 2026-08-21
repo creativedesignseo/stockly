@@ -4,7 +4,7 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-21 — **📩 VERDICT: CHANGES REQUESTED (ref 129441), and both issues are already FIXED AND DEPLOYED (`7466026`).** Issue 1 (1.2.2): billing `returnUrl` sent the merchant outside the admin after approving — now the documented `admin.shopify.com/...` pattern. Issue 2 (2.1.1): zombie "Unsaved changes" bar after creating a volume pricing rule (+ dead Delete via `window.confirm`) — fixed via `useManagedSaveBar` in all six forms + Polaris confirm Modals. `verify.sh` green (159 app tests), adversarial 3-agent review passed. **Deadline: respond before 2026-09-03 or the submission is paused.**
+**Last updated:** 2026-08-21 (close-out) — **✅ Everything verified green today: `verify.sh` (156 app tests), production routes 200, all four webhooks 401 to a forged HMAC, Railway `dfda1b4a` SUCCESS at $1.20 of $5 included. `Promo/` is now gitignored (851 MB that a stray `git add -A` would have committed). Waiting on Shopify — no action on our side.** Prior: **📩 VERDICT: CHANGES REQUESTED (ref 129441), and both issues are already FIXED AND DEPLOYED (`7466026`).** Issue 1 (1.2.2): billing `returnUrl` sent the merchant outside the admin after approving — now the documented `admin.shopify.com/...` pattern. Issue 2 (2.1.1): zombie "Unsaved changes" bar after creating a volume pricing rule (+ dead Delete via `window.confirm`) — fixed via `useManagedSaveBar` in all six forms + Polaris confirm Modals. `verify.sh` green (159 app tests), adversarial 3-agent review passed. **Deadline: respond before 2026-09-03 or the submission is paused.**
 
 ## P0 — ✅ DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again.
 

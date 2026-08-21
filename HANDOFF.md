@@ -13,7 +13,22 @@
 > Nothing is pending on our side; the wait is Shopify's again. Post-approval
 > items stay parked: rotate the client secret, reinstall Piro.
 
-**Last updated:** 2026-08-21 — **📤 CORRECTIONS RESUBMITTED. Both issues marked
+**Last updated:** 2026-08-21 (later) — **✅ CLOSE-OUT VERIFIED. Nothing pending on
+our side; the app sits at "In review / We're reviewing your response" and every
+claim below was re-checked today, not assumed: `verify.sh` green (156 app tests in 14 files,
+plus the 14 + 8 extension fixtures, both builds); production `/healthz`, `/`, `/legal/privacy`,
+`/legal/terms`, `/auth/login` all **200**; all four mandatory webhooks **401** to
+a forged HMAC; App Bridge served from Shopify's CDN; `stocklygo.site` and its
+`/privacy` redirect both **200**; Railway deployment `dfda1b4a` **SUCCESS**, both
+services Online. Railway spend is $1.20 of the $5 included in the Hobby plan at
+mid-cycle (98% of it RAM, egress 0.01 GB) — the month costs the flat $5.
+Housekeeping: `Promo/` (851 MB of screencast footage) was untracked but NOT
+gitignored — one `git add -A` from entering the repo; now ignored. The code
+graph was refreshed (incremental scan: 125 code + 25 docs + 20 images changed);
+its semantic pass needs an LLM API key that is not configured on this machine,
+so the doc/image labels are stale while the code graph is current.**
+
+Prior 2026-08-21 — **📤 CORRECTIONS RESUBMITTED. Both issues marked
 resolved in the Partner Dashboard with proof screencasts recorded on
 `adspubli-wholesale-test` (billing: youtu.be/IHVh0XtPukM · volume pricing:
 youtu.be/W_eAWPeotpY, both unlisted), and "Submit fixes" pressed — status is

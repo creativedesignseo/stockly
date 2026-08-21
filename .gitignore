@@ -96,3 +96,7 @@ temp/
 .vercel
 .env*.local
 .claude/worktrees/
+
+# Owner working files — screencast footage for the App Store listing (851 MB).
+# Already excluded from Railway/Docker builds; keep it out of git too.
+Promo/
