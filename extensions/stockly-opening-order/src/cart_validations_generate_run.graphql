@@ -1,4 +1,13 @@
 query CartValidationsGenerateRunInput {
+  buyerJourney {
+    # Which stage the buyer is at. CART_INTERACTION = still building the
+    # cart (add/remove) — the gate must NOT fire there, or the very first
+    # "add to cart" of a below-minimum cart is rejected and the buyer can
+    # never assemble an order that meets the minimum. The gate fires at
+    # CHECKOUT_INTERACTION / CHECKOUT_COMPLETION, which is still fully
+    # server-side and unskippable.
+    step
+  }
   cart {
     cost {
       subtotalAmount {

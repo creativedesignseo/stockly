@@ -3,13 +3,41 @@
     "export": "cart-validations-generate-run",
     "target": "cart.validations.generate.run",
     "input": {
-      "cart": {
-        "cost": { "subtotalAmount": { "amount": "400.00" } },
-        "lines": [{ "quantity": 3 }],
-        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/222" }, "purchasingCompany": null }
+      "buyerJourney": {
+        "step": "CHECKOUT_INTERACTION"
       },
-      "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":500,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"qualifiedCustomers\":[\"gid://shopify/Customer/222\"],\"postQualification\":{\"mode\":\"combined\",\"amount\":150,\"quantity\":6,\"combinedLogic\":\"or\"}}" } }
+      "cart": {
+        "cost": {
+          "subtotalAmount": {
+            "amount": "400.00"
+          }
+        },
+        "lines": [
+          {
+            "quantity": 3
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/222"
+          },
+          "purchasingCompany": null
+        }
+      },
+      "validation": {
+        "metafield": {
+          "value": "{\"mode\":\"amount\",\"amount\":500,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"qualifiedCustomers\":[\"gid://shopify/Customer/222\"],\"postQualification\":{\"mode\":\"combined\",\"amount\":150,\"quantity\":6,\"combinedLogic\":\"or\"}}"
+        }
+      }
     },
-    "output": { "operations": [{ "validationAdd": { "errors": [] } }] }
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": []
+          }
+        }
+      ]
+    }
   }
 }

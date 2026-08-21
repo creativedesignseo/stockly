@@ -240,6 +240,18 @@ export function cartValidationsGenerateRun(
     return NO_ERRORS;
   }
 
+  // Never gate while the buyer is still BUILDING the cart. Validations
+  // run on every cart mutation, and an error emitted during
+  // CART_INTERACTION makes Shopify reject the mutation itself — the
+  // first "add to cart" of any below-minimum cart fails, so the buyer
+  // can never assemble an order that would satisfy the minimum (found
+  // live on the pilot shop, 2026-08-22: the theme rendered our message
+  // on the product page and refused to add). Checkout steps still gate
+  // server-side and cannot be skipped. Unknown/missing step fails open
+  // per the golden rule, EXCEPT nothing here blocks anyway.
+  const step = input.buyerJourney?.step;
+  if (step === "CART_INTERACTION") return NO_ERRORS;
+
   const subtotal = Number(input.cart.cost.subtotalAmount.amount);
   const quantity = input.cart.lines.reduce(
     (sum, line) => sum + line.quantity,

@@ -3,13 +3,49 @@
     "export": "cart-validations-generate-run",
     "target": "cart.validations.generate.run",
     "input": {
-      "cart": {
-        "cost": { "subtotalAmount": { "amount": "400.00" } },
-        "lines": [{ "quantity": 2 }, { "quantity": 1 }],
-        "buyerIdentity": { "customer": { "id": "gid://shopify/Customer/222" }, "purchasingCompany": null }
+      "buyerJourney": {
+        "step": "CHECKOUT_INTERACTION"
       },
-      "validation": { "metafield": { "value": "{\"mode\":\"amount\",\"amount\":500,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"qualifiedCustomers\":[\"gid://shopify/Customer/222\"],\"postQualification\":{\"mode\":\"quantity\",\"quantity\":6,\"message\":\"Reorders need at least 6 units.\"}}" } }
+      "cart": {
+        "cost": {
+          "subtotalAmount": {
+            "amount": "400.00"
+          }
+        },
+        "lines": [
+          {
+            "quantity": 2
+          },
+          {
+            "quantity": 1
+          }
+        ],
+        "buyerIdentity": {
+          "customer": {
+            "id": "gid://shopify/Customer/222"
+          },
+          "purchasingCompany": null
+        }
+      },
+      "validation": {
+        "metafield": {
+          "value": "{\"mode\":\"amount\",\"amount\":500,\"pendingCustomers\":[\"gid://shopify/Customer/111\"],\"qualifiedCustomers\":[\"gid://shopify/Customer/222\"],\"postQualification\":{\"mode\":\"quantity\",\"quantity\":6,\"message\":\"Reorders need at least 6 units.\"}}"
+        }
+      }
     },
-    "output": { "operations": [{ "validationAdd": { "errors": [{ "message": "Reorders need at least 6 units.", "target": "$.cart" }] } }] }
+    "output": {
+      "operations": [
+        {
+          "validationAdd": {
+            "errors": [
+              {
+                "message": "Reorders need at least 6 units.",
+                "target": "$.cart"
+              }
+            ]
+          }
+        }
+      ]
+    }
   }
 }
