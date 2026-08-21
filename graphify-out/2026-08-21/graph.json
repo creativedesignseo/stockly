@@ -325,7 +325,7 @@
       "label": "The other thing that is live: the marketing site",
       "file_type": "document",
       "source_file": "HANDOFF.md",
-      "source_location": "L92",
+      "source_location": "L153",
       "_origin": "ast",
       "id": "handoff_the_other_thing_that_is_live_the_marketing_site",
       "community": 132,
@@ -335,11 +335,121 @@
       "label": "Older entries",
       "file_type": "document",
       "source_file": "HANDOFF.md",
-      "source_location": "L119",
+      "source_location": "L180",
       "_origin": "ast",
       "id": "handoff_older_entries",
       "community": 132,
       "norm_label": "older entries"
+    },
+    {
+      "label": "2026-08-21-approval-and-post-approval-fixes.md",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes",
+      "community": 312,
+      "norm_label": "2026-08-21-approval-and-post-approval-fixes.md"
+    },
+    {
+      "label": "2026-08-21 \u2014 Approved, and the first three post-approval changes",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "community": 312,
+      "norm_label": "2026-08-21 \u2014 approved, and the first three post-approval changes"
+    },
+    {
+      "label": "Objective",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_objective",
+      "community": 312,
+      "norm_label": "objective"
+    },
+    {
+      "label": "The verdict",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_the_verdict",
+      "community": 312,
+      "norm_label": "the verdict"
+    },
+    {
+      "label": "Changed",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_changed",
+      "community": 312,
+      "norm_label": "changed"
+    },
+    {
+      "label": "`customers/update` re-enabled (`dd244bd`)",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L26",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_customers_update_re_enabled_dd244bd",
+      "community": 312,
+      "norm_label": "`customers/update` re-enabled (`dd244bd`)"
+    },
+    {
+      "label": "Blank admin nav icon fixed (`dd244bd`)",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L38",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_blank_admin_nav_icon_fixed_dd244bd",
+      "community": 312,
+      "norm_label": "blank admin nav icon fixed (`dd244bd`)"
+    },
+    {
+      "label": "Client secret \u2014 deliberately NOT rotated",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L69",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_client_secret_deliberately_not_rotated",
+      "community": 312,
+      "norm_label": "client secret \u2014 deliberately not rotated"
+    },
+    {
+      "label": "Verified (observed, not assumed)",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L77",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_verified_observed_not_assumed",
+      "community": 312,
+      "norm_label": "verified (observed, not assumed)"
+    },
+    {
+      "label": "Market benchmarks (for the 100-customer question)",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L87",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_market_benchmarks_for_the_100_customer_question",
+      "community": 312,
+      "norm_label": "market benchmarks (for the 100-customer question)"
+    },
+    {
+      "label": "Next step",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_approval_and_post_approval_fixes_next_step",
+      "community": 312,
+      "norm_label": "next step"
     },
     {
       "label": "current.md",
@@ -362,54 +472,154 @@
       "norm_label": "tasks/current.md \u2014 stockly active task queue"
     },
     {
-      "label": "P0 \u2014 \u2705 DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again.",
+      "label": "P0 \u2014 Post-approval queue",
       "file_type": "document",
       "source_file": "tasks/current.md",
       "source_location": "L9",
       "_origin": "ast",
-      "id": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
+      "id": "tasks_current_p0_post_approval_queue",
       "community": 51,
-      "norm_label": "p0 \u2014 \u2705 done 2026-08-21: corrections resubmitted. waiting on shopify again."
+      "norm_label": "p0 \u2014 post-approval queue"
     },
     {
-      "label": "When the next verdict arrives",
+      "label": "1. Rotate the client secret \u2014 ONLY Jonatan can do this",
       "file_type": "document",
       "source_file": "tasks/current.md",
-      "source_location": "L29",
+      "source_location": "L11",
       "_origin": "ast",
-      "id": "tasks_current_when_the_next_verdict_arrives",
+      "id": "tasks_current_1_rotate_the_client_secret_only_jonatan_can_do_this",
       "community": 51,
-      "norm_label": "when the next verdict arrives"
+      "norm_label": "1. rotate the client secret \u2014 only jonatan can do this"
     },
     {
-      "label": "Retired 2026-08-20 \u2014 the greyed-out \"Aprobar\" fear",
+      "label": "2. Deploy the re-enabled `customers/update` webhook",
       "file_type": "document",
       "source_file": "tasks/current.md",
-      "source_location": "L36",
+      "source_location": "L27",
       "_origin": "ast",
-      "id": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear",
+      "id": "tasks_current_2_deploy_the_re_enabled_customers_update_webhook",
       "community": 51,
-      "norm_label": "retired 2026-08-20 \u2014 the greyed-out \"aprobar\" fear"
+      "norm_label": "2. deploy the re-enabled `customers/update` webhook"
     },
     {
-      "label": "Deferred on purpose, with reasons",
+      "label": "3. Reinstall on `piroaccessories`",
       "file_type": "document",
       "source_file": "tasks/current.md",
-      "source_location": "L43",
+      "source_location": "L40",
       "_origin": "ast",
-      "id": "tasks_current_deferred_on_purpose_with_reasons",
+      "id": "tasks_current_3_reinstall_on_piroaccessories",
       "community": 51,
-      "norm_label": "deferred on purpose, with reasons"
+      "norm_label": "3. reinstall on `piroaccessories`"
+    },
+    {
+      "label": "Still deliberately frozen",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "tasks_current_still_deliberately_frozen",
+      "community": 51,
+      "norm_label": "still deliberately frozen"
+    },
+    {
+      "label": "Growth notes (benchmarks pulled 2026-08-21)",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L59",
+      "_origin": "ast",
+      "id": "tasks_current_growth_notes_benchmarks_pulled_2026_08_21",
+      "community": 51,
+      "norm_label": "growth notes (benchmarks pulled 2026-08-21)"
+    },
+    {
+      "label": "Deferred, with reasons",
+      "file_type": "document",
+      "source_file": "tasks/current.md",
+      "source_location": "L67",
+      "_origin": "ast",
+      "id": "tasks_current_deferred_with_reasons",
+      "community": 51,
+      "norm_label": "deferred, with reasons"
     },
     {
       "label": "Known and NOT fixed (audited 2026-08-14, deliberately left)",
       "file_type": "document",
       "source_file": "tasks/current.md",
-      "source_location": "L58",
+      "source_location": "L79",
       "_origin": "ast",
       "id": "tasks_current_known_and_not_fixed_audited_2026_08_14_deliberately_left",
       "community": 51,
       "norm_label": "known and not fixed (audited 2026-08-14, deliberately left)"
+    },
+    {
+      "label": "2026-08-21-close-out-verification.md",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "2026-08-21-close-out-verification.md",
+      "id": "progress_2026_08_21_close_out_verification"
+    },
+    {
+      "label": "2026-08-21 \u2014 Close-out: verify reality, refresh the graph, publish",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "2026-08-21 \u2014 close-out: verify reality, refresh the graph, publish",
+      "id": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish"
+    },
+    {
+      "label": "Objective",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "objective",
+      "id": "progress_2026_08_21_close_out_verification_objective"
+    },
+    {
+      "label": "Verified today (observed, not assumed)",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L9",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "verified today (observed, not assumed)",
+      "id": "progress_2026_08_21_close_out_verification_verified_today_observed_not_assumed"
+    },
+    {
+      "label": "Changed",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L27",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "changed",
+      "id": "progress_2026_08_21_close_out_verification_changed"
+    },
+    {
+      "label": "Open risks / notes",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L39",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "open risks / notes",
+      "id": "progress_2026_08_21_close_out_verification_open_risks_notes"
+    },
+    {
+      "label": "Next step",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L53",
+      "_origin": "ast",
+      "community": 311,
+      "norm_label": "next step",
+      "id": "progress_2026_08_21_close_out_verification_next_step"
     },
     {
       "label": "app._index.tsx",
@@ -417,7 +627,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "app._index.tsx",
       "id": "routes_app_index"
     },
@@ -427,7 +637,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L51",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "stripjsoncomments()",
       "id": "routes_app_index_stripjsoncomments"
     },
@@ -437,7 +647,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L113",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "detectstocklyembedenabled()",
       "id": "routes_app_index_detectstocklyembedenabled"
     },
@@ -447,7 +657,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L186",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "loader()",
       "id": "routes_app_index_loader"
     },
@@ -457,7 +667,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L265",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "setup_step_keys",
       "id": "routes_app_index_setup_step_keys"
     },
@@ -467,7 +677,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L271",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "action()",
       "id": "routes_app_index_action"
     },
@@ -477,7 +687,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L294",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "dashboard()",
       "id": "routes_app_index_dashboard"
     },
@@ -487,7 +697,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L414",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "statcard()",
       "id": "routes_app_index_statcard"
     },
@@ -497,7 +707,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L449",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "navcard()",
       "id": "routes_app_index_navcard"
     },
@@ -507,7 +717,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L483",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "setupstepdata",
       "id": "routes_app_index_setupstepdata"
     },
@@ -517,7 +727,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L494",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "setupguide()",
       "id": "routes_app_index_setupguide"
     },
@@ -527,7 +737,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L600",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "stepicon()",
       "id": "routes_app_index_stepicon"
     },
@@ -537,7 +747,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L645",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "chevron()",
       "id": "routes_app_index_chevron"
     },
@@ -547,7 +757,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L670",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "setupstep()",
       "id": "routes_app_index_setupstep"
     },
@@ -557,7 +767,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L776",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "tip",
       "id": "routes_app_index_tip"
     },
@@ -567,7 +777,7 @@
       "source_file": "app/routes/app._index.tsx",
       "source_location": "L784",
       "_origin": "ast",
-      "community": 23,
+      "community": 307,
       "norm_label": "buildtips()",
       "id": "routes_app_index_buildtips"
     },
@@ -787,7 +997,7 @@
       "source_file": "app/lib/use-managed-save-bar.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 22,
+      "community": 34,
       "norm_label": "use-managed-save-bar.ts",
       "id": "lib_use_managed_save_bar"
     },
@@ -797,7 +1007,7 @@
       "source_file": "app/lib/use-managed-save-bar.ts",
       "source_location": "L54",
       "_origin": "ast",
-      "community": 22,
+      "community": 34,
       "norm_label": "usemanagedsavebar()",
       "id": "lib_use_managed_save_bar_usemanagedsavebar"
     },
@@ -917,7 +1127,7 @@
       "source_file": "app/routes/app.pricing.$id.tsx",
       "source_location": "L473",
       "_origin": "ast",
-      "community": 34,
+      "community": 22,
       "norm_label": "discounttypeoptions()",
       "id": "routes_app_pricing_id_discounttypeoptions"
     },
@@ -957,7 +1167,7 @@
       "source_file": "app/routes/app.pricing.$id.tsx",
       "source_location": "L1227",
       "_origin": "ast",
-      "community": 34,
+      "community": 22,
       "norm_label": "sameidset()",
       "id": "routes_app_pricing_id_sameidset"
     },
@@ -1027,7 +1237,7 @@
       "source_file": "app/routes/app.pricing.new.tsx",
       "source_location": "L69",
       "_origin": "ast",
-      "community": 34,
+      "community": 22,
       "norm_label": "loader()",
       "id": "routes_app_pricing_new_loader"
     },
@@ -1217,7 +1427,7 @@
       "source_file": "app/routes/app.settings.pricing.tsx",
       "source_location": "L88",
       "_origin": "ast",
-      "community": 177,
+      "community": 22,
       "norm_label": "loader()",
       "id": "routes_app_settings_pricing_loader"
     },
@@ -1377,7 +1587,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "app.volume-pricing.$id.tsx",
       "id": "routes_app_volume_pricing_id"
     },
@@ -1417,7 +1627,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L409",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "scope_options",
       "id": "routes_app_volume_pricing_id_scope_options"
     },
@@ -1427,7 +1637,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L437",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "customer_eligibility_options",
       "id": "routes_app_volume_pricing_id_customer_eligibility_options"
     },
@@ -1437,7 +1647,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L469",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "market_eligibility_options",
       "id": "routes_app_volume_pricing_id_market_eligibility_options"
     },
@@ -1447,7 +1657,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L489",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "aggregation_options",
       "id": "routes_app_volume_pricing_id_aggregation_options"
     },
@@ -1457,7 +1667,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L514",
       "_origin": "ast",
-      "community": 22,
+      "community": 34,
       "norm_label": "editvolumepricing()",
       "id": "routes_app_volume_pricing_id_editvolumepricing"
     },
@@ -1467,7 +1677,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1191",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "scopeitem",
       "id": "routes_app_volume_pricing_id_scopeitem"
     },
@@ -1477,7 +1687,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1197",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "pickernodetoitem()",
       "id": "routes_app_volume_pricing_id_pickernodetoitem"
     },
@@ -1487,7 +1697,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1218",
       "_origin": "ast",
-      "community": 22,
+      "community": 34,
       "norm_label": "sameidset()",
       "id": "routes_app_volume_pricing_id_sameidset"
     },
@@ -1497,7 +1707,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1224",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "scopepicker()",
       "id": "routes_app_volume_pricing_id_scopepicker"
     },
@@ -1507,7 +1717,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1284",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "scopeitemrow()",
       "id": "routes_app_volume_pricing_id_scopeitemrow"
     },
@@ -1517,7 +1727,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1321",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "choicecard()",
       "id": "routes_app_volume_pricing_id_choicecard"
     },
@@ -1527,7 +1737,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1385",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "summaryrow()",
       "id": "routes_app_volume_pricing_id_summaryrow"
     },
@@ -1537,7 +1747,7 @@
       "source_file": "app/routes/app.volume-pricing.$id.tsx",
       "source_location": "L1417",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "statustoggle()",
       "id": "routes_app_volume_pricing_id_statustoggle"
     },
@@ -1557,7 +1767,7 @@
       "source_file": "app/routes/app.volume-pricing.new.tsx",
       "source_location": "L70",
       "_origin": "ast",
-      "community": 12,
+      "community": 22,
       "norm_label": "loader()",
       "id": "routes_app_volume_pricing_new_loader"
     },
@@ -4117,7 +4327,7 @@
       "source_file": "app/db.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "db.server.ts",
       "id": "app_db_server"
     },
@@ -4127,7 +4337,7 @@
       "source_file": "app/entry.server.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "entry.server.tsx",
       "id": "app_entry_server"
     },
@@ -4137,7 +4347,7 @@
       "source_file": "app/entry.server.tsx",
       "source_location": "L13",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "handlerequest()",
       "id": "app_entry_server_handlerequest"
     },
@@ -4157,7 +4367,7 @@
       "source_file": "app/lib/auth.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 7,
+      "community": 201,
       "norm_label": "auth.server.ts",
       "id": "lib_auth_server"
     },
@@ -4167,7 +4377,7 @@
       "source_file": "app/lib/auth.server.ts",
       "source_location": "L15",
       "_origin": "ast",
-      "community": 7,
+      "community": 22,
       "norm_label": "authenticateadmin()",
       "id": "lib_auth_server_authenticateadmin"
     },
@@ -4177,7 +4387,7 @@
       "source_file": "app/lib/currency.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 12,
+      "community": 177,
       "norm_label": "currency.server.ts",
       "id": "lib_currency_server"
     },
@@ -4187,7 +4397,7 @@
       "source_file": "app/lib/currency.server.ts",
       "source_location": "L28",
       "_origin": "ast",
-      "community": 12,
+      "community": 22,
       "norm_label": "fetchshopcurrencycode()",
       "id": "lib_currency_server_fetchshopcurrencycode"
     },
@@ -4957,7 +5167,7 @@
       "source_file": "app/routes/app.onboarding.tsx",
       "source_location": "L72",
       "_origin": "ast",
-      "community": 7,
+      "community": 22,
       "norm_label": "loader()",
       "id": "routes_app_onboarding_loader"
     },
@@ -5127,7 +5337,7 @@
       "source_file": "app/routes/app.pricing._index.tsx",
       "source_location": "L121",
       "_origin": "ast",
-      "community": 7,
+      "community": 22,
       "norm_label": "loader()",
       "id": "routes_app_pricing_index_loader"
     },
@@ -5257,7 +5467,7 @@
       "source_file": "app/routes/app.qualify-customer.tsx",
       "source_location": "L121",
       "_origin": "ast",
-      "community": 7,
+      "community": 22,
       "norm_label": "qualifycustomer()",
       "id": "routes_app_qualify_customer_qualifycustomer"
     },
@@ -5307,7 +5517,7 @@
       "source_file": "app/routes/app.registration-form.$id.tsx",
       "source_location": "L134",
       "_origin": "ast",
-      "community": 7,
+      "community": 22,
       "norm_label": "registrationformbuilderroute()",
       "id": "routes_app_registration_form_id_registrationformbuilderroute"
     },
@@ -5447,7 +5657,7 @@
       "source_file": "app/routes/auth.$.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "auth.$.tsx",
       "id": "routes_auth"
     },
@@ -5457,7 +5667,7 @@
       "source_file": "app/routes/auth.$.tsx",
       "source_location": "L4",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "loader()",
       "id": "routes_auth_loader"
     },
@@ -5697,7 +5907,7 @@
       "source_file": "app/routes/webhooks.app.scopes_update.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "webhooks.app.scopes_update.tsx",
       "id": "routes_webhooks_app_scopes_update"
     },
@@ -5707,7 +5917,7 @@
       "source_file": "app/routes/webhooks.app.scopes_update.tsx",
       "source_location": "L5",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "action()",
       "id": "routes_webhooks_app_scopes_update_action"
     },
@@ -5837,7 +6047,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 307,
+      "community": 28,
       "norm_label": "webhooks.orders.paid.tsx",
       "id": "routes_webhooks_orders_paid"
     },
@@ -5847,7 +6057,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L25",
       "_origin": "ast",
-      "community": 307,
+      "community": 28,
       "norm_label": "orderspaidpayload",
       "id": "routes_webhooks_orders_paid_orderspaidpayload"
     },
@@ -5857,7 +6067,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L45",
       "_origin": "ast",
-      "community": 307,
+      "community": 28,
       "norm_label": "parsecustomertags()",
       "id": "routes_webhooks_orders_paid_parsecustomertags"
     },
@@ -5867,7 +6077,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L55",
       "_origin": "ast",
-      "community": 307,
+      "community": 28,
       "norm_label": "fpqrule",
       "id": "routes_webhooks_orders_paid_fpqrule"
     },
@@ -5877,7 +6087,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L62",
       "_origin": "ast",
-      "community": 307,
+      "community": 28,
       "norm_label": "evaluatefpq()",
       "id": "routes_webhooks_orders_paid_evaluatefpq"
     },
@@ -5887,7 +6097,7 @@
       "source_file": "app/routes/webhooks.orders.paid.tsx",
       "source_location": "L84",
       "_origin": "ast",
-      "community": 307,
+      "community": 28,
       "norm_label": "action()",
       "id": "routes_webhooks_orders_paid_action"
     },
@@ -6327,7 +6537,7 @@
       "source_file": "app/services/onboarding.server.ts",
       "source_location": "L32",
       "_origin": "ast",
-      "community": 30,
+      "community": 11,
       "norm_label": "presetfirsttier",
       "id": "services_onboarding_server_presetfirsttier"
     },
@@ -6877,7 +7087,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L18",
       "_origin": "ast",
-      "community": 30,
+      "community": 11,
       "norm_label": "tierscope",
       "id": "services_tiers_server_tierscope"
     },
@@ -6897,7 +7107,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L34",
       "_origin": "ast",
-      "community": 30,
+      "community": 11,
       "norm_label": "tieraggregation",
       "id": "services_tiers_server_tieraggregation"
     },
@@ -6917,7 +7127,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L48",
       "_origin": "ast",
-      "community": 22,
+      "community": 12,
       "norm_label": "tiermarketeligibility",
       "id": "services_tiers_server_tiermarketeligibility"
     },
@@ -7117,7 +7327,7 @@
       "source_file": "app/services/tiers.server.ts",
       "source_location": "L686",
       "_origin": "ast",
-      "community": 7,
+      "community": 34,
       "norm_label": "listrules()",
       "id": "services_tiers_server_listrules"
     },
@@ -7267,7 +7477,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 201,
+      "community": 19,
       "norm_label": "wholesale-customers.server.ts",
       "id": "services_wholesale_customers_server"
     },
@@ -7277,7 +7487,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L14",
       "_origin": "ast",
-      "community": 201,
+      "community": 19,
       "norm_label": "eligibilitycheckinput",
       "id": "services_wholesale_customers_server_eligibilitycheckinput"
     },
@@ -7287,7 +7497,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L26",
       "_origin": "ast",
-      "community": 201,
+      "community": 19,
       "norm_label": "iseligible()",
       "id": "services_wholesale_customers_server_iseligible"
     },
@@ -7297,7 +7507,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L44",
       "_origin": "ast",
-      "community": 201,
+      "community": 19,
       "norm_label": "customerstatus",
       "id": "services_wholesale_customers_server_customerstatus"
     },
@@ -7337,7 +7547,7 @@
       "source_file": "app/services/wholesale-customers.server.ts",
       "source_location": "L120",
       "_origin": "ast",
-      "community": 201,
+      "community": 19,
       "norm_label": "revokecustomer()",
       "id": "services_wholesale_customers_server_revokecustomer"
     },
@@ -7357,7 +7567,7 @@
       "source_file": "app/shopify.server.ts",
       "source_location": "L1",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "shopify.server.ts",
       "id": "app_shopify_server"
     },
@@ -7367,7 +7577,7 @@
       "source_file": "app/shopify.server.ts",
       "source_location": "L11",
       "_origin": "ast",
-      "community": 197,
+      "community": 185,
       "norm_label": "shopify",
       "id": "app_shopify_server_shopify"
     },
@@ -30557,7 +30767,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 23,
+      "community": 307,
       "norm_label": "prisma singleton (db.server.ts)",
       "id": "app_db_server_prisma"
     },
@@ -30921,7 +31131,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 23,
+      "community": 307,
       "norm_label": "prisma singleton pattern (avoid connection exhaustion in dev)",
       "id": "concept_prisma_singleton_dev"
     },
@@ -30960,7 +31170,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 22,
       "norm_label": "registrationformlist route (list + create/toggle/delete)",
       "id": "routes_app_registration_form_index_registrationformlist_export"
     },
@@ -30986,7 +31196,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 22,
       "norm_label": "proxy.registration-form (app proxy \u2014 form definition serve)",
       "id": "routes_proxy_registration_form_proxyregformroute"
     },
@@ -31077,7 +31287,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 22,
       "norm_label": "getregistrationformbyid / listregistrationforms / updateregistrationform / createregistrationformfromtemplate / deleteregistrationform / setstatus / resolvestorefrontform / parsedefinition / parsesettings / parseappearance (registration form services)",
       "id": "services_registrationforms_server_getreg"
     },
@@ -31142,7 +31352,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 7,
+      "community": 22,
       "norm_label": "registrationformlist component",
       "id": "components_registration_form_registrationformlist"
     },
@@ -32611,6 +32821,106 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_changed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_market_benchmarks_for_the_100_customer_question",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_next_step",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_objective",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_the_verdict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L77",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_2026_08_21_approved_and_the_first_three_post_approval_changes",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_verified_observed_not_assumed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_changed",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_blank_admin_nav_icon_fixed_dd244bd",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L69",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_changed",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_client_secret_deliberately_not_rotated",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-approval-and-post-approval-fixes.md",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_approval_and_post_approval_fixes_changed",
+      "target": "progress_2026_08_21_approval_and_post_approval_fixes_customers_update_re_enabled_dd244bd",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "tasks/current.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -32635,38 +32945,128 @@
       "source_location": "L9",
       "weight": 1.0,
       "source": "tasks_current_tasks_current_md_stockly_active_task_queue",
-      "target": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
+      "target": "tasks_current_p0_post_approval_queue",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tasks/current.md",
-      "source_location": "L43",
+      "source_location": "L11",
       "weight": 1.0,
-      "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_deferred_on_purpose_with_reasons",
+      "source": "tasks_current_p0_post_approval_queue",
+      "target": "tasks_current_1_rotate_the_client_secret_only_jonatan_can_do_this",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tasks/current.md",
-      "source_location": "L36",
+      "source_location": "L27",
       "weight": 1.0,
-      "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear",
+      "source": "tasks_current_p0_post_approval_queue",
+      "target": "tasks_current_2_deploy_the_re_enabled_customers_update_webhook",
       "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "tasks/current.md",
-      "source_location": "L29",
+      "source_location": "L40",
       "weight": 1.0,
-      "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_when_the_next_verdict_arrives",
+      "source": "tasks_current_p0_post_approval_queue",
+      "target": "tasks_current_3_reinstall_on_piroaccessories",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "tasks_current_p0_post_approval_queue",
+      "target": "tasks_current_deferred_with_reasons",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "tasks_current_p0_post_approval_queue",
+      "target": "tasks_current_growth_notes_benchmarks_pulled_2026_08_21",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tasks/current.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "tasks_current_p0_post_approval_queue",
+      "target": "tasks_current_still_deliberately_frozen",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "progress_2026_08_21_close_out_verification",
+      "target": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L27",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_changed"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L53",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_next_step"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_objective"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L39",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_open_risks_notes"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_verified_today_observed_not_assumed"
     },
     {
       "relation": "imports_from",
@@ -70414,5 +70814,5 @@
       "source_file": "docs/design/prototypes/quick-order-form.html"
     }
   ],
-  "built_at_commit": "7bd02792506d31b03e8a53845524d9b188c40fdf"
+  "built_at_commit": "4471648919f3842a5a1eba03573bdd8b8aae5e87"
 }

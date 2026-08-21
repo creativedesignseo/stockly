@@ -13,7 +13,38 @@
 > secret (only Jonatan can — see below), deploy the re-enabled
 > `customers/update` webhook, and reinstall on Piro.
 
-**Last updated:** 2026-08-21 (evening) — **🎉 APPROVED AND PUBLISHED. Shopify's
+**Last updated:** 2026-08-21 (night) — **🛡️ ONE SOURCE OF WHOLESALE DISCOUNT.
+Piro had THREE 65% discounts configured at once — a Shopify B2B catalog price
+list, Stockly's baseline, and an active Stockly rule. They compose
+multiplicatively: a $28 bracelet would have hit checkout at $28 × 0.35³ =
+**$1.20**, 95.7% off. It had not fired only because Stockly's FPQ gate was
+withholding its own discount from an unqualified buyer — reinstalling or
+qualifying anyone would have detonated it. Worse than the stacking, the two
+engines defeat each other's logic: the FPQ promises "no wholesale price until
+the first order reaches $300", while the catalog hands out the same 65%
+unconditionally, so buyers get wholesale pricing without ever qualifying and
+the gate is decorative. Fix: `Shop.pricingSource` ('stockly' | 'catalog',
+default 'stockly'), enforced in `buildConfiguration` — in 'catalog' mode
+Stockly emits baseline 0 and an empty tiers array, so the Discount Function
+has nothing to apply. The switch lives at the sync boundary, NOT in the UI, so
+a leftover baseline or a rule someone re-enables later cannot leak a second
+discount into checkout. Order minimums, the registration form, the approval
+queue and the quick order form are untouched in both modes. Piro set to
+'catalog', duplicate rule deactivated. 4 new tests. Deployed `42031df`;
+`verify.sh` green (160 app tests); `pricingSource` column live in production.**
+
+  - **How this was missed for weeks, recorded so it is not repeated:** the
+    catalog price list was already documented in project memory ("Piro runs
+    B2B pricing via a Markets/Catalog Price List (−65%), a different engine
+    than Stockly"), and was explained to Jonatan earlier the same day. What
+    was never done was the obvious next query — *what does Stockly have
+    configured for that same shop?* — one Prisma call that had already been
+    run minutes earlier for another reason. The compounding risk was also
+    stated as hypothetical ("if we reinstall, they could compound") when it
+    was already configured and waiting. **When two systems can price the same
+    order, read BOTH configurations before concluding anything.**
+
+Prior 2026-08-21 (evening) — **🎉 APPROVED AND PUBLISHED. Shopify's
 verdict arrived at 18:30 UTC: *"your app has officially been approved and
 published on the Shopify App Store as a listed application"*. The listing is
 live at `https://apps.shopify.com/stockly-2` (handle is `stockly-2`, not
@@ -28,12 +59,18 @@ live at `https://apps.shopify.com/stockly-2` (handle is `stockly-2`, not
     2026"*, checked before touching the file. No scope change (it rides on
     the already-granted `write_customers`), so installed shops are not asked
     to re-consent.
-  - **⚠️ NOT YET DEPLOYED — the repo and Shopify's live config disagree.**
-    The toml change only takes effect after `npx shopify app deploy
-    --config=public`, which needs explicit approval and has not been run. The
-    handler at `app/routes/webhooks.customers.update.tsx` is live and answers
-    401 to a forged HMAC, but Shopify is not yet sending the topic. Close this
-    gap before assuming the FPQ auto-enrolment works.
+  - **✅ DEPLOYED 2026-08-21 20:50 UTC — app version `stockly-3` is active.**
+    `npx shopify app deploy --config=public` succeeded, and the fact that it
+    did is itself the proof the protected-data approval is real: the same
+    command failed on 2026-08-11 with *"This app is not approved to subscribe
+    to webhook topics containing protected customer data"*. The repo and
+    Shopify's live config now agree.
+  - **⚠️ Auto-enrolment still only covers customers tagged FROM NOW ON.**
+    `customers/update` fires on change, so the 45 Piro companies that already
+    carry the wholesale tag are not enrolled by it. Stockly knows 5 of Piro's
+    50 companies, which means the checkout minimum currently protects 10% of
+    their wholesale buyers. A one-off backfill is needed — tracked in
+    `tasks/current.md`.
   - **✅ The blank admin nav icon is fixed, uploaded and verified in the
     admin.** Root cause found by reading the DOM, not by guessing: the sidebar
     does NOT render the colour app icon — it renders an SVG as a **mask**

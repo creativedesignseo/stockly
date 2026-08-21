@@ -380,7 +380,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1787266942.3103435,
+    "mtime": 1787343001.3756466,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -390,7 +390,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1787266941.9911556,
+    "mtime": 1787343001.104169,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -400,7 +400,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1787266942.86504,
+    "mtime": 1787343001.8698545,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -410,7 +410,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1787266942.5987234,
+    "mtime": 1787343001.6219692,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -715,8 +715,8 @@
     "semantic_hash": "df1b9dd43c67241173dee00bc39ec3dd"
   },
   "HANDOFF.md": {
-    "mtime": 1787276442.9679005,
-    "ast_hash": "d82a086cce8e74242f9188e56262c301",
+    "mtime": 1787343072.233544,
+    "ast_hash": "ce3562ac33ecaff55098cf2dd735dc15",
     "semantic_hash": ""
   },
   "PROJECT.md": {
@@ -1055,8 +1055,8 @@
     "semantic_hash": "6f60a4159dad79c0e35d001a01daf29b"
   },
   "tasks/current.md": {
-    "mtime": 1787276467.8115091,
-    "ast_hash": "b9011566553acf8f3b5d23ba126bed00",
+    "mtime": 1787343112.8237863,
+    "ast_hash": "bb231a691aa9061aa7ff7eca9d85a1fc",
     "semantic_hash": ""
   },
   "docs/competitive/assets/sami-registration-form/sami-01-landing.png": {
@@ -1702,6 +1702,21 @@
   "progress/2026-08-20-reviewer-response-drafts.md": {
     "mtime": 1787260403.7915192,
     "ast_hash": "19865ed055d956e30be0fe5711c7cfc6",
+    "semantic_hash": ""
+  },
+  "progress/2026-08-21-close-out-verification.md": {
+    "mtime": 1787333286.0264482,
+    "ast_hash": "a2f54c3cdaad19e5f286911bb737c156",
+    "semantic_hash": ""
+  },
+  "docs/brand/stockly-nav-icon-16.svg": {
+    "mtime": 1787341680.7059712,
+    "ast_hash": "a266edc1089827c6d59871452fb7da2e",
+    "semantic_hash": ""
+  },
+  "progress/2026-08-21-approval-and-post-approval-fixes.md": {
+    "mtime": 1787343149.5801382,
+    "ast_hash": "3a2ac3f5c0f4959b2819951122c1d9de",
     "semantic_hash": ""
   }
 }

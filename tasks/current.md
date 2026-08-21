@@ -4,7 +4,7 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-21 (evening) — **🎉 APPROVED AND PUBLISHED on the Shopify App Store. Listing live at https://apps.shopify.com/stockly-2, visibility deliberately still LIMITED. The review saga is over; the post-approval queue below is the real work now.**
+**Last updated:** 2026-08-21 (night) — **🛡️ Single source of wholesale discount shipped (`pricingSource`); Piro set to `catalog` after finding three stacked 65% discounts. `customers/update` deployed as app version `stockly-3`.** Prior: **🎉 APPROVED AND PUBLISHED on the Shopify App Store. Listing live at https://apps.shopify.com/stockly-2, visibility deliberately still LIMITED. The review saga is over; the post-approval queue below is the real work now.**
 
 ## P0 — Post-approval queue
 
@@ -24,18 +24,29 @@ Order matters (revoking early breaks webhook HMAC):
 
 Cheapest moment there will ever be: production holds two sessions, both ours.
 
-### 2. Deploy the re-enabled `customers/update` webhook
+### 2. ✅ DONE — `customers/update` deployed (app version `stockly-3`)
 
-Code is committed (`dd244bd`) and `verify.sh` is green, but **the repo and
-Shopify's live config currently disagree** — the subscription only exists
-after:
+Deployed 2026-08-21 20:50 UTC. Shopify accepted the protected-topic
+subscription, which is itself proof the protected-data approval is real
+(the same deploy failed on 2026-08-11 with "not approved to subscribe to
+webhook topics containing protected customer data").
 
-```
-npx shopify app deploy --config=public
-```
+### 2b. Backfill Piro's existing wholesale customers — REAL GAP
 
-Needs explicit approval per AGENTS.md. Until it runs, the handler is live
-but Shopify never sends the topic, so FPQ auto-enrolment does not fire.
+Stockly knows **5** of Piro's **50** B2B companies, so the checkout
+minimum currently protects ~10% of their wholesale buyers. Verified
+2026-08-21: the buyer on a live $82.60 order was customer
+`8239683010639`, in neither `pendingCustomers` nor `qualifiedCustomers`,
+so the $300 gate never evaluated — the Validation Function fails open on
+anyone it does not recognise, by design.
+
+`customers/update` only fires on change, so it will NOT pick up the 45
+already-tagged customers. A one-off import is needed: read the customers
+carrying Piro's wholesale tag from the Admin API and create the missing
+`WholesaleCustomer` rows. Decide per customer whether they land as
+qualified (no opening-order gate) or pending (must clear $300 first) —
+they are existing buyers, so "qualified" is probably right, but that is
+Ana's call, not a technical default.
 
 ### 3. Reinstall on `piroaccessories`
 

@@ -1,16 +1,16 @@
 # Graph Report - stockly  (2026-08-21)
 
 ## Corpus Check
-- 275 files · ~272,151 words
+- 276 files · ~274,117 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3086 nodes · 3676 edges · 312 communities (227 shown, 85 thin omitted)
+- 3094 nodes · 3673 edges · 318 communities (231 shown, 87 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 31 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8179a999`
+- Built from commit: `42031dfb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -291,6 +291,12 @@
 - [[_COMMUNITY_Community 309|Community 309]]
 - [[_COMMUNITY_Community 310|Community 310]]
 - [[_COMMUNITY_Community 311|Community 311]]
+- [[_COMMUNITY_Community 312|Community 312]]
+- [[_COMMUNITY_Community 313|Community 313]]
+- [[_COMMUNITY_Community 314|Community 314]]
+- [[_COMMUNITY_Community 315|Community 315]]
+- [[_COMMUNITY_Community 316|Community 316]]
+- [[_COMMUNITY_Community 317|Community 317]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `authenticateAdmin()` - 55 edges
@@ -342,7 +348,7 @@
 - **Agent pipeline: orchestrator → implementer → reviewer → guardian** — agents_stockly_orchestrator_agent, agents_stockly_implementer_agent, agents_stockly_reviewer_agent, agents_deployment_guardian_agent [INFERRED 0.95]
 - **QOF design artifacts: prototype HTML + desktop screenshot + mobile screenshot** — docs_design_prototypes_quick_order_form_html_prototype, docs_design_prototypes_qof_real_desktop_desktop_screenshot, docs_design_prototypes_qof_real_mobile_mobile_screenshot [EXTRACTED 1.00]
 
-## Communities (312 total, 85 thin omitted)
+## Communities (318 total, 87 thin omitted)
 
 ### Community 0 - "Opening Order Shopify API"
 Cohesion: 0.15
@@ -373,16 +379,16 @@ Cohesion: 0.05
 Nodes (48): Decision: fixed_price discount type needs no run.graphql change, Discount Function Input Audit, Decision: mix_variants aggregation needs no run.graphql change, Admin Builder 3-Pane Layout (LeftRail/Middle/Preview), Application Prisma Model (replaces WholesaleApplication), RegistrationForm Prisma Model (singleton per shop), Registration Form Builder Phase 1 Plan, 5.1 `extensions/stockly-volume-discount/src/run.ts` (+40 more)
 
 ### Community 7 - "Admin Pricing Routes"
-Cohesion: 0.10
-Nodes (25): RegistrationFormList component, authenticateAdmin(), loader(), action(), loader(), action(), loader(), QualifyCustomer() (+17 more)
+Cohesion: 0.23
+Nodes (11): action(), loader(), buildConfiguration(), createAutomaticDiscount(), findExistingDiscountId(), findFunctionId(), syncTiersToFunction(), updateDiscountMetafield() (+3 more)
 
 ### Community 8 - "Core App Concepts"
-Cohesion: 0.15
-Nodes (19): dnd-kit Drag & Drop Sortable, AppearanceColors, AppearancePanel, ColorRow, FormAppearance, FieldEditForm, Inline Panel Pattern (App Bridge max modal gotcha), FIELD_TYPE_LABEL (+11 more)
+Cohesion: 0.11
+Nodes (23): dnd-kit Drag & Drop Sortable, AppearanceColors, AppearancePanel, ColorRow, FormAppearance, FieldEditForm, Inline Panel Pattern (App Bridge max modal gotcha), FIELD_ICON (+15 more)
 
 ### Community 9 - "Registration Form UI Components"
-Cohesion: 0.18
-Nodes (10): FIELD_ICON, COUNTRY_OPTIONS, FormPreview(), layoutFieldsIntoRows(), AppearanceBackground, AppearanceLayout, FieldType, FormField (+2 more)
+Cohesion: 0.09
+Nodes (25): RegistrationFormList component, authenticateAdmin(), fetchShopCurrencyCode(), loader(), loader(), action(), formatFpq(), formatPostQualification() (+17 more)
 
 ### Community 10 - "AI Agent Harness"
 Cohesion: 0.07
@@ -390,11 +396,11 @@ Nodes (27): After a deploy, deployment-guardian agent, Approval protocol, deploy
 
 ### Community 11 - "Onboarding Wizard"
 Cohesion: 0.10
-Nodes (28): Onboarding Preset (just_starting / manufacturer / distributor / retailer_b2b), action(), ActionOk, BusinessModel, describeFpq(), Journey, OnboardingWizard(), parseOverrides() (+20 more)
+Nodes (31): Onboarding Preset (just_starting / manufacturer / distributor / retailer_b2b), action(), ActionOk, BusinessModel, describeFpq(), Journey, OnboardingWizard(), parseOverrides() (+23 more)
 
 ### Community 12 - "Volume Pricing Band UI"
-Cohesion: 0.10
-Nodes (23): fetchShopCurrencyCode(), Band, BandRangeTable(), defaultBand(), defaultBandRaw(), DISCOUNT_TYPE_OPTIONS, editorBandToRawBand(), GRID_COLUMNS (+15 more)
+Cohesion: 0.11
+Nodes (22): currencySymbolFor(), Band, BandRangeTable(), defaultBand(), defaultBandRaw(), DISCOUNT_TYPE_OPTIONS, editorBandToRawBand(), GRID_COLUMNS (+14 more)
 
 ### Community 13 - "Storefront Registration Form JS"
 Cohesion: 0.14
@@ -413,16 +419,16 @@ Cohesion: 0.08
 Nodes (23): codegen, config, documents, generates, schema, omitOperationSuffix, dependencies, @shopify/shopify_function (+15 more)
 
 ### Community 17 - "Shopify Auth & DB"
-Cohesion: 0.14
-Nodes (30): FormAppearance, FormSettings, RegistrationFormDefinition, RegistrationFormPayload, action(), loader(), SaveResult, action() (+22 more)
+Cohesion: 0.16
+Nodes (25): DEFAULT_APPEARANCE, DEFAULT_SETTINGS, FormAppearance, FormSettings, action(), loader(), SaveResult, action() (+17 more)
 
 ### Community 18 - "Auth Login Flow"
 Cohesion: 0.18
 Nodes (10): buildRecoveryGuardCookie(), buildShopCookie(), clearRecoveryGuardCookie(), hasRecoveryGuard(), isValidShopDomain(), SHOP_DOMAIN_RE — strict shop domain validator, readShopCookie(), shopFromReferer() (+2 more)
 
 ### Community 19 - "Wholesale Approval Queue"
-Cohesion: 0.16
-Nodes (15): action(), actionImpl(), ApproveResult, loader(), getApplication(), listApplications(), markApplicationApproved(), markApplicationRejected() (+7 more)
+Cohesion: 0.13
+Nodes (17): action(), actionImpl(), ApproveResult, loader(), getApplication(), listApplications(), markApplicationApproved(), markApplicationRejected() (+9 more)
 
 ### Community 20 - "Registration Form List"
 Cohesion: 0.31
@@ -433,8 +439,8 @@ Cohesion: 0.17
 Nodes (11): 1. Solicitar acceso a datos protegidos de clientes, 2. Configurar los planes en Shopify App Pricing, 3. Materiales de la ficha, 4. Tienda de demostración para los revisores, 5. Revisión legal (pendiente desde julio), 6. Enviar — con visibilidad LIMITADA, Cuando Shopify apruebe, Guía de envío al Shopify App Store — tareas de Jonatan (+3 more)
 
 ### Community 22 - "Wholesale Pricing CRUD"
-Cohesion: 0.07
-Nodes (25): prisma (db.server — Prisma client singleton), useManagedSaveBar(), action(), CUSTOMER_ELIGIBILITY_OPTIONS, loader(), MARKET_ELIGIBILITY_OPTIONS, resolveTierOrGroup(), SCOPE_OPTIONS (+17 more)
+Cohesion: 0.14
+Nodes (13): action(), CUSTOMER_ELIGIBILITY_OPTIONS, discountTypeOptions(), EditWholesalePricing(), MARKET_ELIGIBILITY_OPTIONS, resolveTierOrGroup(), sameIdSet(), SCOPE_OPTIONS (+5 more)
 
 ### Community 23 - "Prisma & SSR Entry"
 Cohesion: 0.09
@@ -445,28 +451,28 @@ Cohesion: 0.10
 Nodes (20): dependencies, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, isbot, prisma, @prisma/client, react (+12 more)
 
 ### Community 28 - "Module 28"
-Cohesion: 0.20
-Nodes (12): action(), CustomersUpdatePayload, parseTags(), buildOpeningOrderConfig(), createValidation(), findExistingValidationId(), findValidationFunctionId(), syncOpeningOrderValidation() (+4 more)
+Cohesion: 0.18
+Nodes (13): action(), action(), CustomersUpdatePayload, parseTags(), buildOpeningOrderConfig(), createValidation(), findExistingValidationId(), findValidationFunctionId() (+5 more)
 
 ### Community 29 - "Module 29"
 Cohesion: 0.22
 Nodes (5): _(), A(), r(), v(), x
 
 ### Community 30 - "Module 30"
-Cohesion: 0.12
-Nodes (19): action(), PresetFirstTier, applyDiscount(), BandInput, createRule(), normalizeRuleScope(), resolveTier(), ResolveTierInput (+11 more)
+Cohesion: 0.14
+Nodes (16): action(), applyDiscount(), BandInput, createRule(), normalizeRuleScope(), resolveTier(), ResolveTierInput, ResolveTierResult (+8 more)
 
 ### Community 31 - "Module 31"
 Cohesion: 0.11
 Nodes (18): compilerOptions, allowJs, allowSyntheticDefaultImports, baseUrl, forceConsistentCasingInFileNames, isolatedModules, jsx, lib (+10 more)
 
 ### Community 33 - "Module 33"
-Cohesion: 0.16
-Nodes (14): Camino B — discount gated on approval not qualifiedAt; opening-order gate at checkout via Validation Function, First-Purchase Qualification (FPQ) — amount/quantity/combined opening-order gate, StocklyFpqBanner — custom element showing FPQ progress in cart, orders/paid webhook handler — FPQ qualification + order tagging, buildConfiguration — serializes tier + FPQ config to Discount Function metafield JSON, createAutomaticDiscount — discountAutomaticAppCreate mutation, findFunctionId — resolves stockly-volume-discount Function ID via GraphQL, syncTiersToFunction — upserts Automatic App Discount + refreshes config metafield (+6 more)
+Cohesion: 0.67
+Nodes (3): Camino B — discount gated on approval not qualifiedAt; opening-order gate at checkout via Validation Function, approveCustomer — Camino B upsert (qualifiedAt=null on create, preserves existing), releaseOpeningOrder — sets qualifiedAt=now, removes from checkout gate
 
 ### Community 34 - "Module 34"
-Cohesion: 0.09
-Nodes (25): currencySymbolFor(), MoneyFormatter, moneyFormatterFor(), apply_preset intent (onboarding action), discountTypeOptions(), EditWholesalePricing(), sameIdSet(), formatFpq() (+17 more)
+Cohesion: 0.15
+Nodes (10): MoneyFormatter, action(), CUSTOMER_ELIGIBILITY_OPTIONS, discountTypeOptions(), MARKET_ELIGIBILITY_OPTIONS, NewWholesalePricing(), sameIdSet(), SCOPE_OPTIONS (+2 more)
 
 ### Community 35 - "Community 35"
 Cohesion: 0.09
@@ -489,8 +495,8 @@ Cohesion: 0.20
 Nodes (9): Commands run, Deviations from the brief (and why), Files changed, Files inspected, Implement Shopify Billing API plumbing (soft-gate), Next step, Objective, Open risks / follow-ups (+1 more)
 
 ### Community 40 - "Module 40"
-Cohesion: 0.22
-Nodes (11): applyPerClientLimiter, applyPerShopLimiter, clientIpFrom(), createRateLimiter(), RateLimiter, RateLimiterOptions, RateLimitResult, action() (+3 more)
+Cohesion: 0.16
+Nodes (17): applyPerClientLimiter, applyPerShopLimiter, clientIpFrom(), createRateLimiter(), RateLimiter, RateLimiterOptions, RateLimitResult, RegistrationFormPayload (+9 more)
 
 ### Community 41 - "Module 41"
 Cohesion: 0.09
@@ -501,8 +507,8 @@ Cohesion: 0.20
 Nodes (9): 1. Railway plan activated (Jonatan), 2026-08-05 — Railway outage recovery + `/proxy/apply` rate limiting, 2. Rate limiting on `/proxy/apply`, Next step, Objective, Open risks, Verification, Verified reality at session start (+1 more)
 
 ### Community 45 - "Module 45"
-Cohesion: 0.08
-Nodes (20): AppearancePanel(), COLOR_FIELDS, FieldList(), LeftRail(), LeftRailSection, SECTIONS, Panel, PICKER_TYPES (+12 more)
+Cohesion: 0.09
+Nodes (21): AppearancePanel(), COLOR_FIELDS, COUNTRY_OPTIONS, FormPreview(), layoutFieldsIntoRows(), LeftRail(), LeftRailSection, SECTIONS (+13 more)
 
 ### Community 46 - "Module 46"
 Cohesion: 0.20
@@ -525,8 +531,8 @@ Cohesion: 0.29
 Nodes (7): detectStocklyEmbedEnabled() Theme Settings Detection, Activate Stockly App Embed Block (stockly-embed.liquid), read_themes Scope Addition to shopify.app.toml, Setup Guide Embed Detection Failure (JSONC SyntaxError), Fly Deploy v77 (Setup Guide Fixes), Setup Guide Manual Mark-as-Done Override (Shop.setupManualSteps), stripJsonComments() Fix for settings_data.json Parsing
 
 ### Community 51 - "Module 51"
-Cohesion: 0.29
-Nodes (6): Deferred on purpose, with reasons, Known and NOT fixed (audited 2026-08-14, deliberately left), P0 — ✅ DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again., Retired 2026-08-20 — the greyed-out "Aprobar" fear, tasks/current.md — Stockly active task queue, When the next verdict arrives
+Cohesion: 0.20
+Nodes (9): 1. Rotate the client secret — ONLY Jonatan can do this, 2. Deploy the re-enabled `customers/update` webhook, 3. Reinstall on `piroaccessories`, Deferred, with reasons, Growth notes (benchmarks pulled 2026-08-21), Known and NOT fixed (audited 2026-08-14, deliberately left), P0 — Post-approval queue, Still deliberately frozen (+1 more)
 
 ### Community 52 - "Module 52"
 Cohesion: 0.71
@@ -617,8 +623,8 @@ Cohesion: 0.04
 Nodes (48): 10. Step-by-step execution order, 11. Risks, 12. Out of scope (Phase 2 follow-ups), 13. Stop conditions, 1. Goal, 2. Architecture summary (the 7 decisions, recapped), 3. Schema migration, 4.1 Type additions (+40 more)
 
 ### Community 75 - "Module 75"
-Cohesion: 0.17
-Nodes (15): DEFAULT_APPEARANCE, DEFAULT_FORM_DEFINITION, DEFAULT_SETTINGS, MODERN_TEMPLATE, SAMITA_B2B_TEMPLATE, STANDARD_TEMPLATE, TEMPLATE_META, TEMPLATES (+7 more)
+Cohesion: 0.27
+Nodes (10): DEFAULT_FORM_DEFINITION, MODERN_TEMPLATE, SAMITA_B2B_TEMPLATE, STANDARD_TEMPLATE, RegistrationFormDefinition, cleanPhone(), DEFAULT_ERROR_MESSAGES, getString() (+2 more)
 
 ### Community 76 - "Module 76"
 Cohesion: 0.67
@@ -713,8 +719,8 @@ Cohesion: 0.29
 Nodes (6): 2026-08-20 — Fix the two App Store rejection issues (billing return + zombie save bar), Changes, Next step, Objective, Root causes, Verification
 
 ### Community 177 - "Community 177"
-Cohesion: 0.14
-Nodes (10): action(), COMBINED_LOGIC_OPTIONS, FPQ_MODES, GATE_LOGICS, GATE_MODES, GateCombinedLogic, GateMode, loader() (+2 more)
+Cohesion: 0.12
+Nodes (14): prisma (db.server — Prisma client singleton), useManagedSaveBar(), QualifyCustomer(), COMBINED_LOGIC_OPTIONS, FPQ_MODES, GATE_LOGICS, GATE_MODES, GateCombinedLogic (+6 more)
 
 ### Community 178 - "Community 178"
 Cohesion: 0.08
@@ -801,8 +807,8 @@ Cohesion: 0.13
 Nodes (14): 10. Decisions Log, 11. Open Questions, 1. Executive Summary, 4. Competitive Landscape, 5. Tech Architecture (high-level), 6. Roadmap Overview, 7. Business Model, 9. Risk Register (+6 more)
 
 ### Community 201 - "Community 201"
-Cohesion: 0.17
-Nodes (15): corsHeaders(), loader(), DEFAULT_BRANDING, DEFAULT_COPY, getOrCreateShop(), parseShop(), safeParse(), ShopBranding (+7 more)
+Cohesion: 0.23
+Nodes (13): corsHeaders(), loader(), DEFAULT_BRANDING, DEFAULT_COPY, getOrCreateShop(), parseShop(), safeParse(), ShopBranding (+5 more)
 
 ### Community 202 - "Community 202"
 Cohesion: 0.14
@@ -1093,8 +1099,8 @@ Cohesion: 0.17
 Nodes (11): Architecture today (post Vercel→Fly migration), Critical deploy commands, Files modified in the 2026-05-26 migration, HANDOFF archive — entries closed before 2026-08-12, Open decisions / TODOs, Pilot status, Pointers to deeper docs, Resume work checklist (next session) (+3 more)
 
 ### Community 307 - "Community 307"
-Cohesion: 0.47
-Nodes (5): action(), evaluateFpq(), FpqRule, OrdersPaidPayload, parseCustomerTags()
+Cohesion: 0.14
+Nodes (10): moneyFormatterFor(), action(), AGGREGATION_OPTIONS, CUSTOMER_ELIGIBILITY_OPTIONS, EditVolumePricing(), MARKET_ELIGIBILITY_OPTIONS, resolveTierOrGroup(), sameIdSet() (+2 more)
 
 ### Community 308 - "Community 308"
 Cohesion: 0.33
@@ -1108,25 +1114,41 @@ Nodes (4): Drafts — Partner Dashboard "Show resolved state" responses (EN), Is
 Cohesion: 0.29
 Nodes (6): 2026-08-21 — Close-out: verify reality, refresh the graph, publish, Changed, Next step, Objective, Open risks / notes, Verified today (observed, not assumed)
 
+### Community 312 - "Community 312"
+Cohesion: 0.18
+Nodes (10): 2026-08-21 — Approved, and the first three post-approval changes, Blank admin nav icon fixed (`dd244bd`), Changed, Client secret — deliberately NOT rotated, `customers/update` re-enabled (`dd244bd`), Market benchmarks (for the 100-customer question), Next step, Objective (+2 more)
+
+### Community 313 - "Community 313"
+Cohesion: 0.16
+Nodes (9): LoaderShape, RegistrationFormList(), RegistrationFormListItem, TabId, TemplatePickerModal(), TEMPLATE_META, TEMPLATES, LEGACY_KEYS (+1 more)
+
+### Community 314 - "Community 314"
+Cohesion: 0.47
+Nodes (5): action(), evaluateFpq(), FpqRule, OrdersPaidPayload, parseCustomerTags()
+
+### Community 315 - "Community 315"
+Cohesion: 0.67
+Nodes (3): First-Purchase Qualification (FPQ) — amount/quantity/combined opening-order gate, StocklyFpqBanner — custom element showing FPQ progress in cart, orders/paid webhook handler — FPQ qualification + order tagging
+
 ## Knowledge Gaps
-- **1854 isolated node(s):** `The other thing that is live: the marketing site`, `Older entries`, `Objective`, `Verified today (observed, not assumed)`, `Changed` (+1849 more)
+- **1866 isolated node(s):** `PricingSource`, `GateMode`, `GateCombinedLogic`, `GATE_MODES`, `GATE_LOGICS` (+1861 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **85 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **87 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `authenticateAdmin()` connect `Admin Pricing Routes` to `Module 34`, `Community 201`, `Onboarding Wizard`, `Volume Pricing Band UI`, `Shopify Auth & DB`, `Auth Login Flow`, `Wholesale Approval Queue`, `Community 177`, `Wholesale Pricing CRUD`, `Prisma & SSR Entry`, `Module 30`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
-- **Why does `useManagedSaveBar()` connect `Wholesale Pricing CRUD` to `Community 177`, `Module 34`, `Volume Pricing Band UI`, `Module 45`?**
+- **Why does `authenticateAdmin()` connect `Registration Form UI Components` to `Module 34`, `Admin Pricing Routes`, `Community 201`, `Onboarding Wizard`, `Volume Pricing Band UI`, `Community 177`, `Auth Login Flow`, `Wholesale Approval Queue`, `Shopify Auth & DB`, `Community 307`, `Wholesale Pricing CRUD`, `Prisma & SSR Entry`, `Module 28`, `Module 30`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **Why does `RegistrationFormEditor` connect `Core App Concepts` to `Community 313`, `Community 308`, `Module 45`, `Shopify Auth & DB`?**
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+- **Why does `useManagedSaveBar()` connect `Community 177` to `Module 34`, `Volume Pricing Band UI`, `Module 45`, `Community 307`, `Wholesale Pricing CRUD`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `StocklyProductPanel` (e.g. with `Multiplicative pricing composition (baseline × tier)` and `Tier resolution (scope precedence: product > collection > all)`) actually correct?**
   _`StocklyProductPanel` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `The other thing that is live: the marketing site`, `Older entries`, `Objective` to the rest of the system?**
-  _1875 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `PricingSource`, `GateMode`, `GateCombinedLogic` to the rest of the system?**
+  _1887 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Volume Discount Shopify API` be split into smaller, more focused modules?**
   _Cohesion score 0.01652892561983471 - nodes in this community are weakly interconnected._
 - **Should `FPQ Banner Storefront` be split into smaller, more focused modules?**
   _Cohesion score 0.05552617662612375 - nodes in this community are weakly interconnected._
-- **Should `Volume Discount Engine` be split into smaller, more focused modules?**
-  _Cohesion score 0.13071895424836602 - nodes in this community are weakly interconnected._
