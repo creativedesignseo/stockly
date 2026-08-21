@@ -70,6 +70,9 @@ import { syncOpeningOrderValidation } from "../services/opening-order-sync.serve
  * Both gates (first-purchase and post-qualification) share the same
  * shape, so they share the same types.
  */
+/** Who owns wholesale pricing for this shop. Exactly one engine may. */
+type PricingSource = "stockly" | "catalog";
+
 type GateMode = "none" | "amount" | "quantity" | "combined";
 type GateCombinedLogic = "and" | "or";
 
@@ -98,6 +101,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { admin, shop } = await authenticateAdmin(request);
   const form = await request.formData();
+
+  const pricingSourceRaw = (form.get("pricingSource") ?? "stockly").toString();
+  const pricingSource =
+    pricingSourceRaw === "catalog" ? "catalog" : "stockly";
 
   const baselineRaw = (form.get("wholesaleBaselinePct") ?? "").toString();
   const baseline = Number(baselineRaw);
@@ -201,6 +208,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({
       errors,
       values: {
+        pricingSource,
         wholesaleBaselinePct: baselineRaw,
         fpqMode,
         fpqAmount: fpqAmountRaw,
@@ -217,6 +225,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   await prisma.shop.update({
     where: { id: shop.id },
     data: {
+      pricingSource,
       wholesaleBaselinePct: baseline,
       fpqMode,
       fpqAmount:
@@ -332,6 +341,13 @@ export default function PricingSettings() {
   const navigation = useNavigation();
   const submitting = navigation.state === "submitting";
 
+  const [pricingSource, setPricingSource] = useState<PricingSource>(
+    ((actionData && "values" in actionData
+      ? (actionData.values as Record<string, string>).pricingSource
+      : null) as PricingSource | null) ??
+      ((shop.pricingSource ?? "stockly") as PricingSource),
+  );
+
   const errors =
     actionData && "errors" in actionData ? actionData.errors : {};
 
@@ -409,6 +425,7 @@ export default function PricingSettings() {
 
   /* ----- SaveBar (sticky top via App Bridge) ----- */
   const initial = {
+    pricingSource: (shop.pricingSource ?? "stockly") as PricingSource,
     baseline: String(shop.wholesaleBaselinePct),
     fpqMode: shop.fpqMode as GateMode,
     fpqAmount: shop.fpqAmount != null ? String(shop.fpqAmount) : "",
@@ -424,6 +441,7 @@ export default function PricingSettings() {
       shop.postQualificationCombinedLogic as GateCombinedLogic,
   };
   const isDirty =
+    pricingSource !== initial.pricingSource ||
     baseline !== initial.baseline ||
     fpqMode !== initial.fpqMode ||
     fpqAmount !== initial.fpqAmount ||
@@ -443,6 +461,7 @@ export default function PricingSettings() {
   useManagedSaveBar(SAVE_BAR_ID, isDirty);
 
   const handleDiscard = () => {
+    setPricingSource(initial.pricingSource);
     setBaseline(initial.baseline);
     setFpqMode(initial.fpqMode);
     setFpqAmount(initial.fpqAmount);
@@ -537,6 +556,55 @@ export default function PricingSettings() {
                   </p>
                 </Banner>
               )}
+
+              {/* ----- Pricing source (single source of discount) ----- */}
+              <Card>
+                <BlockStack gap="400">
+                  <BlockStack gap="100">
+                    <Text variant="headingMd" as="h2">
+                      Who sets wholesale prices
+                    </Text>
+                    <Text variant="bodySm" as="p" tone="subdued">
+                      Only one system may discount. If Stockly discounts a
+                      price a Shopify catalog already discounted, the two
+                      multiply and you sell far below cost.
+                    </Text>
+                  </BlockStack>
+                  <input
+                    type="hidden"
+                    name="pricingSource"
+                    value={pricingSource}
+                  />
+                  <BlockStack gap="200">
+                    <RadioButton
+                      label="Stockly sets the prices"
+                      helpText="Stockly applies the baseline and your volume pricing rules at checkout. Use this unless your store already prices wholesale through a Shopify B2B catalog."
+                      checked={pricingSource === "stockly"}
+                      id="pricing-source-stockly"
+                      name="pricingSourceRadio"
+                      onChange={() => setPricingSource("stockly")}
+                    />
+                    <RadioButton
+                      label="A Shopify B2B catalog sets the prices"
+                      helpText="Your catalog / Markets price list already discounts. Stockly applies NO discount at all — the baseline and every rule below are ignored — and keeps doing order minimums, the registration form, the approval queue and the quick order form."
+                      checked={pricingSource === "catalog"}
+                      id="pricing-source-catalog"
+                      name="pricingSourceRadio"
+                      onChange={() => setPricingSource("catalog")}
+                    />
+                  </BlockStack>
+                  {pricingSource === "catalog" && (
+                    <Banner tone="info">
+                      <p>
+                        Stockly is not discounting. Your Shopify catalog sets
+                        the wholesale price; the baseline and rules below are
+                        saved but not applied at checkout. Order minimums
+                        still work.
+                      </p>
+                    </Banner>
+                  )}
+                </BlockStack>
+              </Card>
 
               {/* ----- Wholesale baseline ----- */}
               <Card>

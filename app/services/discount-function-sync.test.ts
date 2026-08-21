@@ -38,6 +38,7 @@ import { buildConfiguration } from "./discount-function-sync.server";
 
 const SHOP = {
   id: "shop-1",
+  pricingSource: "stockly",
   wholesaleBaselinePct: 60,
   fpqMode: "amount",
   fpqAmount: 200,
@@ -99,5 +100,106 @@ describe("buildConfiguration — qualifiedCustomers", () => {
       quantity: null,
       combinedLogic: "and",
     });
+  });
+});
+
+/**
+ * REVENUE-PATH GUARD. A shop that already prices wholesale through a
+ * Shopify B2B catalog / Markets price list must get NOTHING price-shaped
+ * from Stockly, or the two engines compound multiplicatively.
+ *
+ * Real incident (Piro, 2026-08-21): a −65% catalog price list, a 65%
+ * Stockly baseline and an active 65% Stockly rule were all configured at
+ * once. A $28 item would have reached checkout at $28 × 0.35³ = $1.20 —
+ * 95.7% off — as soon as Stockly's discount applied. These tests exist so
+ * that can never ship again.
+ */
+describe("buildConfiguration — pricingSource is the single source of pricing", () => {
+  const TIERS = [
+    {
+      scope: "all",
+      scopeId: null,
+      scopeIds: [],
+      minQty: 1,
+      quantityTo: null,
+      discountPct: 65,
+      discountType: "percentage",
+      discountAmount: null,
+      discountFixedPrice: null,
+      aggregation: "per_line",
+      customerEligibility: "wholesale_tagged",
+      groupId: "g1",
+      startsAt: null,
+      endsAt: null,
+    },
+  ];
+
+  it("emits NO baseline and NO tiers when the catalog owns pricing", async () => {
+    findUniqueOrThrowMock.mockResolvedValue({
+      ...SHOP,
+      pricingSource: "catalog",
+      wholesaleBaselinePct: 65,
+    });
+    listTiersMock.mockResolvedValue(TIERS);
+
+    const json = JSON.parse(await buildConfiguration("shop-1"));
+
+    // Both pricing levers must be neutralised, not just one: a baseline
+    // alone still discounts every line, and a tier alone still discounts
+    // the lines it matches.
+    expect(json.wholesaleBaselinePct).toBe(0);
+    expect(json.tiers).toEqual([]);
+  });
+
+  it("keeps enforcing order minimums when the catalog owns pricing", async () => {
+    findUniqueOrThrowMock.mockResolvedValue({
+      ...SHOP,
+      pricingSource: "catalog",
+      wholesaleBaselinePct: 65,
+    });
+    listTiersMock.mockResolvedValue(TIERS);
+
+    const json = JSON.parse(await buildConfiguration("shop-1"));
+
+    // Switching the pricing source off must not disarm the FPQ gate or
+    // drop the qualified-customer list — those drive the checkout
+    // minimums, which stay Stockly's job in both modes.
+    expect(json.fpq).toEqual({
+      mode: "amount",
+      amount: 200,
+      quantity: null,
+      combinedLogic: "and",
+    });
+    expect(json.qualifiedCustomers).toHaveLength(3);
+  });
+
+  it("emits baseline and tiers normally when Stockly owns pricing", async () => {
+    findUniqueOrThrowMock.mockResolvedValue({
+      ...SHOP,
+      pricingSource: "stockly",
+      wholesaleBaselinePct: 65,
+    });
+    listTiersMock.mockResolvedValue(TIERS);
+
+    const json = JSON.parse(await buildConfiguration("shop-1"));
+
+    expect(json.wholesaleBaselinePct).toBe(65);
+    expect(json.tiers).toHaveLength(1);
+  });
+
+  it("defaults to Stockly owning pricing when the field is missing", async () => {
+    // Rows written before the column existed deserialize with
+    // pricingSource undefined. They must keep their pricing, not lose it.
+    const { pricingSource: _omitted, ...legacyShop } = SHOP;
+    findUniqueOrThrowMock.mockResolvedValue({
+      ...legacyShop,
+      wholesaleBaselinePct: 65,
+    });
+    listTiersMock.mockResolvedValue(TIERS);
+
+    const json = JSON.parse(await buildConfiguration("shop-1"));
+
+    expect(json.wholesaleBaselinePct).toBe(65);
+    expect(json.tiers).toHaveLength(1);
   });
 });

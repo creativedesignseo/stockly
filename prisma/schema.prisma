@@ -59,50 +59,73 @@ model Session {
 /// One row per installed Shopify store. The id is the shop domain
 /// (e.g. "desarrollo-adspubli.myshopify.com").
 model Shop {
-  id                 String              @id
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  id        String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   /// Stringified JSON: { primaryColor, accentColor, fontFamily, logoUrl }
-  branding           String?
+  branding String?
   /// Stringified JSON: { errorMinQty, errorMinValue, emptyState, cta, ... }
-  copy               String?
+  copy     String?
 
   /// Customer tag that grants wholesale access (default convention).
-  wholesaleTag       String              @default("wholesale")
+  wholesaleTag String @default("wholesale")
 
   /// Optional minimum order value (in the shop's currency).
-  minOrderValue      Float?
+  minOrderValue Float?
 
   /// True once the store owner has completed onboarding.
-  onboarded          Boolean             @default(false)
+  onboarded Boolean @default(false)
 
   /// Setup-guide steps the merchant marked done manually, by step key
   /// ("embed" | "pricing" | "form" | "qof"). A step is "done" if it is
   /// auto-detected OR listed here, so the merchant can always override
   /// detection (the QOF step has no auto-detection) and never get stuck.
-  setupManualSteps   String[]            @default([])
+  setupManualSteps String[] @default([])
+
+  /// WHO OWNS WHOLESALE PRICING for this shop. There must be exactly one
+  /// source of discount, or they compound multiplicatively and the
+  /// merchant sells far below cost.
+  ///
+  ///  - 'stockly' (default): Stockly's Discount Function sets wholesale
+  ///    prices from `wholesaleBaselinePct` + the shop's Tier rules. The
+  ///    normal mode, and the only one available to a shop without B2B
+  ///    catalogs.
+  ///  - 'catalog': the shop already prices wholesale through a Shopify
+  ///    B2B catalog / Markets price list, so Stockly emits NO pricing at
+  ///    all — `buildConfiguration` zeroes the baseline and ships no
+  ///    tiers. Everything else Stockly does (order minimums enforced at
+  ///    checkout, the registration form, the approval queue, the quick
+  ///    order form) keeps working untouched.
+  ///
+  /// Enforced in `app/services/discount-function-sync.server.ts`, not in
+  /// the UI, so a leftover baseline or an active rule cannot leak a
+  /// second discount into checkout. Discovered on Piro 2026-08-21: a
+  /// −65% catalog price list, a 65% Stockly baseline and a 65% Stockly
+  /// rule were all configured at once — retail × 0.35³ = 95.7% off.
+  pricingSource String @default("stockly")
 
   /// Universal wholesale discount on retail price (ADR-006).
   /// 0 = no baseline (default: wholesale customers see retail prices,
   /// only tiers apply). 65 means "wholesale customers see retail × 0.35".
   /// Tiers compose multiplicatively on top of this baseline.
-  wholesaleBaselinePct Int                @default(0)
+  /// IGNORED when `pricingSource` is 'catalog'.
+  wholesaleBaselinePct Int @default(0)
 
   // ----- First-Purchase Qualifier (ADR-004) -----
   /// How the FPQ is evaluated. 'none' = no gate (default — preserves
   /// pre-FPQ behavior). 'amount' = cart subtotal threshold. 'quantity'
   /// = cart unit count. 'combined' = both, with fpqCombinedLogic.
-  fpqMode            String              @default("none")
+  fpqMode                        String @default("none")
   /// Minimum cart subtotal (in shop currency) for first-order
   /// qualification when fpqMode is 'amount' or 'combined'.
-  fpqAmount          Float?
+  fpqAmount                      Float?
   /// Minimum cart quantity for first-order qualification when
   /// fpqMode is 'quantity' or 'combined'.
-  fpqQuantity        Int?
+  fpqQuantity                    Int?
   /// If fpqMode = 'combined', how amount and quantity combine.
   /// 'and' = both required, 'or' = either suffices.
-  fpqCombinedLogic   String              @default("and")
+  fpqCombinedLogic               String @default("and")
   // ----- Post-qualification minimum (orders AFTER the opening order) -----
   /// How the post-qualification gate is evaluated, mirroring `fpqMode`
   /// but for every order a customer places once `qualifiedAt` is set.
@@ -111,34 +134,34 @@ model Shop {
   /// from postQualificationMinAmount. 'quantity' = cart unit count, read
   /// from postQualificationMOQ. 'combined' = both, joined by
   /// postQualificationCombinedLogic.
-  postQualificationMode String            @default("none")
+  postQualificationMode          String @default("none")
   /// Minimum cart subtotal (in shop currency) for post-qualification
   /// orders when postQualificationMode is 'amount' or 'combined'.
   /// Null = unset; the Validation Function must fail OPEN on null.
-  postQualificationMinAmount Float?
+  postQualificationMinAmount     Float?
   /// If postQualificationMode = 'combined', how the amount and quantity
   /// minimums combine. 'and' = both required, 'or' = either suffices.
-  postQualificationCombinedLogic String   @default("and")
+  postQualificationCombinedLogic String @default("and")
   /// Minimum order quantity AFTER the customer has been qualified.
   /// 1 = no minimum (default — once qualified, customer buys freely).
   /// Doubles as the quantity leg of postQualificationMode 'quantity' and
   /// 'combined'; it predates those fields, hence the MOQ name.
-  postQualificationMOQ Int               @default(1)
+  postQualificationMOQ           Int    @default(1)
 
-  tiers                Tier[]
-  wholesaleCustomers   WholesaleCustomer[]
-  applications         WholesaleApplication[]
-  onboardingResponses  OnboardingResponse[]
+  tiers               Tier[]
+  wholesaleCustomers  WholesaleCustomer[]
+  applications        WholesaleApplication[]
+  onboardingResponses OnboardingResponse[]
 
   /// Registration Forms for this shop (RF Phase 1 — N-forms, ADR-013).
   /// One row is flagged `isDefault` and serves as the storefront
   /// fallback when no shortcode is supplied. Seeded lazily by
   /// `ensureDefaultRegistrationForm` on first install or storefront fetch.
-  registrationForms    RegistrationForm[]
+  registrationForms RegistrationForm[]
   /// Generic submission table that replaces WholesaleApplication.
   /// Both tables coexist during the soak window (Phase 1A–1F); the
   /// legacy table is dropped in Phase 1G.
-  formApplications     Application[]
+  formApplications  Application[]
 
   /// Audit trail of every touch on protected customer data. Required by
   /// Shopify's Level 2 protected-customer-data rules ("Keep an access
@@ -151,11 +174,11 @@ model Shop {
 /// When `scope = 'all'`, `scopeId` MUST be null. Otherwise `scopeId`
 /// holds the Shopify GID (e.g. "gid://shopify/Product/123").
 model Tier {
-  id          String   @id @default(cuid())
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  name        String
+  name     String
   /// ADR-014 (2026-05-28): which admin area owns this rule.
   ///   'wholesale' (default): a flat wholesale discount — single
   ///     discount per rule, no quantity dimension. Managed under
@@ -166,34 +189,34 @@ model Tier {
   /// kind is organizational only — the Discount Function reads the
   /// same metafield and applies discounts identically regardless of
   /// kind. It exists so the two admin lists can filter their own rules.
-  kind        String   @default("wholesale")
-  scope       String   // 'product' | 'variant' | 'collection' | 'all'
+  kind     String   @default("wholesale")
+  scope    String // 'product' | 'variant' | 'collection' | 'all'
   /// DEPRECATED 2026-05-27: legacy single-target GID. Kept for one
   /// release cycle for back-compat reads; new code reads scopeIds[]
   /// which can hold many. On every write we mirror scopeIds[0] here
   /// so any old code path that still reads scopeId keeps working.
-  scopeId     String?
+  scopeId  String?
   /// NEW 2026-05-27: multiple target GIDs for one rule. Per Jonatan's
   /// UX request — Sami/BSS let you pick N products for a single rule
   /// instead of duplicating the rule N times. Empty array when
   /// scope='all'. For scope=product/variant/collection, holds the
   /// list of GIDs the rule applies to.
-  scopeIds    String[] @default([])
+  scopeIds String[] @default([])
 
-  minQty      Int
+  minQty         Int
   /// Percent discount, 0-100 (10 means -10%). Used when discountType
   /// is "percentage". Kept for legacy / current data.
-  discountPct Float
+  discountPct    Float
   /// Type of discount applied at checkout:
   ///   - "percentage" (default): use discountPct, applies as a
   ///     multiplier (1 − discountPct/100). Current behavior.
   ///   - "fixed_amount": use discountAmount, applies as a flat
   ///     subtraction per cart line (in shop currency). Added
   ///     2026-05-27 to match Sami / BSS Essential parity.
-  discountType    String  @default("percentage")
+  discountType   String @default("percentage")
   /// Fixed monetary amount off per line, in shop currency. Only
   /// read when discountType = "fixed_amount". null otherwise.
-  discountAmount  Float?
+  discountAmount Float?
 
   /// How `minQty` is evaluated against the cart (ADR-007):
   ///   - 'per_line' (default): each cart line independently must
@@ -202,7 +225,7 @@ model Tier {
   ///   - 'cart_total': SUM of all line quantities (within the tier's
   ///     scope) must meet minQty. If met, the discount applies to
   ///     every line in scope. Faire-style assortment minimums.
-  aggregation String   @default("per_line")
+  aggregation String @default("per_line")
 
   /// Per-rule customer eligibility (ADR-011 — Sami-parity 2026-05-27).
   ///   'wholesale_tagged' (default): only customers with the shop's
@@ -235,36 +258,36 @@ model Tier {
   /// Stored as String[] (Postgres native) mirroring scopeIds.
   marketIds         String[] @default([])
 
-  active      Boolean  @default(true)
+  active   Boolean @default(true)
   /// Display order in the admin UI.
-  position    Int      @default(0)
+  position Int     @default(0)
 
   // ----- Volume Pricing multi-band (ADR-012, 2026-05-27) -----
   /// Upper-bound quantity for this band (inclusive). null = open-ended
   /// "and above". Only the band with the highest minQty in a group may
   /// be null; the service layer enforces this invariant.
-  quantityTo  Int?
+  quantityTo         Int?
   /// Groups bands of the same logical Volume Pricing rule. All bands
   /// of one rule share this id. Nullable for one release cycle while
   /// legacy single-band tiers are back-filled (see
   /// scripts/backfill-tier-groupids.ts).
-  groupId     String?
+  groupId            String?
   /// Per-unit final price in shop currency. Used when
   /// discountType = 'fixed_price' — overrides the retail price
   /// entirely (no baseline composition). Null otherwise.
   discountFixedPrice Float?
   /// Optional window during which the band is active. Read by the WASM
   /// Discount Function at run time (no cron). null = no gate.
-  startsAt    DateTime?
-  endsAt      DateTime?
+  startsAt           DateTime?
+  endsAt             DateTime?
   /// Phase-1 storage for the storefront "Show table on PDP" toggle.
   /// The theme app block that renders the table ships in Phase 2.
-  showTableOnPdp   Boolean  @default(false)
+  showTableOnPdp     Boolean   @default(false)
   /// Reserved (Phase 2): template id for the storefront table widget.
-  tableTemplateId  String?
+  tableTemplateId    String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([shopId, active])
   @@index([shopId, scope, scopeId])
@@ -275,25 +298,25 @@ model Tier {
 /// `shopifyCustomerId` is stored as String to avoid BigInt edge cases
 /// across JS/SQLite/Postgres boundaries.
 model WholesaleCustomer {
-  id                String   @id @default(cuid())
-  shopId            String
-  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   shopifyCustomerId String
   email             String?
 
-  approvedAt        DateTime @default(now())
-  notes             String?
+  approvedAt DateTime @default(now())
+  notes      String?
 
   // ----- FPQ qualification state (ADR-004) -----
   /// When the customer's first qualifying order was paid. null = still
   /// in `approved_pre_fpq` state (must meet FPQ on next checkout). Once
   /// set, the customer is `qualified` (terminal) and can buy freely.
-  qualifiedAt              DateTime?
+  qualifiedAt           DateTime?
   /// Shopify order GID that triggered qualification (audit trail).
-  qualifyingOrderId        String?
+  qualifyingOrderId     String?
   /// The total of the qualifying order (audit trail).
-  qualifyingOrderAmount    Float?
+  qualifyingOrderAmount Float?
 
   @@unique([shopId, shopifyCustomerId])
   @@index([shopId, email])
@@ -312,22 +335,22 @@ model WholesaleCustomer {
 ///
 /// On reject we just flip the status — no Shopify side-effect.
 model WholesaleApplication {
-  id          String   @id @default(cuid())
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   /// 'pending' (default) | 'approved' | 'rejected'
-  status      String   @default("pending")
+  status String @default("pending")
 
   // Applicant identity
-  email       String
-  firstName   String?
-  lastName    String?
-  phone       String?
+  email     String
+  firstName String?
+  lastName  String?
+  phone     String?
 
   // Business details
   companyName String
-  taxId       String?       // VAT / EIN / CIF
+  taxId       String? // VAT / EIN / CIF
   website     String?
   country     String?
   /// Free-text "tell us about your business" field. Trimmed/length-limited
@@ -340,11 +363,11 @@ model WholesaleApplication {
   shopifyCustomerId String?
 
   /// Merchant note added during review.
-  reviewNote  String?
-  reviewedAt  DateTime?
+  reviewNote String?
+  reviewedAt DateTime?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([shopId, status, createdAt])
   @@index([shopId, email])
@@ -366,32 +389,32 @@ model WholesaleApplication {
 ///   - The storefront renderer just deserializes and emits inputs — no
 ///     SQL joins needed at request time.
 model RegistrationForm {
-  id          String   @id @default(cuid())
-  shopId      String
-  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   /// Merchant-facing label shown in the admin list (Phase 1 N-forms).
   /// Defaulted so existing single-row shops backfill safely.
-  name        String   @default("Registration form")
+  name String @default("Registration form")
 
   /// Public embed handle. The storefront block passes this as
   /// `?shortcode=` to resolve a specific form; absent → the shop's
   /// `isDefault` active form (dual-serve back-compat). Globally unique.
-  shortCode   String   @unique @default(cuid())
+  shortCode String @unique @default(cuid())
 
   /// Exactly one row per shop is the default; the storefront serves it
   /// when no shortcode is supplied. The back-compat seed marks itself
   /// default so legacy single-row shops keep working.
-  isDefault   Boolean  @default(false)
+  isDefault Boolean @default(false)
 
   /// 'active' is served by the storefront block; 'draft' falls back to
   /// the seeded default form so the storefront never breaks.
-  status      String   @default("active")
+  status String @default("active")
 
   /// Definition JSON. Shape (TS = RegistrationFormDefinition):
   ///   { steps: [{ id, titleEn, fields: FormField[] }] }
   /// Phase 1: `steps` is always length 1 (multi-step deferred to P2).
-  definition  Json
+  definition Json
 
   /// Appearance JSON. Shape (TS = FormAppearance):
   ///   { layout: 'default' | 'boxed', width: number,
@@ -399,21 +422,21 @@ model RegistrationForm {
   ///               paragraph, paragraphBg },
   ///     background: { type: 'color', color: string },
   ///     customCss: string }
-  appearance  Json
+  appearance Json
 
   /// Settings JSON. Shape (TS = FormSettings):
   ///   { titleEn: string, redirectUrl?: string,
   ///     errorMessages: { required, invalid, invalidEmail, invalidPhone,
   ///       tooLong, tooShort, mismatch, networkError, genericError } }
-  settings    Json
+  settings Json
 
   /// Monotonic counter bumped on every save. Used by the storefront
   /// fetch as a cache-busting hint and by the admin preview to detect
   /// stale renders.
-  version     Int      @default(1)
+  version Int @default(1)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([shopId])
 }
@@ -423,32 +446,32 @@ model RegistrationForm {
 /// snake_case legacy keys for back-compat). `email` is denormalized
 /// for fast GDPR webhook lookups and queue filtering.
 model Application {
-  id                String   @id @default(cuid())
-  shopId            String
-  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  status            String   @default("pending")  // pending | approved | rejected
+  status String @default("pending") // pending | approved | rejected
 
   /// Full submission as JSON, keyed by the form definition's field keys.
   /// Example (legacy seed default):
   ///   { email, first_name, last_name, phone, company_name, tax_id,
   ///     website, country, notes }
-  responses         Json
+  responses Json
 
   /// Always derived from responses.email (lowercased + trimmed) at
   /// write time. Denormalized so GDPR redact / customer-data-request
   /// webhooks don't have to JSON-scan every row.
-  email             String
+  email String
 
   /// Numeric Shopify customer id, if the applicant was logged in when
   /// they submitted (App Proxy `logged_in_customer_id` query param).
   shopifyCustomerId String?
 
-  reviewNote        String?
-  reviewedAt        DateTime?
+  reviewNote String?
+  reviewedAt DateTime?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([shopId, status, createdAt])
   @@index([shopId, email])
@@ -458,9 +481,9 @@ model Application {
 /// merchant completa o salta. Usada para (1) recomendar tier de pricing,
 /// (2) priorizar roadmap por agregación, (3) ruteo de outreach Adspubli.
 model OnboardingResponse {
-  id            String   @id @default(cuid())
-  shopId        String
-  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  shopId String
+  shop   Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   /// 1 | 2 | 3 — número de step
   step          Int
@@ -497,10 +520,10 @@ model OnboardingResponse {
 /// audit-log write must never block a merchant action or a storefront
 /// submission.
 model ProtectedDataAccessLog {
-  id         String   @id @default(cuid())
-  shopId     String
-  shop       Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
   /// Who triggered it: "merchant" (admin UI), "storefront" (customer's own
   /// submission), "webhook" (Shopify-initiated), "system" (background sync).

@@ -362,8 +362,29 @@ export async function buildConfiguration(shopId: string): Promise<string> {
     (r) => `gid://shopify/Customer/${r.shopifyCustomerId}`,
   );
 
+  /**
+   * SINGLE SOURCE OF PRICING. When the shop prices wholesale through a
+   * Shopify B2B catalog / Markets price list, Stockly must emit NOTHING
+   * price-shaped — no baseline, no tiers. Otherwise the two engines
+   * compound multiplicatively and the merchant sells far below cost.
+   *
+   * Found on Piro 2026-08-21: a −65% catalog price list, a 65% Stockly
+   * baseline and an active 65% Stockly rule were configured at the same
+   * time. A $28 bracelet would have reached checkout at $28 × 0.35³ =
+   * $1.20 — 95.7% off — the moment Stockly's discount applied.
+   *
+   * The kill switch lives HERE, at the one boundary every pricing change
+   * flows through, and not in the UI: a leftover baseline or a rule
+   * someone re-enables later cannot leak a second discount into
+   * checkout. Everything Stockly does that is NOT pricing — the checkout
+   * order minimums (a separate Validation Function), the registration
+   * form, the approval queue, the quick order form — is untouched by
+   * this and keeps working in both modes.
+   */
+  const catalogOwnsPricing = shop.pricingSource === "catalog";
+
   return JSON.stringify({
-    wholesaleBaselinePct: shop.wholesaleBaselinePct,
+    wholesaleBaselinePct: catalogOwnsPricing ? 0 : shop.wholesaleBaselinePct,
     // FPQ config (ADR-004). The Function uses this to gate the
     // discount on non-qualified customers' carts: if their cart
     // doesn't meet the threshold, no discount until they do.
@@ -378,7 +399,7 @@ export async function buildConfiguration(shopId: string): Promise<string> {
     // `input.cart.buyerIdentity.customer.id` here to decide whether
     // to skip the FPQ gate.
     qualifiedCustomers,
-    tiers: scopedTiers,
+    tiers: catalogOwnsPricing ? [] : scopedTiers,
   });
 }
 
