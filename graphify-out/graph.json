@@ -325,7 +325,7 @@
       "label": "The other thing that is live: the marketing site",
       "file_type": "document",
       "source_file": "HANDOFF.md",
-      "source_location": "L92",
+      "source_location": "L107",
       "_origin": "ast",
       "id": "handoff_the_other_thing_that_is_live_the_marketing_site",
       "community": 132,
@@ -335,11 +335,81 @@
       "label": "Older entries",
       "file_type": "document",
       "source_file": "HANDOFF.md",
-      "source_location": "L119",
+      "source_location": "L134",
       "_origin": "ast",
       "id": "handoff_older_entries",
       "community": 132,
       "norm_label": "older entries"
+    },
+    {
+      "label": "2026-08-21-close-out-verification.md",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification",
+      "community": 311,
+      "norm_label": "2026-08-21-close-out-verification.md"
+    },
+    {
+      "label": "2026-08-21 \u2014 Close-out: verify reality, refresh the graph, publish",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "community": 311,
+      "norm_label": "2026-08-21 \u2014 close-out: verify reality, refresh the graph, publish"
+    },
+    {
+      "label": "Objective",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification_objective",
+      "community": 311,
+      "norm_label": "objective"
+    },
+    {
+      "label": "Verified today (observed, not assumed)",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification_verified_today_observed_not_assumed",
+      "community": 311,
+      "norm_label": "verified today (observed, not assumed)"
+    },
+    {
+      "label": "Changed",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification_changed",
+      "community": 311,
+      "norm_label": "changed"
+    },
+    {
+      "label": "Open risks / notes",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification_open_risks_notes",
+      "community": 311,
+      "norm_label": "open risks / notes"
+    },
+    {
+      "label": "Next step",
+      "file_type": "document",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L53",
+      "_origin": "ast",
+      "id": "progress_2026_08_21_close_out_verification_next_step",
+      "community": 311,
+      "norm_label": "next step"
     },
     {
       "label": "current.md",
@@ -32611,6 +32681,66 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_close_out_verification",
+      "target": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_changed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_next_step",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_objective",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_open_risks_notes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "progress/2026-08-21-close-out-verification.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "progress_2026_08_21_close_out_verification_2026_08_21_close_out_verify_reality_refresh_the_graph_publish",
+      "target": "progress_2026_08_21_close_out_verification_verified_today_observed_not_assumed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "tasks/current.md",
       "source_location": "L1",
       "weight": 1.0,
@@ -32634,9 +32764,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tasks_current_tasks_current_md_stockly_active_task_queue",
-      "target": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "confidence_score": 1.0
+      "target": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again"
     },
     {
       "relation": "contains",
@@ -32644,9 +32774,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_deferred_on_purpose_with_reasons",
-      "confidence_score": 1.0
+      "target": "tasks_current_deferred_on_purpose_with_reasons"
     },
     {
       "relation": "contains",
@@ -32654,9 +32784,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L36",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear",
-      "confidence_score": 1.0
+      "target": "tasks_current_retired_2026_08_20_the_greyed_out_aprobar_fear"
     },
     {
       "relation": "contains",
@@ -32664,9 +32794,9 @@
       "source_file": "tasks/current.md",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "tasks_current_p0_done_2026_08_21_corrections_resubmitted_waiting_on_shopify_again",
-      "target": "tasks_current_when_the_next_verdict_arrives",
-      "confidence_score": 1.0
+      "target": "tasks_current_when_the_next_verdict_arrives"
     },
     {
       "relation": "imports_from",
@@ -70414,5 +70544,5 @@
       "source_file": "docs/design/prototypes/quick-order-form.html"
     }
   ],
-  "built_at_commit": "7bd02792506d31b03e8a53845524d9b188c40fdf"
+  "built_at_commit": "8179a999c5c4f42822747086b1afd9996581cbfb"
 }

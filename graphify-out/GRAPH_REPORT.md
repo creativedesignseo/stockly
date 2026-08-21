@@ -1,16 +1,16 @@
 # Graph Report - stockly  (2026-08-21)
 
 ## Corpus Check
-- 304 files · ~691,403 words
+- 275 files · ~272,151 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3079 nodes · 3670 edges · 311 communities (226 shown, 85 thin omitted)
+- 3086 nodes · 3676 edges · 312 communities (227 shown, 85 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 31 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7bd02792`
+- Built from commit: `8179a999`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -290,6 +290,7 @@
 - [[_COMMUNITY_Community 308|Community 308]]
 - [[_COMMUNITY_Community 309|Community 309]]
 - [[_COMMUNITY_Community 310|Community 310]]
+- [[_COMMUNITY_Community 311|Community 311]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `authenticateAdmin()` - 55 edges
@@ -341,7 +342,7 @@
 - **Agent pipeline: orchestrator → implementer → reviewer → guardian** — agents_stockly_orchestrator_agent, agents_stockly_implementer_agent, agents_stockly_reviewer_agent, agents_deployment_guardian_agent [INFERRED 0.95]
 - **QOF design artifacts: prototype HTML + desktop screenshot + mobile screenshot** — docs_design_prototypes_quick_order_form_html_prototype, docs_design_prototypes_qof_real_desktop_desktop_screenshot, docs_design_prototypes_qof_real_mobile_mobile_screenshot [EXTRACTED 1.00]
 
-## Communities (311 total, 85 thin omitted)
+## Communities (312 total, 85 thin omitted)
 
 ### Community 0 - "Opening Order Shopify API"
 Cohesion: 0.15
@@ -1103,8 +1104,12 @@ Nodes (6): DeleteCell, RegistrationFormList, ShortCodeChip, StatusToggleCell, Te
 Cohesion: 0.40
 Nodes (4): Drafts — Partner Dashboard "Show resolved state" responses (EN), Issue 1 — 1.2.2 Implement Shopify App Pricing / Billing API correctly, Issue 2 — 2.1.1 Build apps without critical errors, Screencast script (record on adspubli-wholesale-test, ~90s, one take)
 
+### Community 311 - "Community 311"
+Cohesion: 0.29
+Nodes (6): 2026-08-21 — Close-out: verify reality, refresh the graph, publish, Changed, Next step, Objective, Open risks / notes, Verified today (observed, not assumed)
+
 ## Knowledge Gaps
-- **1849 isolated node(s):** `The other thing that is live: the marketing site`, `Older entries`, `When the next verdict arrives`, `Retired 2026-08-20 — the greyed-out "Aprobar" fear`, `Deferred on purpose, with reasons` (+1844 more)
+- **1854 isolated node(s):** `The other thing that is live: the marketing site`, `Older entries`, `Objective`, `Verified today (observed, not assumed)`, `Changed` (+1849 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **85 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -1112,16 +1117,16 @@ Nodes (4): Drafts — Partner Dashboard "Show resolved state" responses (EN), Is
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `authenticateAdmin()` connect `Admin Pricing Routes` to `Module 34`, `Community 201`, `Onboarding Wizard`, `Volume Pricing Band UI`, `Shopify Auth & DB`, `Auth Login Flow`, `Wholesale Approval Queue`, `Community 177`, `Wholesale Pricing CRUD`, `Prisma & SSR Entry`, `Module 30`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `layoutFieldsIntoRows()` connect `Registration Form UI Components` to `Registration Form System`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `layout.test.ts — unit tests for row-pairing layout` connect `Registration Form System` to `Registration Form UI Components`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
+  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+- **Why does `useManagedSaveBar()` connect `Wholesale Pricing CRUD` to `Community 177`, `Module 34`, `Volume Pricing Band UI`, `Module 45`?**
+  _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `StocklyProductPanel` (e.g. with `Multiplicative pricing composition (baseline × tier)` and `Tier resolution (scope precedence: product > collection > all)`) actually correct?**
   _`StocklyProductPanel` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `The other thing that is live: the marketing site`, `Older entries`, `When the next verdict arrives` to the rest of the system?**
-  _1870 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `The other thing that is live: the marketing site`, `Older entries`, `Objective` to the rest of the system?**
+  _1875 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Volume Discount Shopify API` be split into smaller, more focused modules?**
   _Cohesion score 0.01652892561983471 - nodes in this community are weakly interconnected._
 - **Should `FPQ Banner Storefront` be split into smaller, more focused modules?**
   _Cohesion score 0.05552617662612375 - nodes in this community are weakly interconnected._
+- **Should `Volume Discount Engine` be split into smaller, more focused modules?**
+  _Cohesion score 0.13071895424836602 - nodes in this community are weakly interconnected._

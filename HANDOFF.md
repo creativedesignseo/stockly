@@ -3,17 +3,63 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-> **Where this project stands, in one paragraph.** Shopify requested changes on
-> 2026-08-20 (two issues, both screencasted by the reviewer) and the corrections
-> were **resubmitted on 2026-08-21** — status "In review / We're reviewing your
-> response", 13 days ahead of the 2026-09-03 deadline. Both root causes were
-> identified from the reviewer's own screencasts plus the shipped App Bridge
-> source, fixed, adversarially re-reviewed, deployed (`7466026`, `e70c406`), and
-> proven in production by the proof screencasts recorded on the test store.
-> Nothing is pending on our side; the wait is Shopify's again. Post-approval
-> items stay parked: rotate the client secret, reinstall Piro.
+> **Where this project stands, in one paragraph.** **Stockly is APPROVED and
+> published on the Shopify App Store** (2026-08-21, 18:30 UTC) — less than 24
+> hours after the reviewer requested changes. The listing is live at
+> **https://apps.shopify.com/stockly-2** and returns 200. Visibility is still
+> **Limited** on purpose: the listing is reachable only by direct URL until the
+> first merchants leave reviews. Protected customer data access was approved the
+> same day. The post-approval queue is now the real work: rotate the client
+> secret (only Jonatan can — see below), deploy the re-enabled
+> `customers/update` webhook, and reinstall on Piro.
 
-**Last updated:** 2026-08-21 (later) — **✅ CLOSE-OUT VERIFIED. Nothing pending on
+**Last updated:** 2026-08-21 (evening) — **🎉 APPROVED AND PUBLISHED. Shopify's
+verdict arrived at 18:30 UTC: *"your app has officially been approved and
+published on the Shopify App Store as a listed application"*. The listing is
+live at `https://apps.shopify.com/stockly-2` (handle is `stockly-2`, not
+`stockly`) and returns 200. Visibility deliberately left at **Limited** —
+"Make fully visible" untouched. Three things shipped on the back of it:**
+
+  - **✅ `customers/update` webhook re-enabled in `shopify.app.public.toml`
+    (`dd244bd`).** It had been commented out since 2026-08-11 because a
+    brand-new public app had no protected-customer-data approval. That
+    approval landed with the App Store approval — Partners → API access
+    requests now reads *"Protected customer data access: Approved, Aug 21,
+    2026"*, checked before touching the file. No scope change (it rides on
+    the already-granted `write_customers`), so installed shops are not asked
+    to re-consent.
+  - **⚠️ NOT YET DEPLOYED — the repo and Shopify's live config disagree.**
+    The toml change only takes effect after `npx shopify app deploy
+    --config=public`, which needs explicit approval and has not been run. The
+    handler at `app/routes/webhooks.customers.update.tsx` is live and answers
+    401 to a forged HMAC, but Shopify is not yet sending the topic. Close this
+    gap before assuming the FPQ auto-enrolment works.
+  - **✅ The blank admin nav icon is fixed, uploaded and verified in the
+    admin.** Root cause found by reading the DOM, not by guessing: the sidebar
+    does NOT render the colour app icon — it renders an SVG as a **mask**
+    filled with `currentColor`. The uploaded SVG began with `<rect
+    width="3.84" height="3.84"/>`, a full-canvas background rectangle, so the
+    mask painted the whole 20x20 box solid and buried the logo. Corrected
+    silhouette (rect removed, viewBox 16x16, paths scaled x4) lives in
+    `docs/brand/stockly-nav-icon-16.svg` and is uploaded via **Dev Dashboard →
+    App settings → Navigation bar → Manage → Upload icon**. Confirmed in the
+    real admin sidebar afterwards, not just in the preview.
+  - **⏳ The client secret is STILL NOT ROTATED**, and deliberately so. It is
+    the one task that cannot be delegated to an agent: the reason for rotating
+    is that the old secret leaked into a session transcript, and having an
+    agent read the new one would write it into the current transcript,
+    reproducing the exact problem. Button lives at Dev Dashboard → App
+    settings → Credentials → Secret → **Rotate**. Order matters: rotate → put
+    in Railway → confirm deploy SUCCESS + `/healthz` → only then revoke the
+    old one. Cheapest moment there will ever be: only two sessions exist in
+    production, both ours.
+  - **Verified this close-out, not assumed:** `verify.sh` green (156 app tests
+    in 14 files, extension fixtures, both builds); production `/healthz`, `/`,
+    both legal pages and `/auth/login` all **200**; all five webhook routes
+    (including `customers/update`) **401** to a forged HMAC; listing **200**;
+    Railway `dfda1b4a` **SUCCESS**.
+
+Prior 2026-08-21 (later) — **✅ CLOSE-OUT VERIFIED. Nothing pending on
 our side; the app sits at "In review / We're reviewing your response" and every
 claim below was re-checked today, not assumed: `verify.sh` green (156 app tests in 14 files,
 plus the 14 + 8 extension fixtures, both builds); production `/healthz`, `/`, `/legal/privacy`,

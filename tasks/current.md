@@ -4,61 +4,80 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-21 (close-out) — **✅ Everything verified green today: `verify.sh` (156 app tests), production routes 200, all four webhooks 401 to a forged HMAC, Railway `dfda1b4a` SUCCESS at $1.20 of $5 included. `Promo/` is now gitignored (851 MB that a stray `git add -A` would have committed). Waiting on Shopify — no action on our side.** Prior: **📩 VERDICT: CHANGES REQUESTED (ref 129441), and both issues are already FIXED AND DEPLOYED (`7466026`).** Issue 1 (1.2.2): billing `returnUrl` sent the merchant outside the admin after approving — now the documented `admin.shopify.com/...` pattern. Issue 2 (2.1.1): zombie "Unsaved changes" bar after creating a volume pricing rule (+ dead Delete via `window.confirm`) — fixed via `useManagedSaveBar` in all six forms + Polaris confirm Modals. `verify.sh` green (159 app tests), adversarial 3-agent review passed. **Deadline: respond before 2026-09-03 or the submission is paused.**
+**Last updated:** 2026-08-21 (evening) — **🎉 APPROVED AND PUBLISHED on the Shopify App Store. Listing live at https://apps.shopify.com/stockly-2, visibility deliberately still LIMITED. The review saga is over; the post-approval queue below is the real work now.**
 
-## P0 — ✅ DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again.
+## P0 — Post-approval queue
 
-Both issues marked resolved with proof screencasts (billing:
-youtu.be/IHVh0XtPukM · volume pricing: youtu.be/W_eAWPeotpY, unlisted) and
-"Submit fixes" pressed — status "In review / We're reviewing your
-response". The recordings also verified both fixes against production:
-test charge shown (BILLING_TEST_SHOPS allowlist), approving returned
-inside the app with "Current plan", volume pricing create→save→delete ran
-clean (no stuck bar, working delete Modal). Nothing to do until Shopify
-answers at `info@adspubli.com`.
+### 1. Rotate the client secret — ONLY Jonatan can do this
 
-**Still frozen while a reviewer is active:**
+Dev Dashboard → Stockly → App settings → Credentials → Secret → **Rotate**.
+An agent must not do it: the whole point is that the old secret leaked into
+a session transcript, and having an agent read the new one would write it
+into the current transcript — same problem, new value.
 
-- Do NOT press "Make fully visible" (limited→full is one click later; on
-  Basic plans the storefront shows struck-through retail + discount, and
-  only Starter is deliverable — stay unlisted through the first merchants).
+Order matters (revoking early breaks webhook HMAC):
+
+1. Rotate → copy the new secret.
+2. Railway → service `stockly` → Variables → `SHOPIFY_API_SECRET` → paste → save.
+3. Wait for deploy SUCCESS + `/healthz` 200 (an agent can verify this).
+4. **Only then** revoke the old secret.
+
+Cheapest moment there will ever be: production holds two sessions, both ours.
+
+### 2. Deploy the re-enabled `customers/update` webhook
+
+Code is committed (`dd244bd`) and `verify.sh` is green, but **the repo and
+Shopify's live config currently disagree** — the subscription only exists
+after:
+
+```
+npx shopify app deploy --config=public
+```
+
+Needs explicit approval per AGENTS.md. Until it runs, the handler is live
+but Shopify never sends the topic, so FPQ auto-enrolment does not fire.
+
+### 3. Reinstall on `piroaccessories`
+
+Down since the 2026-08-12 credential switch. Her 5 wholesale customers are
+intact in the database. **Tell Ana honestly:** the $300 minimum she believes
+she has came from the theme (`theme/snippets/b2b-minimum-order.liquid`), not
+from Stockly, and the theme gate is bypassable via cart permalinks. This
+reinstall is the *first* time minimums are genuinely enforced there. Frame it
+as the upgrade it is — do not let her keep believing it already worked.
+
+### Still deliberately frozen
+
+- **Do NOT press "Make fully visible"** yet. Limited→full is one click at any
+  time; App Store reviews are permanent and weigh heavily in ranking. Get the
+  first merchants and ~5 reviews first. On Basic plans the storefront shows
+  struck-through retail + discount (Cart Transform `update` is Plus-only), and
+  only Starter is deliverable.
 - Do NOT change access scopes (`write_products`, `write_publications`,
-  `read_orders` declared-but-unused; changing forces re-consent).
-- Do NOT edit the listing or ship a large refactor.
+  `read_orders` are declared but unused; changing forces re-consent).
 
-### When the next verdict arrives
+### Growth notes (benchmarks pulled 2026-08-21)
 
-- If **changes requested again**: same loop — read, fix, resubmit.
-- If **approved**: (1) reinstall on `piroaccessories` — Piro has been down
-  since the credential switch; (2) rotate the client secret (see below);
-  (3) re-enable `customers/update` in `shopify.app.public.toml`.
+BSS B2B Wholesale Pricing: **5,253 stores**, 1,105 reviews. Wholesale Pricing
+Now: **2,268 stores**, falling 22% YoY. ~35% of App Store apps have zero
+reviews. Shopify's B2B GMV grew 76% in 2025. 100 paying merchants ≈ 2% of
+BSS ≈ $3,900/mo, against ~$20/mo of infrastructure. Reviews are the gate:
+the listing does not convert without them.
 
-### Retired 2026-08-20 — the greyed-out "Aprobar" fear
+### Deferred, with reasons
 
-The reviewer APPROVED a Starter test charge on their dev store (Partner
-activity log: activated 15:26, cancelled 16:34, "Testing multiple apps").
-The missing-payment-method dead end never materialized;
-`isTestBillingEnvironment()` stays as is.
-
-### Deferred on purpose, with reasons
-
-- [ ] **Rotate the client secret.** It was printed into this session's
-  transcript on 2026-08-12 (a masking `sed` failed) and sits in
-  `~/.claude/projects/…/*.jsonl` on Jonatan's Mac — local, never pushed.
-  Deferred because rotating is only half the job: webhooks keep being signed
-  with the OLD secret until it is revoked, `shopify-app-remix` accepts only
-  one secret (`apiSecretKey: string`), and Shopify warns that revoking one
-  with live tokens can leave merchants unable to open the app. Do it after
-  approval: generate → put in Railway → revoke old → reinstall where needed.
 - [ ] **Real B2B checkout test on Piro.** Outstanding since July. The 22
   fixtures prove the Function's logic against synthetic input; they cannot
   prove Shopify hands it a buyer identifier in a real native-B2B checkout.
   Blocked until Piro is reinstalled.
+- [ ] `hello@stocklygo.site` is printed in the marketing site footer and does
+  not exist — create the alias or change the address. Two test submissions
+  (`test-deploy-check@`, `test-browser-path@`) sit in the Netlify form inbox.
+- [ ] No LLM API key configured for `graphify`, so the graph's semantic pass
+  over docs/images is stale. The code graph is current.
 
 ## Known and NOT fixed (audited 2026-08-14, deliberately left)
 
-- ~~`app/root.tsx` has no `ErrorBoundary`~~ — fixed 2026-08-20 (`7466026`),
-  plus styled 4xx pages in the /app boundary.
 - No Prisma `connection_limit` on the Railway `DATABASE_URL`; `new
   PrismaClient()` sizes its pool from the *host's* core count inside a
   container.

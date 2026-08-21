@@ -1,7 +1,7 @@
 # Graph Report - stockly  (2026-08-21)
 
 ## Corpus Check
-- 304 files · ~691,331 words
+- 304 files · ~691,403 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e70c4062`
+- Built from commit: `7bd02792`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -525,7 +525,7 @@ Nodes (7): detectStocklyEmbedEnabled() Theme Settings Detection, Activate Stockl
 
 ### Community 51 - "Module 51"
 Cohesion: 0.29
-Nodes (6): Deferred on purpose, with reasons, Known and NOT fixed (audited 2026-08-14, deliberately left), P0 — Close the review loop (human steps, ~15 min), Retired 2026-08-20 — the greyed-out "Aprobar" fear, tasks/current.md — Stockly active task queue, When the next verdict arrives
+Nodes (6): Deferred on purpose, with reasons, Known and NOT fixed (audited 2026-08-14, deliberately left), P0 — ✅ DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again., Retired 2026-08-20 — the greyed-out "Aprobar" fear, tasks/current.md — Stockly active task queue, When the next verdict arrives
 
 ### Community 52 - "Module 52"
 Cohesion: 0.71
@@ -1104,7 +1104,7 @@ Cohesion: 0.40
 Nodes (4): Drafts — Partner Dashboard "Show resolved state" responses (EN), Issue 1 — 1.2.2 Implement Shopify App Pricing / Billing API correctly, Issue 2 — 2.1.1 Build apps without critical errors, Screencast script (record on adspubli-wholesale-test, ~90s, one take)
 
 ## Knowledge Gaps
-- **1849 isolated node(s):** `SETUP_STEP_KEYS`, `SetupStepData`, `Tip`, `PLAN_BLURBS`, `BillingContextLike` (+1844 more)
+- **1849 isolated node(s):** `The other thing that is live: the marketing site`, `Older entries`, `When the next verdict arrives`, `Retired 2026-08-20 — the greyed-out "Aprobar" fear`, `Deferred on purpose, with reasons` (+1844 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **85 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -1119,7 +1119,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `StocklyProductPanel` (e.g. with `Multiplicative pricing composition (baseline × tier)` and `Tier resolution (scope precedence: product > collection > all)`) actually correct?**
   _`StocklyProductPanel` has 2 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `SETUP_STEP_KEYS`, `SetupStepData`, `Tip` to the rest of the system?**
+- **What connects `The other thing that is live: the marketing site`, `Older entries`, `When the next verdict arrives` to the rest of the system?**
   _1870 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Volume Discount Shopify API` be split into smaller, more focused modules?**
   _Cohesion score 0.01652892561983471 - nodes in this community are weakly interconnected._

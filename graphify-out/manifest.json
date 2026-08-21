@@ -380,7 +380,7 @@
     "semantic_hash": "a3cbf542540be577a4c12f778765e769"
   },
   "extensions/quick-order-form/assets/fpq-banner.js": {
-    "mtime": 1787266942.3103435,
+    "mtime": 1787341707.8353524,
     "ast_hash": "131607824b417ac3d819f8cf103fbe49",
     "semantic_hash": "131607824b417ac3d819f8cf103fbe49"
   },
@@ -390,7 +390,7 @@
     "semantic_hash": "61feaa1633109d73557d252515b001a4"
   },
   "extensions/quick-order-form/assets/quick-order-form.js": {
-    "mtime": 1787266941.9911556,
+    "mtime": 1787341707.5909681,
     "ast_hash": "30b00bc3fe2b68ec0d0924c7f51e968a",
     "semantic_hash": "30b00bc3fe2b68ec0d0924c7f51e968a"
   },
@@ -400,7 +400,7 @@
     "semantic_hash": "5c886a18c5981d4af089881d2186d730"
   },
   "extensions/quick-order-form/assets/registration-form.js": {
-    "mtime": 1787266942.86504,
+    "mtime": 1787341708.3250477,
     "ast_hash": "74429d04ec7739e3c4fceae49ea644c3",
     "semantic_hash": "74429d04ec7739e3c4fceae49ea644c3"
   },
@@ -410,7 +410,7 @@
     "semantic_hash": "1276c9fcdf9b1ce2239279774a9016b5"
   },
   "extensions/quick-order-form/assets/wholesale-product-panel.js": {
-    "mtime": 1787266942.5987234,
+    "mtime": 1787341708.0776577,
     "ast_hash": "ffea8f31bbcd93662e888a113bf2796d",
     "semantic_hash": "ffea8f31bbcd93662e888a113bf2796d"
   },
@@ -715,8 +715,8 @@
     "semantic_hash": "df1b9dd43c67241173dee00bc39ec3dd"
   },
   "HANDOFF.md": {
-    "mtime": 1787276442.9679005,
-    "ast_hash": "d82a086cce8e74242f9188e56262c301",
+    "mtime": 1787333259.117647,
+    "ast_hash": "14f5fdaa2ee1f9ac17e6eab790e1955b",
     "semantic_hash": ""
   },
   "PROJECT.md": {
@@ -1055,8 +1055,8 @@
     "semantic_hash": "6f60a4159dad79c0e35d001a01daf29b"
   },
   "tasks/current.md": {
-    "mtime": 1787276467.8115091,
-    "ast_hash": "b9011566553acf8f3b5d23ba126bed00",
+    "mtime": 1787333286.0225773,
+    "ast_hash": "2131e199838d81d98a627d694832a448",
     "semantic_hash": ""
   },
   "docs/competitive/assets/sami-registration-form/sami-01-landing.png": {
@@ -1702,6 +1702,21 @@
   "progress/2026-08-20-reviewer-response-drafts.md": {
     "mtime": 1787260403.7915192,
     "ast_hash": "19865ed055d956e30be0fe5711c7cfc6",
+    "semantic_hash": ""
+  },
+  "progress/2026-08-21-close-out-verification.md": {
+    "mtime": 1787333286.0264482,
+    "ast_hash": "a2f54c3cdaad19e5f286911bb737c156",
+    "semantic_hash": ""
+  },
+  "assets/brand/stockly-nav-icon-16.svg": {
+    "mtime": 1787341668.378704,
+    "ast_hash": "a266edc1089827c6d59871452fb7da2e",
+    "semantic_hash": ""
+  },
+  "docs/brand/stockly-nav-icon-16.svg": {
+    "mtime": 1787341680.7059712,
+    "ast_hash": "a266edc1089827c6d59871452fb7da2e",
     "semantic_hash": ""
   }
 }
