@@ -57,8 +57,8 @@ The missing-payment-method dead end never materialized;
 
 ## Known and NOT fixed (audited 2026-08-14, deliberately left)
 
-- `app/root.tsx` has no `ErrorBoundary`, so an unexpected throw outside
-  `/app/*` renders Remix's unstyled "Application Error".
+- ~~`app/root.tsx` has no `ErrorBoundary`~~ — fixed 2026-08-20 (`7466026`),
+  plus styled 4xx pages in the /app boundary.
 - No Prisma `connection_limit` on the Railway `DATABASE_URL`; `new
   PrismaClient()` sizes its pool from the *host's* core count inside a
   container.
