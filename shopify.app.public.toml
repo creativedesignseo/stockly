@@ -85,18 +85,18 @@ api_version = "2025-01"
   # the experiment — if `shopify app deploy --config=piro` succeeds, the
   # hypothesis holds; if it fails with the same error, revert and find the
   # request flow elsewhere.
-  # DISABLED on the PUBLIC app (2026-08-11). A brand-new public app has no
-  # protected-customer-data approval, and Shopify refuses to create a version
-  # while it subscribes to a protected topic:
-  #   "This app is not approved to subscribe to webhook topics containing
-  #    protected customer data."
-  # NOTE the difference from the Piro CUSTOM app, where the grant comes from
-  # merchant consent at install. A PUBLIC app must request protected customer
-  # data formally — it is part of the App Store submission. Re-enable this
-  # block once that approval lands, then redeploy.
-  # [[webhooks.subscriptions]]
-  # uri = "/webhooks/customers/update"
-  # topics = [ "customers/update" ]
+  # RE-ENABLED on the PUBLIC app 2026-08-21. It was disabled on 2026-08-11
+  # because a brand-new public app had no protected-customer-data approval and
+  # Shopify refused to create a version while it subscribed to a protected
+  # topic ("This app is not approved to subscribe to webhook topics containing
+  # protected customer data"). That approval landed with the App Store
+  # approval on 2026-08-21 — Partners → API access requests now reads
+  # "Protected customer data access: Approved, Aug 21, 2026" — so the
+  # subscription is legal again. No scope change: it rides on the
+  # already-granted write_customers, so no re-consent on installed shops.
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/update"
+  topics = [ "customers/update" ]
 
 # orders/paid webhook (ADR-004 FPQ qualification) is intentionally
 # NOT registered here yet. Shopify treats every orders/* topic as
