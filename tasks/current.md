@@ -4,23 +4,18 @@
 > Older completed tasks live in `progress/`. Strategic plan lives in
 > `ROADMAP.md`. Operational truth lives in `HANDOFF.md`.
 
-**Last updated:** 2026-08-20 — **📩 VERDICT: CHANGES REQUESTED (ref 129441), and both issues are already FIXED AND DEPLOYED (`7466026`).** Issue 1 (1.2.2): billing `returnUrl` sent the merchant outside the admin after approving — now the documented `admin.shopify.com/...` pattern. Issue 2 (2.1.1): zombie "Unsaved changes" bar after creating a volume pricing rule (+ dead Delete via `window.confirm`) — fixed via `useManagedSaveBar` in all six forms + Polaris confirm Modals. `verify.sh` green (159 app tests), adversarial 3-agent review passed. **Deadline: respond before 2026-09-03 or the submission is paused.**
+**Last updated:** 2026-08-21 — **📩 VERDICT: CHANGES REQUESTED (ref 129441), and both issues are already FIXED AND DEPLOYED (`7466026`).** Issue 1 (1.2.2): billing `returnUrl` sent the merchant outside the admin after approving — now the documented `admin.shopify.com/...` pattern. Issue 2 (2.1.1): zombie "Unsaved changes" bar after creating a volume pricing rule (+ dead Delete via `window.confirm`) — fixed via `useManagedSaveBar` in all six forms + Polaris confirm Modals. `verify.sh` green (159 app tests), adversarial 3-agent review passed. **Deadline: respond before 2026-09-03 or the submission is paused.**
 
-## P0 — Close the review loop (human steps, ~15 min)
+## P0 — ✅ DONE 2026-08-21: corrections resubmitted. Waiting on Shopify again.
 
-1. **Record the proof-of-resolution screencast** on
-   `adspubli-wholesale-test` — the exact 90-second script is in
-   `progress/2026-08-20-reviewer-response-drafts.md`. Upload unlisted to
-   YouTube.
-2. **Mark both issues resolved** in Partner Dashboard → Revisión App
-   Store → Ver comentarios ("Show resolved state" + the screencast URL +
-   the drafted English responses in the same file).
-3. **Press "Enviar correcciones"** (resubmit).
-
-Also verify while recording: after approving the (test) subscription you
-land back INSIDE the app on Billing with "Current plan" visible, and after
-saving a volume pricing rule the "Unsaved changes" bar is gone and admin
-navigation works.
+Both issues marked resolved with proof screencasts (billing:
+youtu.be/IHVh0XtPukM · volume pricing: youtu.be/W_eAWPeotpY, unlisted) and
+"Submit fixes" pressed — status "In review / We're reviewing your
+response". The recordings also verified both fixes against production:
+test charge shown (BILLING_TEST_SHOPS allowlist), approving returned
+inside the app with "Current plan", volume pricing create→save→delete ran
+clean (no stuck bar, working delete Modal). Nothing to do until Shopify
+answers at `info@adspubli.com`.
 
 **Still frozen while a reviewer is active:**
 

@@ -3,18 +3,28 @@
 > Read this first if you're starting a fresh session on Stockly.
 > Single source of truth for current state + resume instructions.
 
-> **Where this project stands, in one paragraph.** Shopify's verdict arrived
-> 2026-08-20: **changes requested**, two issues, both screencasted by the
-> reviewer, **14-day deadline (2026-09-03)**. Both root causes were identified
-> from the reviewer's own screencasts plus the shipped App Bridge source, fixed,
-> adversarially re-reviewed, and deployed the same day (`7466026`). What remains
-> is human-only: record the proof-of-resolution screencast on the test store,
-> mark both issues resolved in the Partner Dashboard, and press "Enviar
-> correcciones". The reviewer's billing session also retired an old fear: they
-> APPROVED a test charge (activated 15:26, cancelled 16:34) — the greyed-out
-> "Aprobar" button never blocked them.
+> **Where this project stands, in one paragraph.** Shopify requested changes on
+> 2026-08-20 (two issues, both screencasted by the reviewer) and the corrections
+> were **resubmitted on 2026-08-21** — status "In review / We're reviewing your
+> response", 13 days ahead of the 2026-09-03 deadline. Both root causes were
+> identified from the reviewer's own screencasts plus the shipped App Bridge
+> source, fixed, adversarially re-reviewed, deployed (`7466026`, `e70c406`), and
+> proven in production by the proof screencasts recorded on the test store.
+> Nothing is pending on our side; the wait is Shopify's again. Post-approval
+> items stay parked: rotate the client secret, reinstall Piro.
 
-**Last updated:** 2026-08-20 — **🔧 REVIEWER FEEDBACK FIXED AND DEPLOYED. Two
+**Last updated:** 2026-08-21 — **📤 CORRECTIONS RESUBMITTED. Both issues marked
+resolved in the Partner Dashboard with proof screencasts recorded on
+`adspubli-wholesale-test` (billing: youtu.be/IHVh0XtPukM · volume pricing:
+youtu.be/W_eAWPeotpY, both unlisted), and "Submit fixes" pressed — status is
+now "In review / We're reviewing your response". The recordings double as
+production verification of both fixes: the approval page showed a TEST charge
+(new `BILLING_TEST_SHOPS` allowlist, deployed same day), approving returned
+INSIDE the app with "Current plan" visible, and the volume-pricing
+create→save→delete flow ran with no stuck save bar and a working delete
+Modal. Visibility stays LIMITED — "Make fully visible" untouched.**
+
+Prior 2026-08-20 — **🔧 REVIEWER FEEDBACK FIXED AND DEPLOYED. Two
 issues (ref 129441): (1.2.2) after approving the subscription the merchant
 landed OUTSIDE the admin — the `returnUrl` pointed at our host; now the
 documented `admin.shopify.com/store/{handle}/apps/{client-id}/app/billing`
